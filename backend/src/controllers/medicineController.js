@@ -1,6 +1,6 @@
-import Medicine from "/models/Medicine.js";
+import Medicine from "../models/medicine.js";
 
-// Get all medicines
+// GET all medicines
 export const getAllMedicines = async (req, res) => {
   try {
     const meds = await Medicine.find();
@@ -10,7 +10,7 @@ export const getAllMedicines = async (req, res) => {
   }
 };
 
-// Create new medicine
+// CREATE new medicine
 export const createMedicine = async (req, res) => {
   try {
     const newMed = new Medicine(req.body);
@@ -21,7 +21,7 @@ export const createMedicine = async (req, res) => {
   }
 };
 
-// Update medicine (e.g., stock, price)
+// UPDATE medicine
 export const updateMedicine = async (req, res) => {
   try {
     const med = await Medicine.findByIdAndUpdate(req.params.id, req.body, {
@@ -33,7 +33,7 @@ export const updateMedicine = async (req, res) => {
   }
 };
 
-// Delete medicine
+// DELETE medicine
 export const deleteMedicine = async (req, res) => {
   try {
     await Medicine.findByIdAndDelete(req.params.id);
