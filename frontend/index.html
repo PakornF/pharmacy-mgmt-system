@@ -4,20 +4,57 @@
   <meta charset="UTF-8">
   <title>Pharmacy System</title>
   <script defer src="script.js"></script>
-
-  <!-- Optional: Tailwind CDN -->
+  <!-- Optional: Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="p-10">
 
   <h1 class="text-2xl font-bold mb-4">Pharmacy Management System</h1>
 
-  <!-- The button appears HERE -->
+  <!-- Get Medicines Button -->
   <button id="getMedicinesBtn"
     class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">
     Get Medicines
   </button>
 
+  <!-- Add Medicine Button -->
+  <button id="addMedicineBtn"
+    class="px-4 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 ml-4">
+    Add Medicine
+  </button>
+
+  <!-- Modal for Adding Medicine (Hidden initially) -->
+  <div id="addMedicineForm" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
+      <h2 class="text-xl font-bold mb-4">Add New Medicine</h2>
+      <form id="medicineForm">
+        <div class="mb-2">
+          <label for="name" class="block">Name</label>
+          <input type="text" id="name" class="w-full p-2 border rounded" required />
+        </div>
+        <div class="mb-2">
+          <label for="price" class="block">Price</label>
+          <input type="number" id="price" class="w-full p-2 border rounded" required />
+        </div>
+        <div class="mb-2">
+          <label for="quantity" class="block">Quantity</label>
+          <input type="number" id="quantity" class="w-full p-2 border rounded" required />
+        </div>
+        <div class="mb-2">
+          <label for="expiry_date" class="block">Expiry Date</label>
+          <input type="date" id="expiry_date" class="w-full p-2 border rounded" required />
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">
+          Add Medicine
+        </button>
+        <button type="button" id="closeForm" class="ml-4 px-4 py-2 bg-gray-500 text-white rounded-lg">
+          Cancel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Output Area -->
   <pre id="output" class="mt-4 bg-gray-100 p-4 rounded"></pre>
 
 </body>
