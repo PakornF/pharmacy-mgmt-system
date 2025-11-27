@@ -6,18 +6,42 @@ export const getAllMedicines = async (req, res) => {
     const meds = await Medicine.find();
     res.status(200).json(meds);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching medicines", error });
+    res.status(500).json({ message: "Error fetching medicines", error: error.message });
   }
 };
 
 // CREATE new medicine
 export const createMedicine = async (req, res) => {
   try {
-    const newMed = new Medicine(req.body);
+    const {
+      medicine_id,
+      name,
+      brand,
+      type,
+      price,
+      quantity,
+      supplier_id,
+    } = req.body;
+
+    if (!medicine_id || !name || !brand || !type || price == null || quantity == null || supplier_id == null) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const newMed = new Medicine({
+      medicine_id,
+      name,
+      brand,
+      type,
+      price,
+      quantity,
+      supplier_id,
+    });
+
     await newMed.save();
     res.status(201).json(newMed);
   } catch (error) {
-    res.status(400).json({ message: "Error creating medicine", error });
+    console.error("Error creating medicine:", error);
+    res.status(400).json({ message: "Error creating medicine", error: error.message });
   }
 };
 
