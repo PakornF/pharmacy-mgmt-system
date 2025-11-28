@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Supply Order</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="supply-order.js"></script>
+</head>
+<body class="bg-[#fde4f1] min-h-screen">
+  <div class="max-w-6xl mx-auto py-8 px-6">
+    <h1 class="text-3xl font-semibold mb-6">Supply Order</h1>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <!-- LEFT: Order list -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">Supply Orders</h2>
+          <button
+            id="newOrderBtn"
+            class="px-3 py-1 text-sm bg-pink-500 text-white rounded-xl"
+          >
+            + New Order
+          </button>
+        </div>
+
+        <div class="max-h-80 overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b bg-white">
+                <th class="py-2 px-2 text-left w-1/5">Order ID</th>
+                <th class="py-2 px-2 text-left w-1/5">Supplier</th>
+                <th class="py-2 px-2 text-left w-1/5">Status</th>
+                <th class="py-2 px-2 text-left w-1/5">Date</th>
+                <th class="py-2 px-2 text-right w-1/5">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orderTableBody" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: Order form -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <h2 class="font-semibold mb-3" id="orderFormTitle">New Supply Order</h2>
+
+        <form id="orderForm" class="space-y-3">
+          <input type="hidden" id="orderIdInput" />
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Supplier <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="orderSupplierSelect"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              required
+            >
+              <option value="">Select supplier...</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">Status</label>
+              <input
+                id="orderStatusDisplay"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50"
+                value="pending"
+                disabled
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Created At</label>
+              <input
+                id="orderDateDisplay"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50"
+                disabled
+              />
+            </div>
+          </div>
+
+          <!-- Items table -->
+          <div class="border rounded-2xl p-3 bg-white/80">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-medium text-sm">Order Items</span>
+              <span id="orderItemsSummary" class="text-xs text-gray-500">
+                No items.
+              </span>
+            </div>
+
+            <div class="max-h-48 overflow-y-auto mb-3">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b bg-white">
+                    <th class="py-1 px-2 text-left w-2/5">Medicine</th>
+                    <th class="py-1 px-2 text-right w-1/6">Qty</th>
+                    <th class="py-1 px-2 text-center w-1/6">Unit</th>
+                    <th class="py-1 px-2 text-right w-1/6">Current Stock</th>
+                    <th class="py-1 px-2 text-right w-1/6"></th>
+                  </tr>
+                </thead>
+                <tbody id="orderItemsBody" class="divide-y"></tbody>
+              </table>
+            </div>
+
+            <!-- Add item row -->
+            <div class="grid grid-cols-12 gap-2 items-center">
+              <div class="col-span-6">
+                <select
+                  id="itemMedicineSelect"
+                  class="w-full border rounded-xl px-2 py-1 text-sm"
+                >
+                  <option value="">Select medicine...</option>
+                </select>
+              </div>
+              <div class="col-span-3">
+                <select
+                id="itemUnitSelect"
+                class="w-full border rounded-xl px-2 py-1 text-sm"
+                >
+                    <option value="">Select unit...</option>
+                    <option value="tablet">Tablet(s)</option>
+                    <option value="capsule">Capsule(s)</option>
+                    <option value="box">Box(es)</option>
+                    <option value="bottle">Bottle(s)</option>
+                    <option value="tube">Tube(s)</option>
+                    <option value="blister pack">Blister pack(s)</option>
+                </select>
+              </div>
+              <div class="col-span-3">
+                <input
+                  id="itemQtyInput"
+                  type="number"
+                  min="1"
+                  class="w-full border rounded-xl px-2 py-1 text-sm text-right"
+                  placeholder="Qty"
+                />
+              </div>
+              <div class="col-span-12 md:col-span-12 text-right md:text-right mt-2 md:mt-0">
+                <button
+                  type="button"
+                  id="addItemBtn"
+                  class="px-3 py-1 text-xs bg-pink-500 text-white rounded-xl"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              id="resetOrderBtn"
+              class="px-3 py-1 text-sm border rounded-xl"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-1.5 text-sm bg-pink-500 text-white rounded-xl"
+            >
+              Save Order
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Medicines stock preview (after orders delivered) -->
+    <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold">Current Medicine Stock (Mock)</h2>
+        <p class="text-xs text-gray-500">
+          Updated when marking order as delivered
+        </p>
+      </div>
+      <div class="max-h-64 overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-white">
+              <th class="py-2 px-2 text-left w-1/4">Name</th>
+              <th class="py-2 px-2 text-left w-1/4">Supplier</th>
+              <th class="py-2 px-2 text-right w-1/4">Unit Price</th>
+              <th class="py-2 px-2 text-right w-1/4">Stock</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
