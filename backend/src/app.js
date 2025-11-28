@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./config/db.js";
 import medicineRoutes from "./routes/medicineRoutes.js";
+import customerRoutes from "./routes/customerRoutes.js";
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ connectDB();
 
 // Routes
 app.use("/medicines", medicineRoutes);
+app.use("/customers", customerRoutes);
 
 app.get("/", (req, res) => {
   res.send("Pharmacy Management System API, backend is running...");
