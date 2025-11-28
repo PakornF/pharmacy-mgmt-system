@@ -23,7 +23,6 @@
           placeholder="Search by name or brand..."
           class="w-full border rounded-xl px-3 py-2 mb-2"
         />
-        <!-- แสดงว่ายาที่เลือกอยู่ตอนนี้ -->
         <p id="selectedSummary" class="text-xs text-gray-500 mb-2">
           Selected medicines: none
         </p>
@@ -32,7 +31,7 @@
             <thead>
               <tr class="border-b">
                 <th class="text-left py-1">Name</th>
-                <th class="text-right py-1">Price</th>
+                <th class="text-right py-1">Price / Unit</th>
                 <th class="text-right py-1">Stock</th>
                 <th class="text-center py-1">Select</th>
               </tr>
@@ -67,6 +66,7 @@
                 <th class="text-left py-1">Name</th>
                 <th class="text-right py-1">Price</th>
                 <th class="text-center py-1">Qty</th>
+                <th class="text-center py-1">Unit</th>
                 <th class="text-right py-1">Total</th>
                 <th class="text-center py-1"></th>
               </tr>
@@ -94,16 +94,16 @@
       <h2 class="font-semibold mb-3">Recent Sales</h2>
       <div class="max-h-64 overflow-y-auto">
         <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b bg-white">
-                  <th class="py-2 px-2 text-left w-1/5">Date</th>
-                  <th class="py-2 px-2 text-left w-1/5">Customer</th>
-                  <th class="py-2 px-2 text-right w-1/5">Total</th>
-                  <th class="py-2 px-2 text-center w-1/5">Items</th>
-                  <th class="py-2 px-2 text-left w-1/5">Medicines</th>
-                </tr>
-              </thead>
-              <tbody id="salesHistory" class="divide-y"></tbody>
+          <thead>
+            <tr class="border-b bg-white">
+              <th class="py-2 px-2 text-left w-1/5">Date</th>
+              <th class="py-2 px-2 text-left w-1/5">Customer</th>
+              <th class="py-2 px-2 text-right w-1/5">Total</th>
+              <th class="py-2 px-2 text-center w-1/5">Items</th>
+              <th class="py-2 px-2 text-left w-1/5">Medicines</th>
+            </tr>
+          </thead>
+          <tbody id="salesHistory" class="divide-y"></tbody>
         </table>
       </div>
     </div>
