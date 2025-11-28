@@ -6,7 +6,7 @@
   <script defer src="dashboard.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-[#fce4ec] min-h-screen">
   <div class="flex min-h-screen">
 
     <!-- Sidebar -->
@@ -176,17 +176,20 @@
 
         <!-- PAGE: Medicine -->
         <section data-page="medicine" class="hidden">
-          <iframe 
-            src="Medicine_Management.html" 
-            class="w-full h-screen border-0"
-            style="min-height: calc(100vh - 100px);"
-          ></iframe>
+            <iframe 
+                src="Medicine_Management.html" 
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
         </section>
 
         <!-- PAGE: Sales -->
         <section data-page="sales" class="hidden">
-          <h1 class="text-3xl font-bold mb-6">Sales</h1>
-          <p class="text-gray-600">Sales page content goes here.</p>
+            <iframe 
+                src="sales.html"
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
         </section>
 
         <!-- PAGE: Customer -->
