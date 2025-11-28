@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 
-const customerSchema = new mongoose.Schema(
-  {
-    fullName: { type: String, required: true, trim: true },
-    contact: { type: String, trim: true },
-    gender: { type: String, trim: true },
-    dateOfBirth: { type: Date },
-  },
-  { timestamps: true }
-);
+const CustomerSchema = new mongoose.Schema({
+  customer_id: { type: Number, required: true, unique: true },
+  full_name: { type: String, required: true },
+  contact: { type: String, required: true },
+  gender: { type: String, required: true },
+  day_of_birth: { type: Date, required: true }
+});
 
-export default mongoose.model("Customer", customerSchema);
+export default mongoose.model("Customer", CustomerSchema);
