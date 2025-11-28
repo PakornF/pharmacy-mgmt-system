@@ -1,10 +1,15 @@
 import mongoose from "mongoose";
 
-const MedicineSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  price: { type: Number, required: true },
-  quantity: { type: Number, required: true },
-  expiry_date: { type: Date, required: true }
-});
+const medicineSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    brand: { type: String, trim: true },
+    type: { type: String, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    quantity: { type: Number, required: true, min: 0 },
+    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model("Medicine", MedicineSchema);
+export default mongoose.model("Medicine", medicineSchema);
