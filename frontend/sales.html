@@ -1,0 +1,112 @@
+<!-- frontend/sales.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sales - Pharmacy Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="sales.js"></script>
+</head>
+<body class="bg-[#fde4f1] min-h-screen">
+  <div class="max-w-6xl mx-auto py-8 px-6">
+    <h1 class="text-3xl font-semibold mb-6">Sales / Billing</h1>
+
+    <!-- Search + Add to bill -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <!-- Search Medicine -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <h2 class="font-semibold mb-3">Search Medicine</h2>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search by name or brand..."
+          class="w-full border rounded-xl px-3 py-2 mb-2"
+        />
+        <!-- แสดงว่ายาที่เลือกอยู่ตอนนี้ -->
+        <p id="selectedSummary" class="text-xs text-gray-500 mb-2">
+          Selected medicines: none
+        </p>
+        <div class="max-h-64 overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left py-1">Name</th>
+                <th class="text-right py-1">Price</th>
+                <th class="text-right py-1">Stock</th>
+                <th class="text-center py-1">Select</th>
+              </tr>
+            </thead>
+            <tbody id="searchResults"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Current Bill -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <h2 class="font-semibold mb-3">Current Bill</h2>
+
+        <div class="mb-3">
+          <label class="text-sm font-medium">
+            Customer Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="customerName"
+            type="text"
+            class="w-full border rounded-xl px-3 py-2 mt-1"
+          />
+          <p id="customerError" class="text-xs text-red-500 mt-1 hidden">
+            Please enter customer name.
+          </p>
+        </div>
+
+        <div class="max-h-64 overflow-y-auto mb-3">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left py-1">Name</th>
+                <th class="text-right py-1">Price</th>
+                <th class="text-center py-1">Qty</th>
+                <th class="text-right py-1">Total</th>
+                <th class="text-center py-1"></th>
+              </tr>
+            </thead>
+            <tbody id="billItems"></tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold">Total:</span>
+          <span id="grandTotal" class="font-bold text-xl">0.00</span>
+        </div>
+
+        <button
+          id="submitSaleBtn"
+          class="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-xl"
+        >
+          Confirm Sale &amp; Print
+        </button>
+      </div>
+    </div>
+
+    <!-- Sales History -->
+    <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+      <h2 class="font-semibold mb-3">Recent Sales</h2>
+      <div class="max-h-64 overflow-y-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b bg-white">
+                  <th class="py-2 px-2 text-left w-1/5">Date</th>
+                  <th class="py-2 px-2 text-left w-1/5">Customer</th>
+                  <th class="py-2 px-2 text-right w-1/5">Total</th>
+                  <th class="py-2 px-2 text-center w-1/5">Items</th>
+                  <th class="py-2 px-2 text-left w-1/5">Medicines</th>
+                </tr>
+              </thead>
+              <tbody id="salesHistory" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
