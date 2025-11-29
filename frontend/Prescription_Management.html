@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prescription Management System - Pharmacy Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    body {
+      background-color: #fce4ec;
+    }
+    .prescription-card {
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+      border-left: 4px solid #ffffff;
+    }
+    .btn-primary {
+      background-color: #f48fb1;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #f06292;
+    }
+    .btn-danger {
+      background-color: #ad1457;
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #880e4f;
+    }
+    .btn-secondary {
+      background-color: #f8bbd0;
+      color: #ad1457;
+    }
+    .btn-secondary:hover {
+      background-color: #f48fb1;
+      color: white;
+    }
+    .btn-success {
+      background-color: #4caf50;
+      color: white;
+    }
+    .btn-success:hover {
+      background-color: #45a049;
+    }
+    .status-complete {
+      background-color: #4caf50;
+      color: white;
+    }
+    .status-incomplete {
+      background-color: #f06292;
+      color: white;
+    }
+    .autocomplete-dropdown {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .autocomplete-option:hover {
+      background-color: #fce4ec;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold mb-2" style="color: #ad1457;">Prescription Management System</h1>
+      <p class="text-gray-600">Manage prescriptions: add, view, and track prescription status</p>
+    </div>
+
+    <!-- Search and Add Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Search Input -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Search Prescription</label>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search by customer name..."
+            class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+            style="border-color: #f8bbd0;"
+          />
+        </div>
+        
+        <!-- Add Prescription Button -->
+        <div class="flex items-end">
+          <button 
+            id="addPrescriptionBtn"
+            class="w-full px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all btn-primary"
+          >
+            + Add New Prescription
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prescription List -->
+    <div id="prescriptionList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Prescription cards will be inserted here -->
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="hidden text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style="border-color: #f48fb1;"></div>
+      <p class="mt-4" style="color: #ad1457;">Loading...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-12">
+      <p class="text-xl" style="color: #ad1457;">No prescriptions found</p>
+    </div>
+  </div>
+
+  <!-- Add/Edit Prescription Modal -->
+  <div id="prescriptionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+      <div class="p-6 rounded-t-lg" style="background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%);">
+        <h2 id="modalTitle" class="text-2xl font-bold text-white">Add New Prescription</h2>
+      </div>
+      <form id="prescriptionForm" class="p-6">
+        <input type="hidden" id="prescriptionMongoId" />
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Prescription ID *</label>
+            <input 
+              type="number" 
+              id="prescription_id" 
+              required
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              style="border-color: #f8bbd0;"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Issue Date *</label>
+            <input 
+              type="text" 
+              id="issue_date" 
+              required
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              style="border-color: #f8bbd0;"
+              placeholder="Select date"
+            />
+          </div>
+          
+          <div class="relative">
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Doctor *</label>
+            <input 
+              type="text" 
+              id="doctor_search" 
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              style="border-color: #f8bbd0;"
+              placeholder="Search doctor by name..."
+              autocomplete="off"
+            />
+            <input type="hidden" id="doctor_id" required />
+            <div id="doctor_dropdown" class="hidden absolute z-10 w-full mt-1 bg-white border-2 rounded-lg shadow-lg autocomplete-dropdown" style="border-color: #f8bbd0;"></div>
+          </div>
+          
+          <div class="relative">
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Customer *</label>
+            <input 
+              type="text" 
+              id="customer_search" 
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              style="border-color: #f8bbd0;"
+              placeholder="Search customer by name..."
+              autocomplete="off"
+            />
+            <input type="hidden" id="customer_id" required />
+            <div id="customer_dropdown" class="hidden absolute z-10 w-full mt-1 bg-white border-2 rounded-lg shadow-lg autocomplete-dropdown" style="border-color: #f8bbd0;"></div>
+          </div>
+          
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Notes</label>
+            <textarea 
+              id="notes" 
+              rows="3"
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              style="border-color: #f8bbd0;"
+              placeholder="Additional notes..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Prescription Items Section -->
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold" style="color: #ad1457;">Prescription Items</h3>
+            <button 
+              type="button"
+              id="addItemBtn"
+              class="px-4 py-2 rounded-lg text-sm font-semibold btn-secondary"
+            >
+              + Add Medicine
+            </button>
+          </div>
+          
+          <div id="itemsList" class="space-y-3">
+            <!-- Items will be inserted here -->
+          </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            type="button" 
+            id="closeModal"
+            class="px-6 py-2 rounded-lg font-semibold btn-secondary"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit"
+            class="px-6 py-2 rounded-lg font-semibold shadow-md btn-primary"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Prescription Details Modal -->
+  <div id="viewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+      <div class="p-6 rounded-t-lg" style="background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%);">
+        <h2 class="text-2xl font-bold text-white">Prescription Details</h2>
+      </div>
+      <div class="p-6">
+        <div id="prescriptionDetails">
+          <!-- Details will be inserted here -->
+        </div>
+        
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            type="button" 
+            id="closeViewModal"
+            class="px-6 py-2 rounded-lg font-semibold btn-secondary"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Update Modal -->
+  <div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-md m-4">
+      <div class="p-6 rounded-t-lg" style="background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%);">
+        <h2 class="text-2xl font-bold text-white">Update Status</h2>
+      </div>
+      <div class="p-6">
+        <p class="mb-4 text-gray-700">
+          Prescription #<strong id="statusPrescriptionId" style="color: #ad1457;"></strong>
+        </p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Status *</label>
+          <select 
+            id="statusSelect"
+            class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+            style="border-color: #f8bbd0;"
+          >
+            <option value="incomplete">Not Complete</option>
+            <option value="complete">Complete</option>
+          </select>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button 
+            type="button" 
+            id="closeStatusModal"
+            class="px-6 py-2 rounded-lg font-semibold btn-secondary"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button"
+            id="updateStatusBtn"
+            class="px-6 py-2 rounded-lg font-semibold shadow-md btn-primary"
+          >
+            Update
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="Prescription_Management.js"></script>
+</body>
+</html>
+
