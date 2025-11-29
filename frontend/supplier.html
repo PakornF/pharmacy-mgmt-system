@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Supplier Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="supplier.js"></script>
+</head>
+<body class="bg-[#fde4f1] min-h-screen">
+  <div class="max-w-6xl mx-auto py-8 px-6">
+    <h1 class="text-3xl font-semibold mb-6">Supplier Management</h1>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <!-- LEFT: Supplier list -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">Suppliers</h2>
+          <button
+            id="addSupplierBtn"
+            class="px-3 py-1 text-sm bg-pink-500 text-white rounded-xl"
+          >
+            + Add Supplier
+          </button>
+        </div>
+
+        <input
+          id="supplierSearchInput"
+          type="text"
+          placeholder="Search supplier by name or contact..."
+          class="w-full border rounded-xl px-3 py-2 mb-3 text-sm"
+        />
+
+        <div class="max-h-72 overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b bg-white">
+                <th class="py-2 px-2 text-left w-1/4">Name</th>
+                <th class="py-2 px-2 text-left w-1/4">Contact</th>
+                <th class="py-2 px-2 text-left w-1/4">Phone</th>
+                <th class="py-2 px-2 text-right w-1/4">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTableBody" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: Supplier form -->
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <h2 class="font-semibold mb-3" id="formTitle">Add Supplier</h2>
+
+        <form id="supplierForm" class="space-y-3">
+          <input type="hidden" id="supplierId" />
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Supplier Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="supplierNameInput"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Contact Person <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="contactNameInput"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Phone <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="phoneInput"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Email <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="emailInput"
+                type="email"
+                class="w-full border rounded-xl px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Address <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              id="addressInput"
+              rows="2"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              required
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Notes</label>
+            <textarea
+              id="notesInput"
+              rows="2"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              id="cancelEditBtn"
+              class="px-3 py-1 text-sm border rounded-xl"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-1.5 text-sm bg-pink-500 text-white rounded-xl"
+            >
+              Save Supplier
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Medicines of selected supplier -->
+    <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold">
+          Medicines from this supplier
+        </h2>
+        <p id="selectedSupplierLabel" class="text-sm text-gray-500">
+          No supplier selected
+        </p>
+      </div>
+      <div class="max-h-64 overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-white">
+              <th class="py-2 px-2 text-left w-1/4">Name</th>
+              <th class="py-2 px-2 text-left w-1/4">Brand</th>
+              <th class="py-2 px-2 text-right w-1/4">Price / Unit</th>
+              <th class="py-2 px-2 text-right w-1/4">Stock</th>
+            </tr>
+          </thead>
+          <tbody id="supplierMedicinesBody" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
