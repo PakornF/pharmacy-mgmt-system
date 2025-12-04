@@ -117,14 +117,21 @@ function handleSearch() {
 function applyFilters() {
   let filtered = [...allCustomers];
   
-  // Search filter
+  // Search filter (search in full_name, first_name, last_name, contact, and customer_id)
   const searchTerm = searchInput.value.toLowerCase().trim();
   if (searchTerm) {
-    filtered = filtered.filter(customer => 
-      customer.full_name.toLowerCase().includes(searchTerm) ||
-      customer.contact.toLowerCase().includes(searchTerm) ||
-      customer.customer_id.toString().includes(searchTerm)
-    );
+    filtered = filtered.filter(customer => {
+      const fullName = customer.full_name ? customer.full_name.toLowerCase() : '';
+      const nameParts = fullName.split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      return fullName.includes(searchTerm) ||
+             firstName.includes(searchTerm) ||
+             lastName.includes(searchTerm) ||
+             customer.contact.toLowerCase().includes(searchTerm) ||
+             customer.customer_id.toString().includes(searchTerm);
+    });
   }
   
   filteredCustomers = filtered;
@@ -269,7 +276,14 @@ function openCustomerModal(customer = null) {
     document.getElementById('customerMongoId').value = customer._id;
     document.getElementById('customer_id').value = customer.customer_id;
     document.getElementById('customer_id').disabled = true; // Don't allow editing ID
-    document.getElementById('full_name').value = customer.full_name;
+    
+    // Split full_name into first_name and last_name
+    const nameParts = customer.full_name ? customer.full_name.trim().split(/\s+/) : ['', ''];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    document.getElementById('first_name').value = firstName;
+    document.getElementById('last_name').value = lastName;
+    
     document.getElementById('contact').value = customer.contact;
     document.getElementById('gender').value = customer.gender;
     
@@ -475,9 +489,11 @@ async function handleFormSubmit(e) {
   e.preventDefault();
   
   const mongoId = document.getElementById('customerMongoId').value;
+  const firstName = document.getElementById('first_name').value.trim();
+  const lastName = document.getElementById('last_name').value.trim();
   const customerData = {
     customer_id: parseInt(document.getElementById('customer_id').value),
-    full_name: document.getElementById('full_name').value,
+    full_name: `${firstName} ${lastName}`.trim(),
     contact: document.getElementById('contact').value,
     gender: document.getElementById('gender').value,
     day_of_birth: document.getElementById('day_of_birth').value,
