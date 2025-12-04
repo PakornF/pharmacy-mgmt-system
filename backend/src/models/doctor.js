@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
 
-const doctorSchema = new mongoose.Schema(
-  {
-    fullName: { type: String, required: true, trim: true },
-    licenseNo: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
+const DoctorSchema = new mongoose.Schema({
+  doctor_id: { type: Number, required: true, unique: true },
+  doctor_first_name: { type: String, required: true },
+  doctor_last_name: { type: String, required: true },
+  license_no: { type: Number, required: true }
+});
 
-export default mongoose.model("Doctor", doctorSchema);
+export default mongoose.model("Doctor", DoctorSchema);

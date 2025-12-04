@@ -1,68 +1,169 @@
+// backend/src/controllers/medicineController.js
 import Medicine from "../models/medicine.js";
 
-// GET all medicines
+const REQUIRED_FIELDS = [
+  "medicine_id",
+  "name",
+  "brand",
+  "type",
+  "price",
+  "quantity",
+  "supplier_id",
+];
+
+// Validate request body has all required fields
+const validateMedicineBody = (body) => {
+  const missing = REQUIRED_FIELDS.filter(
+    (field) => body[field] === undefined || body[field] === null || body[field] === ""
+  );
+  return missing;
+};
+
+// GET /medicines  – get all medicines
 export const getAllMedicines = async (req, res) => {
   try {
-    const meds = await Medicine.find();
+    const meds = await Medicine.find().sort({ name: 1 });
     res.status(200).json(meds);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching medicines", error: error.message });
+    console.error("Error fetching medicines:", error);
+    res.status(500).json({
+      message: "Error fetching medicines",
+      error: error.message,
+    });
   }
 };
 
-// CREATE new medicine
+// GET /medicines/:id – get one medicine by MongoDB _id
+export const getMedicineById = async (req, res) => {
+  try {
+    const med = await Medicine.findById(req.params.id);
+    if (!med) {
+      return res.status(404).json({ message: "Medicine not found" });
+    }
+    res.status(200).json(med);
+  } catch (error) {
+    console.error("Error fetching medicine:", error);
+    res.status(400).json({
+      message: "Error fetching medicine",
+      error: error.message,
+    });
+  }
+};
+
+// (optional) GET /medicines/code/:medicine_id – find by business PK
+export const getMedicineByCode = async (req, res) => {
+  try {
+    const med = await Medicine.findOne({ medicine_id: req.params.medicine_id });
+    if (!med) {
+      return res.status(404).json({ message: "Medicine not found" });
+    }
+    res.status(200).json(med);
+  } catch (error) {
+    console.error("Error fetching medicine by code:", error);
+    res.status(400).json({
+      message: "Error fetching medicine by code",
+      error: error.message,
+    });
+  }
+};
+
+// POST /medicines – create new medicine
 export const createMedicine = async (req, res) => {
   try {
-    const {
-      medicine_id,
-      name,
-      brand,
-      type,
-      price,
-      quantity,
-      supplier_id,
-    } = req.body;
+    const missing = validateMedicineBody(req.body);
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        missing,
+      });
+    }
 
-    if (!medicine_id || !name || !brand || !type || price == null || quantity == null || supplier_id == null) {
-      return res.status(400).json({ message: "Missing required fields" });
+    const existing = await Medicine.findOne({
+      medicine_id: req.body.medicine_id,
+    });
+    if (existing) {
+      return res.status(409).json({
+        message: "medicine_id already exists",
+      });
     }
 
     const newMed = new Medicine({
-      medicine_id,
-      name,
-      brand,
-      type,
-      price,
-      quantity,
-      supplier_id,
+      medicine_id: req.body.medicine_id,
+      name: req.body.name,
+      brand: req.body.brand,
+      type: req.body.type,
+      price: req.body.price,
+      quantity: req.body.quantity,
+      supplier_id: req.body.supplier_id,
     });
 
-    await newMed.save();
-    res.status(201).json(newMed);
+    const saved = await newMed.save();
+    res.status(201).json(saved);
   } catch (error) {
     console.error("Error creating medicine:", error);
-    res.status(400).json({ message: "Error creating medicine", error: error.message });
+    res.status(400).json({
+      message: "Error creating medicine",
+      error: error.message,
+    });
   }
 };
 
-// UPDATE medicine
+// PUT /medicines/:id – update existing medicine by MongoDB _id
 export const updateMedicine = async (req, res) => {
   try {
-    const med = await Medicine.findByIdAndUpdate(req.params.id, req.body, {
+    const { id } = req.params;
+
+    // You can choose to validate here too; for now, partial update allowed
+    const updateData = {
+      medicine_id: req.body.medicine_id,
+      name: req.body.name,
+      brand: req.body.brand,
+      type: req.body.type,
+      price: req.body.price,
+      quantity: req.body.quantity,
+      supplier_id: req.body.supplier_id,
+    };
+
+    // Remove undefined so we don't overwrite with undefined
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    );
+
+    const updated = await Medicine.findByIdAndUpdate(id, updateData, {
       new: true,
+      runValidators: true,
     });
-    res.status(200).json(med);
+
+    if (!updated) {
+      return res.status(404).json({ message: "Medicine not found" });
+    }
+
+    res.status(200).json(updated);
   } catch (error) {
-    res.status(400).json({ message: "Error updating medicine", error });
+    console.error("Error updating medicine:", error);
+    res.status(400).json({
+      message: "Error updating medicine",
+      error: error.message,
+    });
   }
 };
 
-// DELETE medicine
+// DELETE /medicines/:id – delete medicine by MongoDB _id
 export const deleteMedicine = async (req, res) => {
   try {
-    await Medicine.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Medicine deleted" });
+    const deleted = await Medicine.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Medicine not found" });
+    }
+    res.status(200).json({
+      message: "Medicine deleted",
+      medicine: deleted,
+    });
   } catch (error) {
-    res.status(400).json({ message: "Error deleting medicine", error });
+    console.error("Error deleting medicine:", error);
+    res.status(400).json({
+      message: "Error deleting medicine",
+      error: error.message,
+    });
   }
 };
