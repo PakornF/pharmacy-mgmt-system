@@ -1,6 +1,6 @@
-import Sale from "../models/Sale.js";
-import SaleItem from "../models/SaleItem.js";
-import Medicine from "../models/Medicine.js";
+import Sale from "../models/sale.js";
+import SaleItem from "../models/saleItem.js";
+import Medicine from "../models/medicine.js";
 
 // Helper: get next integer id for a field (e.g. sale_id, sale_item_id)
 const getNextIntId = async (Model, fieldName) => {

@@ -1,5 +1,5 @@
 // backend/src/controllers/medicineController.js
-import Medicine from "../models/Medicine.js";
+import Medicine from "../models/medicine.js";
 
 const REQUIRED_FIELDS = [
   "medicine_id",
