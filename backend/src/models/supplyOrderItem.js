@@ -6,6 +6,7 @@ const SupplyOrderItemSchema = new mongoose.Schema({
   medicine_id: { type: String, required: true },
   ordered_quantity: { type: Number, required: true },
   cost_per_unit: { type: Number, required: true },
+  units_per_pack: { type: Number, required: true },
   expiry_date: { type: Date }
 });
 
