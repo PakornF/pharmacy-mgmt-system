@@ -8,6 +8,7 @@ import supplierRoutes from "./routes/supplierRoutes.js";
 import supplyOrderRoutes from "./routes/supplyOrderRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/suppliers", supplierRoutes);
 app.use("/supply-orders", supplyOrderRoutes);
 app.use("/customers", customerRoutes);
 app.use("/doctors", doctorRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
   res.send("Pharmacy Management System API, backend is running...");

@@ -1,112 +1,298 @@
-console.log("script.js loaded");
+document.addEventListener("DOMContentLoaded", () => {
+  const API_BASE = "http://localhost:8000";
 
-const output = document.getElementById("output");
+  const cardTotalMeds = document.getElementById("card-total-meds");
+  const cardTotalQty = document.getElementById("card-total-qty");
+  const cardAwaitPresc = document.getElementById("card-await-presc");
+  const cardSalesTotal = document.getElementById("card-sales-total");
+  const cardSalesCount = document.getElementById("card-sales-count");
+  const cardStatusText = document.getElementById("card-status-text");
 
-const getMedicinesbtn = document.getElementById("getMedicinesBtn");
+  const lowStockBody = document.getElementById("low-stock-body");
+  const lowStockCount = document.getElementById("low-stock-count");
 
-const addMedicineBtn = document.getElementById("addMedicineBtn");
-const addMedicineForm = document.getElementById("addMedicineForm");
-const medicineForm = document.getElementById("medicineForm");
-const closeFormBtn = document.getElementById("closeForm");
+  const expiredBody = document.getElementById("expired-body");
+  const expiredCount = document.getElementById("expired-count");
 
-const deleteMedicineBtn = document.getElementById("deleteMedicineBtn");
-const deleteMedicineForm = document.getElementById("deleteMedicineForm");
-const deleteForm = document.getElementById("deleteForm");
-const closeDeleteFormBtn = document.getElementById("closeDeleteForm");
+  const debugOutput = document.getElementById("debug-output");
 
-getMedicinesbtn.addEventListener("click", async () => {
-  console.log("Button clicked");
-  output.textContent = "Loading...";
+  async function loadDashboard() {
+    cardStatusText.textContent = "Loading data from server...";
 
-  try {
-    const res = await fetch("http://localhost:8000/medicines");
-    if (!res.ok) {
-      throw new Error("Request failed with status " + res.status);
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/summary`);
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      debugOutput.textContent = JSON.stringify(data, null, 2);
+
+      // Top cards
+      cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
+      cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
+      cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
+
+      cardSalesTotal.textContent =
+        data.todaySalesTotal != null ? `${data.todaySalesTotal.toFixed(2)} ฿` : "0 ฿";
+      cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
+
+      // Status text
+      const lowCount = data.lowStockMeds?.length || 0;
+      const expCount = data.expiredMeds?.length || 0;
+      cardStatusText.textContent =
+        `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
+
+      // Low stock table
+      renderLowStock(data.lowStockMeds || []);
+      // Expired table
+      renderExpired(data.expiredMeds || []);
+
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      cardStatusText.textContent = "Error loading dashboard: " + err.message;
+      debugOutput.textContent = err.stack || err.message;
     }
-    const data = await res.json();
-    console.log("Data received:", data);
-    output.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    console.error("Error fetching medicines:", err);
-    output.textContent = "Error: " + err.message;
   }
-});
 
-addMedicineBtn.addEventListener("click", () => {
-  addMedicineForm.classList.remove("hidden"); // Show the form
-});
+  function renderLowStock(items) {
+    lowStockBody.innerHTML = "";
+    lowStockCount.textContent = `${items.length} item(s)`;
 
-closeFormBtn.addEventListener("click", () => {
-  addMedicineForm.classList.add("hidden"); // Hide the form
-});
+    if (items.length === 0) {
+      lowStockBody.innerHTML =
+        `<tr><td colspan="4" class="py-2 text-gray-400">No low stock items 🎉</td></tr>`;
+      return;
+    }
 
-medicineForm.addEventListener("submit", async (event) => {
-  event.preventDefault(); // Prevent default form submission behavior
+    for (const med of items) {
+      const tr = document.createElement("tr");
+      tr.className = "border-b";
+
+      tr.innerHTML = `
+        <td class="py-2 pr-4">${med.medicine_id || "-"}</td>
+        <td class="py-2 pr-4">${med.name || "-"}</td>
+        <td class="py-2 pr-4">${med.brand || "-"}</td>
+        <td class="py-2 text-right">${med.quantity ?? "-"}</td>
+      `;
+      lowStockBody.appendChild(tr);
+    }
+  }
+
+  function renderExpired(items) {
+    expiredBody.innerHTML = "";
+    expiredCount.textContent = `${items.length} item(s)`;
+
+    if (items.length === 0) {
+      expiredBody.innerHTML =
+        `<tr><td colspan="4" class="py-2 text-gray-400">No expired medicines 🎉</td></tr>`;
+      return;
+    }
+
+    for (const med of items) {
+      const tr = document.createElement("tr");
+      tr.className = "border-b";
+
+      const exp = med.expiry_date
+        ? new Date(med.expiry_date).toLocaleDateString()
+        : "-";
+
+      tr.innerHTML = `
+        <td class="py-2 pr-4">${med.medicine_id || "-"}</td>
+        <td class="py-2 pr-4">${med.name || "-"}</td>
+        <td class="py-2 pr-4">${med.brand || "-"}</td>
+        <td class="py-2">${exp}</td>
+      `;
+      expiredBody.appendChild(tr);
+    }
+  }
+
+  loadDashboard();
+});
+// dashboard.js
+
+document.addEventListener("DOMContentLoaded", () => {
+    const API_BASE = "http://localhost:8000";
   
-  const medicineData = {
-    medicine_id: document.getElementById("medicine_id").value,
-    name: document.getElementById("medicine_name").value,
-    brand: document.getElementById("medicine_brand").value,
-    type: document.getElementById("medicine_type").value,
-    price: parseFloat(document.getElementById("medicine_price").value),
-    quantity: parseInt(document.getElementById("medicine_quantity").value, 10),
-    supplier_id: parseInt(document.getElementById("medicine_supplier_id").value, 10),
-  };
-
-try {
-    const res = await fetch("http://localhost:8000/medicines", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(medicineData),
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to add medicine.");
+    //-----------------------------------------
+    // 1) SIDEBAR PAGE SWITCHING
+    //-----------------------------------------
+    const links = document.querySelectorAll(".sidebar-link");
+    const pages = document.querySelectorAll("section[data-page]");
+  
+    function showPage(target) {
+      // hide all pages
+      pages.forEach((page) => {
+        if (page.dataset.page === target) {
+          page.classList.remove("hidden");
+        } else {
+          page.classList.add("hidden");
+        }
+      });
+  
+      // update active button
+      links.forEach((btn) => {
+        const isActive = btn.dataset.target === target;
+      
+        if (isActive) {
+          // ปุ่ม active = วงรีชมพู + padding ขยาย + ตัวอักษรเข้ากลางมากขึ้น
+          btn.classList.add(
+            "bg-rose-200",
+            "rounded-full",
+            "font-semibold",
+            "pl-6",               // ขยับตัวหนังสือออกจากขอบ
+            "pr-6",
+            "py-3",
+            "text-black",
+            "shadow-sm"
+          );
+        } else {
+          // ปุ่ม inactive = ตัวหนังสือธรรมดา
+          btn.classList.remove(
+            "bg-rose-200",
+            "rounded-full",
+            "font-semibold",
+            "pl-6",
+            "pr-6",
+            "py-3",
+            "text-black",
+            "shadow-sm"
+          );
+      
+          btn.classList.add("py-2", "px-1", "text-black");
+        }
+      });
+      
+      // Load dashboard only when switching to Overview
+      if (target === "overview") {
+        loadDashboard();
+      }
     }
-
-    const result = await res.json();
-    console.log("Medicine added:", result);
-    output.textContent = "Medicine added: " + JSON.stringify(result, null, 2);
-
-    // Optionally, hide the form and clear the fields
-    addMedicineForm.classList.add("hidden");
-    medicineForm.reset();
-  }
-  catch (err) {
-    console.error("Error adding medicine:", err);
-    output.textContent = "Error: " + err.message;
-  }
-});
-
-deleteMedicineBtn.addEventListener("click", () => {
-  deleteMedicineForm.classList.remove("hidden");
-});
-closeDeleteFormBtn.addEventListener("click", () => {
-  deleteMedicineForm.classList.add("hidden");
-});
-deleteForm.addEventListener("submit", async (event) => {event.preventDefault();
-  const id = document.getElementById("delete_id").value.trim();
-  if (!id) {
-    alert("Please enter a valid Medicine ID.");
-    return;
-  }
-  try {
-    const res = await fetch(`http://localhost:8000/medicines/${id}`, {
-      method: "DELETE",
+  
+    // Attach event
+    links.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.dataset.target;
+        showPage(target);
+      });
     });
-    if (!res.ok) {
-      throw new Error("Failed to delete medicine.");
+  
+    //-----------------------------------------
+    // 2) DASHBOARD DATA FETCHING (เหมือนของเดิม)
+    //-----------------------------------------
+  
+    const cardTotalMeds = document.getElementById("card-total-meds");
+    const cardTotalQty = document.getElementById("card-total-qty");
+    const cardAwaitPresc = document.getElementById("card-await-presc");
+    const cardSalesTotal = document.getElementById("card-sales-total");
+    const cardSalesCount = document.getElementById("card-sales-count");
+    const cardStatusText = document.getElementById("card-status-text");
+  
+    const lowStockBody = document.getElementById("low-stock-body");
+    const lowStockCount = document.getElementById("low-stock-count");
+  
+    const expiredBody = document.getElementById("expired-body");
+    const expiredCount = document.getElementById("expired-count");
+  
+    const debugOutput = document.getElementById("debug-output");
+  
+    async function loadDashboard() {
+      if (!cardStatusText) return; // ป้องกัน error เวลาอยู่หน้าอื่น
+  
+      cardStatusText.textContent = "Loading data from server...";
+  
+      try {
+        const res = await fetch(`${API_BASE}/dashboard/summary`);
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+  
+        const data = await res.json();
+        debugOutput.textContent = JSON.stringify(data, null, 2);
+  
+        // Top cards
+        cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
+        cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
+        cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
+  
+        cardSalesTotal.textContent =
+          data.todaySalesTotal != null
+            ? `${data.todaySalesTotal.toFixed(2)} ฿`
+            : "0 ฿";
+  
+        cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
+  
+        // Status
+        const lowCount = data.lowStockMeds?.length || 0;
+        const expCount = data.expiredMeds?.length || 0;
+        cardStatusText.textContent =
+          `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
+  
+        // Tables
+        renderLowStock(data.lowStockMeds || []);
+        renderExpired(data.expiredMeds || []);
+  
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
+        cardStatusText.textContent = "Error loading dashboard: " + err.message;
+        debugOutput.textContent = err.stack || err.message;
+      }
     }
-    const result = await res.json();
-    console.log("Medicine deleted:", result);
-    output.textContent = "Medicine deleted: " + JSON.stringify(result, null, 2);
-    deleteMedicineForm.classList.add("hidden");
-    deleteForm.reset();
-  }
-  catch (err) {
-    console.error("Error deleting medicine:", err);
-    output.textContent = "Error: " + err.message;
-  }
-});
+  
+    function renderLowStock(items) {
+      lowStockBody.innerHTML = "";
+      lowStockCount.textContent = `${items.length} item(s)`;
+  
+      if (items.length === 0) {
+        lowStockBody.innerHTML =
+          `<tr><td colspan="4" class="py-2 text-gray-400">No low stock items 🎉</td></tr>`;
+        return;
+      }
+  
+      for (const med of items) {
+        const tr = document.createElement("tr");
+        tr.className = "border-b";
+  
+        tr.innerHTML = `
+          <td class="py-2 pr-4">${med.medicine_id || "-"}</td>
+          <td class="py-2 pr-4">${med.name || "-"}</td>
+          <td class="py-2 pr-4">${med.brand || "-"}</td>
+          <td class="py-2 text-right">${med.quantity ?? "-"}</td>
+        `;
+        lowStockBody.appendChild(tr);
+      }
+    }
+  
+    function renderExpired(items) {
+      expiredBody.innerHTML = "";
+      expiredCount.textContent = `${items.length} item(s)`;
+  
+      if (items.length === 0) {
+        expiredBody.innerHTML =
+          `<tr><td colspan="4" class="py-2 text-gray-400">No expired medicines 🎉</td></tr>`;
+        return;
+      }
+  
+      for (const med of items) {
+        const tr = document.createElement("tr");
+        tr.className = "border-b";
+  
+        const exp = med.expiry_date
+          ? new Date(med.expiry_date).toLocaleDateString()
+          : "-";
+  
+        tr.innerHTML = `
+          <td class="py-2 pr-4">${med.medicine_id || "-"}</td>
+          <td class="py-2 pr-4">${med.name || "-"}</td>
+          <td class="py-2 pr-4">${med.brand || "-"}</td>
+          <td class="py-2">${exp}</td>
+        `;
+        expiredBody.appendChild(tr);
+      }
+    }
+  
+    //-----------------------------------------
+    // 3) เริ่มที่หน้า Overview
+    //-----------------------------------------
+    showPage("overview");
+  });
