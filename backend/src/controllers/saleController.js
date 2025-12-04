@@ -33,16 +33,6 @@ export const searchMedicinesForBilling = async (req, res) => {
   }
 };
 
-// 2) Create a sale (calculate price + update stock)
-// POST /sales
-// Body example:
-// {
-//   "customer_id": 1,
-//   "items": [
-//     { "medicine_id": "MED001", "quantity": 2 },
-//     { "medicine_id": "MED005", "quantity": 1 }
-//   ]
-// }
 export const createSale = async (req, res) => {
   try {
     const { customer_id, items } = req.body;
