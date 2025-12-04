@@ -8,7 +8,8 @@ const MedicineSchema = new mongoose.Schema(
   type: { type: String, required: true },
   price: { type: Number, required: true },
   quantity: { type: Number, required: true },
-  supplier_id: { type: Number, required: true }
+  supplier_id: { type: Number, required: true },
+  is_prescription_required: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
