@@ -2,13 +2,16 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./config/db.js";
+
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+
 import medicineRoutes from "./routes/medicineRoutes.js";
 import prescriptionRoutes from "./routes/prescriptionRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import supplyOrderRoutes from "./routes/supplyOrderRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
-import dashboardRoutes from "./routes/dashboardRoutes.js";
+import saleRoutes from "./routes/saleRoutes.js";
 
 dotenv.config();
 
@@ -21,13 +24,15 @@ app.use(express.json());
 connectDB();
 
 // Routes
+app.use("/dashboard", dashboardRoutes);
+
 app.use("/medicines", medicineRoutes);
 app.use("/prescriptions", prescriptionRoutes);
 app.use("/suppliers", supplierRoutes);
 app.use("/supply-orders", supplyOrderRoutes);
 app.use("/customers", customerRoutes);
 app.use("/doctors", doctorRoutes);
-app.use("/dashboard", dashboardRoutes);
+app.use("/sales", saleRoutes);
 
 app.get("/", (req, res) => {
   res.send("Pharmacy Management System API, backend is running...");
