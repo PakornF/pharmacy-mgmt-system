@@ -1,6 +1,63 @@
 document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "http://localhost:8000";
 
+  // 1) Sidebar page switching
+  const links = document.querySelectorAll(".sidebar-link");
+  const pages = document.querySelectorAll("section[data-page]");
+
+  function showPage(target) {
+    // show / hide sections
+    pages.forEach((page) => {
+      if (page.dataset.page === target) {
+        page.classList.remove("hidden");
+      } else {
+        page.classList.add("hidden");
+      }
+    });
+
+    // active button style
+    links.forEach((btn) => {
+      const isActive = btn.dataset.target === target;
+
+      if (isActive) {
+        btn.classList.add(
+          "bg-rose-200",
+          "rounded-full",
+          "font-semibold",
+          "pl-6",
+          "pr-6",
+          "py-3",
+          "text-black",
+          "shadow-sm"
+        );
+      } else {
+        btn.classList.remove(
+          "bg-rose-200",
+          "rounded-full",
+          "font-semibold",
+          "pl-6",
+          "pr-6",
+          "py-3",
+          "text-black",
+          "shadow-sm"
+        );
+        btn.classList.add("py-2", "px-1", "text-black");
+      }
+    });
+
+    if (target === "overview") {
+      loadDashboard();
+    }
+  }
+
+  links.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target;
+      showPage(target);
+    });
+  });
+
+  // 2) Dashboard fetching
   const cardTotalMeds = document.getElementById("card-total-meds");
   const cardTotalQty = document.getElementById("card-total-qty");
   const cardAwaitPresc = document.getElementById("card-await-presc");
@@ -17,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const debugOutput = document.getElementById("debug-output");
 
   async function loadDashboard() {
+    if (!cardStatusText) return;
     cardStatusText.textContent = "Loading data from server...";
 
     try {
@@ -28,26 +86,24 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       debugOutput.textContent = JSON.stringify(data, null, 2);
 
-      // Top cards
       cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
       cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
       cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
 
       cardSalesTotal.textContent =
-        data.todaySalesTotal != null ? `${data.todaySalesTotal.toFixed(2)} ฿` : "0 ฿";
+        data.todaySalesTotal != null
+          ? `${data.todaySalesTotal.toFixed(2)} ฿`
+          : "0 ฿";
+
       cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
 
-      // Status text
       const lowCount = data.lowStockMeds?.length || 0;
       const expCount = data.expiredMeds?.length || 0;
       cardStatusText.textContent =
         `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
 
-      // Low stock table
       renderLowStock(data.lowStockMeds || []);
-      // Expired table
       renderExpired(data.expiredMeds || []);
-
     } catch (err) {
       console.error("Error loading dashboard:", err);
       cardStatusText.textContent = "Error loading dashboard: " + err.message;
@@ -107,5 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  loadDashboard();
+  // 3) start at Overview
+  showPage("overview");
 });
