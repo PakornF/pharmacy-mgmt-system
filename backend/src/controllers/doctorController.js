@@ -13,27 +13,38 @@ export const getAllDoctors = async (req, res) => {
 // CREATE new doctor
 export const createDoctor = async (req, res) => {
   try {
-    const {
-      doctor_id,
-      doctor_full_name,
-      license_no,
-    } = req.body;
+    const { doctor_first_name, doctor_last_name, license_no } = req.body;
 
-    if (!doctor_id || !doctor_full_name || !license_no) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!doctor_first_name || !doctor_last_name || !license_no) {
+      return res.status(400).json({
+        message: "doctor_first_name, doctor_last_name and license_no are required",
+      });
     }
 
-    const newDoctor = new Doctor({
-      doctor_id,
-      doctor_full_name,
+    // เช็ค license_no ซ้ำ
+    const existed = await Doctor.findOne({ license_no });
+    if (existed) {
+      return res.status(400).json({
+        message: "This license number already exists for another doctor.",
+      });
+    }
+
+    // หา doctor_id ล่าสุด แล้ว +1
+    const last = await Doctor.findOne().sort({ doctor_id: -1 });
+    const nextId = last ? last.doctor_id + 1 : 1;
+
+    const doctor = await Doctor.create({
+      doctor_id: nextId,
+      doctor_first_name,
+      doctor_last_name,
       license_no,
     });
 
-    await newDoctor.save();
-    res.status(201).json(newDoctor);
+    res.status(201).json(doctor);
   } catch (error) {
-    console.error("Error creating doctor:", error);
-    res.status(400).json({ message: "Error creating doctor", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error creating doctor", error: error.message });
   }
 };
 
