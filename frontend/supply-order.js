@@ -1,4 +1,10 @@
-let mockSuppliers = [
+// supply-order.js
+
+document.addEventListener("DOMContentLoaded", () => {
+  // ---------------------------
+  // Mock data
+  // ---------------------------
+  let mockSuppliers = [
     {
       id: "sup1",
       name: "Health Pharma Co., Ltd.",
@@ -16,8 +22,14 @@ let mockSuppliers = [
       brand: "Tylenol",
       price: 5,
       quantity: 100,
-      unit: "tablets",
+      unit: "", // base unit = เม็ด
       supplierId: "sup1",
+      // extra summary fields (จากการรับของ)
+      expiryDate: null,
+      unitsPerPack: null,
+      packageSize: null, // small / large
+      packageVolume: null, // text เช่น "60 ml"
+      displayUnit: null, // หน่วยที่โชว์ใน stock (ตามที่รับของ)
     },
     {
       id: "med2",
@@ -25,8 +37,13 @@ let mockSuppliers = [
       brand: "Amoxi",
       price: 12,
       quantity: 50,
-      unit: "capsules",
+      unit: "",
       supplierId: "sup1",
+      expiryDate: null,
+      unitsPerPack: null,
+      packageSize: null,
+      packageVolume: null,
+      displayUnit: null,
     },
     {
       id: "med3",
@@ -34,77 +51,143 @@ let mockSuppliers = [
       brand: "FluCare",
       price: 30,
       quantity: 30,
-      unit: "bottles",
+      unit: "", // base unit = ขวด
       supplierId: "sup2",
+      expiryDate: null,
+      unitsPerPack: null,
+      packageSize: null,
+      packageVolume: null,
+      displayUnit: null,
     },
   ];
-  
+
   let mockSupplyOrders = [];
-  
-  //  DOM
+
+  // ---------------------------
+  // DOM elements
+  // ---------------------------
   const newOrderBtn = document.getElementById("newOrderBtn");
   const orderTableBody = document.getElementById("orderTableBody");
-  
+
   const orderForm = document.getElementById("orderForm");
   const orderFormTitle = document.getElementById("orderFormTitle");
   const orderIdInput = document.getElementById("orderIdInput");
   const orderSupplierSelect = document.getElementById("orderSupplierSelect");
   const orderStatusDisplay = document.getElementById("orderStatusDisplay");
   const orderDateDisplay = document.getElementById("orderDateDisplay");
-  
+
   const orderItemsBody = document.getElementById("orderItemsBody");
   const orderItemsSummary = document.getElementById("orderItemsSummary");
-  
+
   const itemMedicineSelect = document.getElementById("itemMedicineSelect");
   const itemUnitSelect = document.getElementById("itemUnitSelect");
   const itemQtyInput = document.getElementById("itemQtyInput");
   const addItemBtn = document.getElementById("addItemBtn");
-  
+
   const resetOrderBtn = document.getElementById("resetOrderBtn");
-  
+
   const stockTableBody = document.getElementById("stockTableBody");
-  
-  let currentOrderItems = []; // { medicineId, quantity, unit }
-  
+
+  // --- modal สำหรับ Mark as received ---
+  const receiveBackdrop = document.getElementById("receiveModalBackdrop");
+  const receiveTitle = document.getElementById("receiveModalTitle");
+  const receiveSubtitle = document.getElementById("receiveModalSubtitle");
+  const receiveExpiryInput = document.getElementById("receiveExpiryInput");
+  const receiveUnitsPerBoxGroup = document.getElementById(
+    "receiveUnitsPerBoxGroup"
+  );
+  const receiveUnitsPerBoxInput = document.getElementById(
+    "receiveUnitsPerBoxInput"
+  );
+  const receiveSizeGroup = document.getElementById("receiveSizeGroup");
+  const receiveSizeSelect = document.getElementById("receiveSizeSelect");
+  const receiveVolumeGroup = document.getElementById("receiveVolumeGroup");
+  const receiveVolumeInput = document.getElementById("receiveVolumeInput");
+  const receiveCancelBtn = document.getElementById("receiveCancelBtn");
+  const receiveOkBtn = document.getElementById("receiveOkBtn");
+
+  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
+
+  // ใช้สำหรับ resolve promise ของ modal
+  let receiveResolve = null;
+
+  // ---------------------------
   // Helpers
+  // ---------------------------
   function findSupplierName(id) {
     const s = mockSuppliers.find((sup) => sup.id === id);
     return s ? s.name : "-";
   }
-  
+
   function findMedicine(id) {
     return mockMedicines.find((m) => m.id === id);
   }
-  
-  function formatDate(d) {
+
+  function formatDateTime(d) {
     return new Date(d).toLocaleString();
   }
-  
-  // Render stock
+
+  // format date (YYYY-MM-DD) -> DD/MM/YYYY ให้ดูง่ายหน่อย
+  function prettyDate(iso) {
+    if (!iso) return "-";
+    const [y, m, d] = iso.split("-");
+    if (!y || !m || !d) return iso;
+    return `${d}/${m}/${y}`;
+  }
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  // ---------------------------
+  // Render stock table
+  // ---------------------------
   function renderStockTable() {
     if (mockMedicines.length === 0) {
       stockTableBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
+        `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
-  
+
     stockTableBody.innerHTML = mockMedicines
       .map((m) => {
         const supplierName = findSupplierName(m.supplierId);
-        const unitLabel = m.unit ? ` / ${m.unit}` : "";
+        const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
+
+        const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
+        const stockUnitLabel = m.displayUnit || m.unit || "";
+
+        let extra = "";
+        if (m.unitsPerPack) extra += `${m.unitsPerPack} per box`;
+        if (m.packageSize) extra += (extra ? " · " : "") + `${m.packageSize}`;
+        if (m.packageVolume) extra += (extra ? " · " : "") + m.packageVolume;
+
         return `
           <tr>
             <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
             <td class="py-2 px-2 text-left w-1/4">${supplierName}</td>
-            <td class="py-2 px-2 text-right w-1/4">${m.price.toFixed(2)}${unitLabel}</td>
-            <td class="py-2 px-2 text-right w-1/4">${m.quantity} ${m.unit || ""}</td>
+            <td class="py-2 px-2 text-right w-1/6">
+              ${m.price.toFixed(2)}${priceUnitLabel}
+            </td>
+            <td class="py-2 px-2 text-right w-1/6">
+              ${m.quantity} ${stockUnitLabel}
+            </td>
+            <td class="py-2 px-2 text-right w-1/6 text-sm">
+              ${expiryText}${
+          extra
+            ? "<br/><span class='text-xs text-gray-500'>" + extra + "</span>"
+            : ""
+        }
+            </td>
           </tr>
         `;
       })
       .join("");
   }
-  
-  // Render supplier select 
+
+  // ---------------------------
+  // Supplier & Medicine selects
+  // ---------------------------
   function renderSupplierSelect() {
     orderSupplierSelect.innerHTML =
       `<option value="">Select supplier...</option>` +
@@ -112,8 +195,7 @@ let mockSuppliers = [
         .map((s) => `<option value="${s.id}">${s.name}</option>`)
         .join("");
   }
-  
-  // Render medicine select (ตาม supplier ที่เลือก)
+
   function renderMedicineSelect() {
     const supId = orderSupplierSelect.value;
     if (!supId) {
@@ -121,22 +203,22 @@ let mockSuppliers = [
         `<option value="">Select supplier first...</option>`;
       return;
     }
-  
+
     const meds = mockMedicines.filter((m) => m.supplierId === supId);
     if (meds.length === 0) {
       itemMedicineSelect.innerHTML =
         `<option value="">No medicines for this supplier</option>`;
       return;
     }
-  
+
     itemMedicineSelect.innerHTML =
       `<option value="">Select medicine...</option>` +
-      meds
-        .map((m) => `<option value="${m.id}">${m.name}</option>`)
-        .join("");
+      meds.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
   }
-  
-  // Render order items
+
+  // ---------------------------
+  // Render order items (right panel)
+  // ---------------------------
   function renderOrderItems() {
     if (currentOrderItems.length === 0) {
       orderItemsBody.innerHTML =
@@ -144,13 +226,14 @@ let mockSuppliers = [
       orderItemsSummary.textContent = "No items.";
       return;
     }
-  
+
     let totalQty = 0;
-  
+
     orderItemsBody.innerHTML = currentOrderItems
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
+        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -165,7 +248,9 @@ let mockSuppliers = [
               />
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
-            <td class="py-1 px-2 text-right w-1/6">${stock} ${med?.unit || ""}</td>
+            <td class="py-1 px-2 text-right w-1/6">
+              ${stock} ${stockUnitLabel}
+            </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
                 type="button"
@@ -179,32 +264,36 @@ let mockSuppliers = [
         `;
       })
       .join("");
-  
+
     orderItemsSummary.textContent = `${currentOrderItems.length} item(s), total qty ${totalQty}`;
   }
-  
-  //Render order list
+
+  // ---------------------------
+  // Render order list (left table)
+  // ---------------------------
   function renderOrderList() {
     if (mockSupplyOrders.length === 0) {
       orderTableBody.innerHTML =
         `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No supply orders yet.</td></tr>`;
       return;
     }
-  
+
     orderTableBody.innerHTML = mockSupplyOrders
       .map((o) => {
         const supplierName = findSupplierName(o.supplierId);
         const statusBadge =
-          o.status === "delivered"
-            ? `<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">delivered</span>`
+          o.status === "received"
+            ? `<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">received</span>`
             : `<span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">pending</span>`;
-  
+
         return `
           <tr class="hover:bg-pink-50">
             <td class="py-2 px-2 text-left w-1/5">${o.id}</td>
             <td class="py-2 px-2 text-left w-1/5">${supplierName}</td>
             <td class="py-2 px-2 text-left w-1/5">${statusBadge}</td>
-            <td class="py-2 px-2 text-left w-1/5">${formatDate(o.createdAt)}</td>
+            <td class="py-2 px-2 text-left w-1/5">${formatDateTime(
+              o.createdAt
+            )}</td>
             <td class="py-2 px-2 text-right w-1/5 space-x-2">
               <button
                 class="text-xs text-blue-600 hover:underline"
@@ -214,9 +303,9 @@ let mockSuppliers = [
               </button>
               <button
                 class="text-xs text-pink-600 hover:underline"
-                data-mark-delivered="${o.id}"
+                data-mark-received="${o.id}"
               >
-                Mark delivered
+                Mark as received
               </button>
               <button
                 class="text-xs text-red-600 hover:underline"
@@ -230,8 +319,205 @@ let mockSuppliers = [
       })
       .join("");
   }
-  
-  // Form helpers 
+
+  // ---------------------------
+  // Modal: รับของทีละ item
+  // ---------------------------
+  function openReceiveModal({
+    med,
+    item,
+    needsUnitsPerBox,
+    needsSizeAndVolume,
+  }) {
+    return new Promise((resolve) => {
+      receiveResolve = resolve;
+
+      // set texts
+      receiveTitle.textContent = `Receive: ${med.name}`;
+      receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
+
+      // set min date = วันนี้
+      receiveExpiryInput.value = item.expiryDate || "";
+      receiveExpiryInput.min = todayISO();
+
+      // units/box สำหรับกล่องยาเม็ด
+      if (needsUnitsPerBox) {
+        receiveUnitsPerBoxGroup.classList.remove("hidden");
+        receiveUnitsPerBoxInput.value =
+          item.unitsPerPack != null ? String(item.unitsPerPack) : "";
+      } else {
+        receiveUnitsPerBoxGroup.classList.add("hidden");
+        receiveUnitsPerBoxInput.value = "";
+      }
+
+      // bottle / tube → size + volume
+      if (needsSizeAndVolume) {
+        receiveSizeGroup.classList.remove("hidden");
+        receiveVolumeGroup.classList.remove("hidden");
+        receiveSizeSelect.value = item.size || "";
+        receiveVolumeInput.value = item.volume || "";
+      } else {
+        receiveSizeGroup.classList.add("hidden");
+        receiveVolumeGroup.classList.add("hidden");
+        receiveSizeSelect.value = "";
+        receiveVolumeInput.value = "";
+      }
+
+      // show modal
+      receiveBackdrop.classList.remove("hidden");
+    });
+  }
+
+  function closeReceiveModal() {
+    receiveBackdrop.classList.add("hidden");
+  }
+
+  receiveCancelBtn.addEventListener("click", () => {
+    if (receiveResolve) {
+      receiveResolve(null); // ยกเลิก
+      receiveResolve = null;
+    }
+    closeReceiveModal();
+  });
+
+  receiveOkBtn.addEventListener("click", () => {
+    if (!receiveResolve) return;
+
+    const exp = receiveExpiryInput.value;
+    const today = todayISO();
+    if (!exp) {
+      alert("Please select expiry date.");
+      return;
+    }
+    if (exp < today) {
+      alert("Expiry date cannot be in the past.");
+      return;
+    }
+
+    let unitsPerBox = null;
+    if (!receiveUnitsPerBoxGroup.classList.contains("hidden")) {
+      const val = parseInt(receiveUnitsPerBoxInput.value, 10);
+      if (!Number.isFinite(val) || val <= 0) {
+        alert("Please enter valid units per box (> 0).");
+        return;
+      }
+      unitsPerBox = val;
+    }
+
+    let size = null;
+    let volume = null;
+    if (!receiveSizeGroup.classList.contains("hidden")) {
+      size = receiveSizeSelect.value;
+      if (!size) {
+        alert("Please select size (small / large).");
+        return;
+      }
+      volume = receiveVolumeInput.value.trim(); // อนุโลมให้ว่างได้
+    }
+
+    const payload = { expiryDate: exp, unitsPerBox, size, volume };
+    receiveResolve(payload);
+    receiveResolve = null;
+    closeReceiveModal();
+  });
+
+  // ---------------------------
+  // Mark as received helper
+  // ---------------------------
+  async function handleMarkAsReceived(order) {
+    if (order.status === "received") {
+      alert("This order is already marked as received.");
+      return;
+    }
+
+    // วนทีละ item แล้วเปิด modal ให้กรอกข้อมูล
+    for (let i = 0; i < order.items.length; i++) {
+      const it = order.items[i];
+      const med = findMedicine(it.medicineId);
+      if (!med) continue;
+
+      // ใช้ unit ที่สั่งใน order เป็นหลัก
+      const orderUnitRaw = it.unit || med.unit || "";
+      const unitLower = orderUnitRaw.toLowerCase();
+
+      const isBox = unitLower.startsWith("box"); // "box" หรือ "box(es)"
+      const isBottleOrTube =
+        unitLower.startsWith("bottle") || unitLower.startsWith("tube");
+
+      // กล่อง → ถาม units per box
+      const needsUnitsPerBox = isBox;
+      // ขวด / หลอด → ถาม size + volume
+      const needsSizeAndVolume = isBottleOrTube;
+
+      const info = await openReceiveModal({
+        med,
+        item: it,
+        needsUnitsPerBox,
+        needsSizeAndVolume,
+      });
+
+      // ถ้ากด Cancel → ยกเลิกทั้ง order
+      if (!info) {
+        alert("Receive process cancelled. No stock updated.");
+        return;
+      }
+
+      const { expiryDate, unitsPerBox, size, volume } = info;
+
+      // --- อัปเดต stock ---
+      let added = 0;
+      if (needsUnitsPerBox && unitsPerBox) {
+        // กล่องยา → แปลงเป็นจำนวนหน่วยทั้งหมด (เช่น เม็ด / แคปซูล)
+        added = it.quantity * unitsPerBox;
+      } else {
+        // ขวด/หลอด หรือสั่งเป็นหน่วย base อยู่แล้ว
+        added = it.quantity;
+      }
+      med.quantity += added;
+
+      // --- เก็บข้อมูลลง item & medicine ---
+      it.expiryDate = expiryDate;
+      if (unitsPerBox != null) it.unitsPerPack = unitsPerBox;
+      if (size) it.size = size;
+      if (volume) it.volume = volume;
+
+      // summary ที่ level medicine
+      if (expiryDate) {
+        // เก็บเป็นวันหมดอายุที่ใกล้หมดสุด
+        if (!med.expiryDate || expiryDate < med.expiryDate) {
+          med.expiryDate = expiryDate;
+        }
+      }
+      if (unitsPerBox != null) med.unitsPerPack = unitsPerBox;
+      if (size) med.packageSize = size;
+      if (volume) med.packageVolume = volume;
+
+      // ตั้งหน่วยแสดงผลใน stock ให้ตรงกับ unit ที่ใช้ตอนรับของ
+      if (isBox) {
+        med.displayUnit = "box(es)";
+      } else if (isBottleOrTube) {
+        // ถ้ามี size → เช่น "small bottle"
+        med.displayUnit = size ? `${size} ${orderUnitRaw}` : orderUnitRaw;
+      } else {
+        med.displayUnit = orderUnitRaw || med.unit;
+      }
+    }
+
+    order.status = "received";
+
+    alert(`Order ${order.id} marked as received and stock updated.`);
+
+    if (orderIdInput.value === String(order.id)) {
+      orderStatusDisplay.value = order.status;
+    }
+
+    renderOrderList();
+    renderStockTable();
+  }
+
+  // ---------------------------
+  // Form helpers
+  // ---------------------------
   function resetOrderForm() {
     orderIdInput.value = "";
     orderSupplierSelect.value = "";
@@ -245,88 +531,94 @@ let mockSuppliers = [
     renderOrderItems();
     orderFormTitle.textContent = "New Supply Order";
   }
-  
+
   function loadOrderIntoForm(orderId) {
-    const o = mockSupplyOrders.find((ord) => ord.id === orderId);
+    const o = mockSupplyOrders.find((ord) => String(ord.id) === String(orderId));
     if (!o) return;
-  
+
     orderIdInput.value = o.id;
     orderSupplierSelect.value = o.supplierId;
     orderStatusDisplay.value = o.status;
-    orderDateDisplay.value = formatDate(o.createdAt);
+    orderDateDisplay.value = formatDateTime(o.createdAt);
     currentOrderItems = o.items.map((it) => ({ ...it }));
     orderFormTitle.textContent = `Edit Order ${o.id}`;
     renderMedicineSelect();
     renderOrderItems();
   }
-  
-  // Events 
-  
-  // new order button
+
+  // ---------------------------
+  // Events
+  // ---------------------------
+
+  // New order button
   newOrderBtn.addEventListener("click", () => {
     resetOrderForm();
   });
-  
-  // change supplier → รีโหลด medicine select
+
+  // Change supplier → reload medicine options
   orderSupplierSelect.addEventListener("change", () => {
     renderMedicineSelect();
     currentOrderItems = [];
     renderOrderItems();
   });
-  
-  // add item
+
+  // Add item to current order
   addItemBtn.addEventListener("click", () => {
     const medId = itemMedicineSelect.value;
     const qtyVal = Number(itemQtyInput.value);
     let unitVal = itemUnitSelect.value;
-  
+
     if (!orderSupplierSelect.value) {
       alert("Please select supplier first.");
       return;
     }
-  
+
     if (!medId) {
       alert("Please select medicine.");
       return;
     }
-  
+
     const med = findMedicine(medId);
     if (!med) {
       alert("Medicine not found.");
       return;
     }
-  
+
     if (!unitVal) {
-      // ถ้าไม่เลือก unit ใช้ unit ตามตัวยาเป็น default
+      // ถ้าไม่เลือก unit → ใช้ base unit ตาม medicine
       unitVal = med.unit || "";
     }
-  
+
     if (!qtyVal || qtyVal <= 0) {
       alert("Please enter quantity.");
       return;
     }
-  
+
     const existing = currentOrderItems.find(
       (it) => it.medicineId === medId && it.unit === unitVal
     );
     if (existing) {
       existing.quantity += qtyVal;
     } else {
-      currentOrderItems.push({ medicineId: medId, quantity: qtyVal, unit: unitVal });
+      currentOrderItems.push({
+        medicineId: medId,
+        quantity: qtyVal,
+        unit: unitVal,
+      });
     }
-  
+
     itemMedicineSelect.value = "";
     itemUnitSelect.value = "";
     itemQtyInput.value = "";
     renderOrderItems();
   });
-  
-  // change qty / remove item in table
+
+  // Change qty / remove item in items table
   orderItemsBody.addEventListener("input", (e) => {
     if (!e.target.classList.contains("item-qty-input")) return;
     const idx = Number(e.target.dataset.idx);
     if (idx < 0 || idx >= currentOrderItems.length) return;
-  
+
     let val = Number(e.target.value);
     if (!val || val <= 0) {
       val = 1;
@@ -335,7 +627,7 @@ let mockSuppliers = [
     e.target.value = val;
     renderOrderItems();
   });
-  
+
   orderItemsBody.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-remove-idx]");
     if (!btn) return;
@@ -344,89 +636,73 @@ let mockSuppliers = [
     currentOrderItems.splice(idx, 1);
     renderOrderItems();
   });
-  
-  // click actions in order list
+
+  // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
   orderTableBody.addEventListener("click", (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
-    const markBtn = e.target.closest("button[data-mark-delivered]");
+    const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
-  
+
     if (editBtn) {
       const id = editBtn.dataset.editOrder;
       loadOrderIntoForm(id);
       return;
     }
-  
+
     if (deleteBtn) {
       const id = deleteBtn.dataset.deleteOrder;
-      const o = mockSupplyOrders.find((ord) => ord.id === id);
+      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
       if (!o) return;
       if (!confirm(`Delete order ${o.id}?`)) return;
-      mockSupplyOrders = mockSupplyOrders.filter((ord) => ord.id !== id);
+      mockSupplyOrders = mockSupplyOrders.filter(
+        (ord) => String(ord.id) !== String(id)
+      );
       renderOrderList();
       return;
     }
-  
+
     if (markBtn) {
-      const id = markBtn.dataset.markDelivered;
-      const o = mockSupplyOrders.find((ord) => ord.id === id);
+      const id = markBtn.dataset.markReceived;
+      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
       if (!o) return;
-  
-      if (o.status === "delivered") {
-        alert("This order is already delivered.");
-        return;
-      }
-  
-      // mark delivered + update stock (ไม่สน unit ใน mock นี้)
-      o.status = "delivered";
-      o.items.forEach((it) => {
-        const med = findMedicine(it.medicineId);
-        if (med) {
-          med.quantity += it.quantity;
-        }
-      });
-  
-      alert(`Order ${o.id} marked as delivered and stock updated.`);
-      if (orderIdInput.value === o.id) {
-        orderStatusDisplay.value = o.status;
-      }
-      renderOrderList();
-      renderStockTable();
+      handleMarkAsReceived(o);
       return;
     }
   });
-  
-  // reset form button
+
+  // Reset form button
   resetOrderBtn.addEventListener("click", () => {
     resetOrderForm();
   });
-  
-  // submit order
+
+  // Submit order (create / update)
   orderForm.addEventListener("submit", (e) => {
     e.preventDefault();
-  
+
     const supplierId = orderSupplierSelect.value;
     if (!supplierId) {
       alert("Supplier is required.");
       return;
     }
-  
+
     if (currentOrderItems.length === 0) {
       alert("Please add at least one medicine to the order.");
       return;
     }
-  
+
     const existingId = orderIdInput.value || null;
     if (existingId) {
       // update
-      const o = mockSupplyOrders.find((ord) => ord.id === existingId);
+      const o = mockSupplyOrders.find(
+        (ord) => String(ord.id) === String(existingId)
+      );
       if (!o) return;
-  
-      if (o.status === "delivered") {
-        alert("Delivered order cannot be edited.");
+
+      if (o.status === "received") {
+        alert("Received order cannot be edited.");
         return;
       }
-  
+
       o.supplierId = supplierId;
       o.items = currentOrderItems.map((it) => ({ ...it }));
       alert(`Order ${o.id} updated.`);
@@ -443,12 +719,14 @@ let mockSuppliers = [
       });
       alert(`Order ${newId} created.`);
     }
-  
+
     resetOrderForm();
     renderOrderList();
   });
-  
-  // ---------- Init ----------
+
+  // ---------------------------
+  // Init
+  // ---------------------------
   function initSupplyOrderPage() {
     renderSupplierSelect();
     renderMedicineSelect();
@@ -456,5 +734,6 @@ let mockSuppliers = [
     renderOrderList();
     renderStockTable();
   }
-  
-  document.addEventListener("DOMContentLoaded", initSupplyOrderPage);
+
+  initSupplyOrderPage();
+});
