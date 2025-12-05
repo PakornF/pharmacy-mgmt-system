@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   // 1) Sidebar page switching (History API)
   const links = document.querySelectorAll(".sidebar-link");
@@ -18,7 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function pathnameToPage(pathname) {
     const slug = pathname.replace(/^\//, "").split("/")[0];
-    return ROUTE_MAP[slug] || "overview";
+    const page = ROUTE_MAP[slug] || "overview";
+    return page;
   }
 
   function pushPathForPage(page) {
@@ -197,6 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 3) start at current path (or Overview)
-  const initialPage = pathnameToPage(window.location.pathname);
+  // Always land on Overview on initial load
+  const initialPage = "overview";
+  window.history.replaceState({ page: initialPage }, "", "/");
   showPage(initialPage, true);
 });

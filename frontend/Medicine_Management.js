@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE = 'http://localhost:8000/medicines';
+const API_BASE = (window.API_BASE || 'http://localhost:8000') + '/medicines';
 
 // State
 let allMedicines = [];
@@ -451,4 +451,3 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
