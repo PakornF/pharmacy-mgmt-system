@@ -11,14 +11,13 @@
   <div class="max-w-6xl mx-auto py-8 px-6">
     <h1 class="text-3xl font-semibold mb-6">Supplier Management</h1>
 
-    <div class="grid md:grid-cols-2 gap-6 mb-8">
-      <!-- LEFT: Supplier list -->
+    <div class="grid md:grid-cols-1 gap-6 mb-8">
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-semibold">Suppliers</h2>
           <button
             id="addSupplierBtn"
-            class="px-3 py-1 text-sm bg-pink-500 text-white rounded-xl"
+            class="px-3 py-1 text-sm bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors"
           >
             + Add Supplier
           </button>
@@ -35,52 +34,79 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b bg-white">
+                <th class="py-2 px-2 text-left w-1/5">ID</th>
                 <th class="py-2 px-2 text-left w-1/4">Name</th>
                 <th class="py-2 px-2 text-left w-1/4">Contact</th>
-                <th class="py-2 px-2 text-left w-1/4">Phone</th>
-                <th class="py-2 px-2 text-right w-1/4">Actions</th>
+                <th class="py-2 px-2 text-left w-1/5">Phone</th>
+                <th class="py-2 px-2 text-right w-1/6">Actions</th>
               </tr>
             </thead>
             <tbody id="supplierTableBody" class="divide-y"></tbody>
           </table>
         </div>
       </div>
+      </div>
 
-      <!-- RIGHT: Supplier form -->
-      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
-        <h2 class="font-semibold mb-3" id="formTitle">Add Supplier</h2>
+  </div>
+  
+  <div 
+    id="supplierFormModal"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden justify-center items-center z-50"
+  >
+    <div class="bg-white rounded-2xl w-full max-w-2xl p-0 shadow-xl relative overflow-hidden">
+      <div class="bg-pink-500 text-white p-4 flex justify-between items-center">
+        <h2 class="text-xl font-semibold" id="formModalTitle">Add Supplier</h2>
+        <button 
+          id="closeFormModalBtn"
+          class="text-white hover:text-pink-100 text-2xl"
+        >
+          &times;
+        </button>
+      </div>
 
-        <form id="supplierForm" class="space-y-3">
-          <input type="hidden" id="supplierId" />
-
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              Supplier Name <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="supplierNameInput"
-              type="text"
-              class="w-full border rounded-xl px-3 py-2 text-sm"
-              required
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              Contact Person <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="contactNameInput"
-              type="text"
-              class="w-full border rounded-xl px-3 py-2 text-sm"
-              required
-            />
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="p-6">
+        <form id="supplierForm" class="space-y-4">
+          
+          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">
-                Phone <span class="text-red-500">*</span>
+                Supplier ID (PK)
+              </label>
+              <input
+                id="supplierIdInput"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm bg-gray-100 cursor-not-allowed"
+                readonly
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Supplier Name <span class="text-red-500" id="nameRequired">*</span>
+              </label>
+              <input
+                id="supplierNameInput"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Contact Person <span class="text-red-500" id="contactRequired">*</span>
+              </label>
+              <input
+                id="contactNameInput"
+                type="text"
+                class="w-full border rounded-xl px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Phone <span class="text-red-500" id="phoneRequired">*</span>
               </label>
               <input
                 id="phoneInput"
@@ -89,22 +115,23 @@
                 required
               />
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">
-                Email <span class="text-red-500">*</span>
-              </label>
-              <input
-                id="emailInput"
-                type="email"
-                class="w-full border rounded-xl px-3 py-2 text-sm"
-                required
-              />
-            </div>
           </div>
 
           <div>
             <label class="block text-sm font-medium mb-1">
-              Address <span class="text-red-500">*</span>
+              Email <span class="text-red-500" id="emailRequired">*</span>
+            </label>
+            <input
+              id="emailInput"
+              type="email"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Address <span class="text-red-500" id="addressRequired">*</span>
             </label>
             <textarea
               id="addressInput"
@@ -123,17 +150,18 @@
             ></textarea>
           </div>
 
-          <div class="flex items-center justify-end gap-3 pt-2">
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
-              id="cancelEditBtn"
-              class="px-3 py-1 text-sm border rounded-xl"
+              id="cancelFormModalBtn"
+              class="px-3 py-1 text-sm border rounded-xl hover:bg-gray-100"
             >
               Cancel
             </button>
             <button
               type="submit"
-              class="px-4 py-1.5 text-sm bg-pink-500 text-white rounded-xl"
+              id="saveSupplierBtn"
+              class="px-4 py-1.5 text-sm bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors"
             >
               Save Supplier
             </button>
@@ -141,29 +169,54 @@
         </form>
       </div>
     </div>
+  </div>
 
-    <!-- Medicines of selected supplier -->
-    <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="font-semibold">
-          Medicines from this supplier
-        </h2>
-        <p id="selectedSupplierLabel" class="text-sm text-gray-500">
-          No supplier selected
-        </p>
+  <div 
+    id="medicineListModal"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden justify-center items-center z-50"
+  >
+    <div class="bg-white rounded-2xl w-full max-w-4xl p-0 shadow-xl relative overflow-hidden">
+      <div class="bg-pink-500 text-white p-4 flex justify-between items-center">
+        <h2 class="text-xl font-semibold" id="medicineModalTitle">Medicines from Supplier: </h2>
+        <button 
+          id="closeMedicineModalBtn"
+          class="text-white hover:text-pink-100 text-2xl"
+        >
+          &times;
+        </button>
       </div>
-      <div class="max-h-64 overflow-y-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b bg-white">
-              <th class="py-2 px-2 text-left w-1/4">Name</th>
-              <th class="py-2 px-2 text-left w-1/4">Brand</th>
-              <th class="py-2 px-2 text-right w-1/4">Price / Unit</th>
-              <th class="py-2 px-2 text-right w-1/4">Stock</th>
-            </tr>
-          </thead>
-          <tbody id="supplierMedicinesBody" class="divide-y"></tbody>
-        </table>
+
+      <div class="p-6">
+        <div class="bg-white p-4 rounded-xl mb-4 border">
+            <h3 class="font-semibold text-lg mb-2">Supplier Details</h3>
+            <div id="medicineModalSupplierInfo" class="text-sm text-gray-700"></div>
+        </div>
+
+        <div class="max-h-96 overflow-y-auto">
+            <h3 class="font-semibold text-lg mb-2">Medicine List</h3>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b bg-white">
+                        <th class="py-2 px-2 text-left w-1/4">Name</th>
+                        <th class="py-2 px-2 text-left w-1/4">Brand</th>
+                        <th class="py-2 px-2 text-right w-1/4">Price / Unit</th>
+                        <th class="py-2 px-2 text-right w-1/4">Stock</th>
+                    </tr>
+                </thead>
+                <tbody id="supplierMedicinesBodyInModal" class="divide-y">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
+            <button
+                type="button"
+                id="closeMedicineModalBottomBtn"
+                class="px-3 py-1 text-sm border rounded-xl hover:bg-gray-100"
+            >
+                Close
+            </button>
+        </div>
       </div>
     </div>
   </div>
