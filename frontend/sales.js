@@ -1,61 +1,108 @@
-// frontend/sales.js
+// API base (Kept for structure, but not used for fetching)
+const API_BASE = "http://localhost:8000";
+const PRESCRIPTION_API_BASE = `${API_BASE}/prescriptions`;
+const CUSTOMER_API_BASE = `${API_BASE}/customers`;
+const SALES_API_BASE = `${API_BASE}/sales`;
 
-// -----------------------------
-// Mock data (temporary)
-// -----------------------------
-let mockMedicines = [
-  {
-    _id: "med1",
-    name: "Paracetamol 500mg",
-    brand: "Tylenol",
-    price: 5,
-    quantity: 100,
-    unit: "tablets",
-  },
-  {
-    _id: "med2",
-    name: "Amoxicillin 250mg",
-    brand: "Amoxi",
-    price: 12,
-    quantity: 50,
-    unit: "capsules",
-  },
-  {
-    _id: "med3",
-    name: "Cough Syrup",
-    brand: "FluCare",
-    price: 30,
-    quantity: 30,
-    unit: "bottles",
-  },
+// ----------------------------------------------------
+// 1. MOCK DATA (Units adjusted to capsules, bottles, tubes)
+// ----------------------------------------------------
+
+const mockCustomers = [
+    { customer_id: 12, full_name: "natcha", contact: "0894767632" },
+    { customer_id: 1, full_name: "John Doe", contact: "0991234567" },
+    { customer_id: 2, full_name: "Jane Smith", contact: "0819876543" },
 ];
 
-let mockSales = [];
-
-// 👇 เพิ่ม mock customer ไว้ใช้ค้นหาแทน backend
-let mockCustomers = [
-  {
-    customer_id: 1,
-    full_name: "Alice Kim",
-    contact: "081-111-2222",
-  },
-  {
-    customer_id: 2,
-    full_name: "Bob Lee",
-    contact: "081-333-4444",
-  },
-  {
-    customer_id: 3,
-    full_name: "Charlie Park",
-    contact: "bob@example.com",
-  },
+const mockDoctors = [
+    { doctor_id: 101, doctor_full_name: "Dr. Somchai Klinhom", license_no: "L10001" },
+    { doctor_id: 102, doctor_full_name: "Dr. Penpak Suksawat", license_no: "L10002" },
+    { doctor_id: 103, doctor_full_name: "Dr. Amara Rujirat", license_no: "L10003" },
 ];
 
-// -----------------------------
-// Constants & DOM references
-// -----------------------------
-// ❌ ไม่ใช้แล้ว (ไม่เรียก backend)
-// const CUSTOMER_API_BASE = "http://localhost:8000/customers";
+// Mock Medicines: quantity คือ stock ปัจจุบัน
+const mockMedicines = [
+    // เปลี่ยน tablets เป็น capsules
+    { medicine_id: 1, medicine_name: "Amoxicillin 500mg", price: 120.00, quantity: 60, unit: "capsules", dosage: "-", is_dangerous: false },
+    { medicine_id: 2, medicine_name: "Antacid Liquid", price: 120.00, quantity: 47, unit: "bottles", dosage: "2", is_dangerous: false },
+    // เปลี่ยน tablets เป็น capsules
+    { medicine_id: 3, medicine_name: "Aspirin 81mg", price: 20.00, quantity: 300, unit: "capsules", dosage: "-", is_dangerous: false },
+    // เปลี่ยน tablets เป็น capsules
+    { medicine_id: 4, medicine_name: "Atorvastatin 20mg", price: 95.00, quantity: 100, unit: "capsules", dosage: "-", is_dangerous: true },
+    // boxes ถูก normalize เป็น capsules อยู่แล้ว
+    { medicine_id: 5, medicine_name: "Paracetamol 500mg", price: 15.50, quantity: 500, unit: "boxes", dosage: "-", is_dangerous: false }, 
+];
+
+// Prescriptions must reference existing medicine_id and customer_id
+const mockPrescriptions = [
+    {
+        prescription_id: 9,
+        customer_id: 12,
+        doctor_id: 101,
+        issue_date: "2025-12-05", 
+        items: [
+            { medicine_id: 2, medicine_name: "Antacid Liquid", unit: "bottles", dosage: "2", quantity: 2, price: 120.00, stock: 47, prescription_item_id: 901 },
+            // เปลี่ยน tablets เป็น capsules
+            { medicine_id: 3, medicine_name: "Aspirin 81mg", unit: "capsules", dosage: "1", quantity: 10, price: 20.00, stock: 300, prescription_item_id: 902 },
+        ],
+    },
+    {
+        prescription_id: 8,
+        customer_id: 12,
+        doctor_id: 102,
+        issue_date: "2025-05-10",
+        items: [
+            // เปลี่ยน tablets เป็น capsules
+            { medicine_id: 4, medicine_name: "Atorvastatin 20mg", unit: "capsules", dosage: "1", quantity: 30, price: 95.00, stock: 100, prescription_item_id: 801 },
+        ],
+    },
+    {
+        prescription_id: 7,
+        customer_id: 1,
+        doctor_id: 101,
+        issue_date: "2025-04-01",
+        items: [
+            { medicine_id: 5, medicine_name: "Paracetamol 500mg", unit: "boxes", dosage: "1", quantity: 1, price: 15.50, stock: 500, prescription_item_id: 701 },
+        ],
+    },
+];
+
+// Mock Sales History - Initial Data (Unchanged)
+let mockSalesHistory = [
+    {
+        sale_id: 1003,
+        customer_id: 12,
+        total_price: 240.00,
+        sale_datetime: "2025-05-12T14:19:09",
+        items: [
+            { medicine_id: 2, medicine_name: "Antacid Liquid", quantity: 2, dosage: "2" },
+        ]
+    },
+    {
+        sale_id: 1002,
+        customer_id: 12,
+        total_price: 480.00,
+        sale_datetime: "2025-05-12T13:19:23",
+        items: [
+            { medicine_id: 2, medicine_name: "Antacid Liquid", quantity: 4, dosage: "2" },
+        ]
+    },
+    {
+        sale_id: 1001,
+        customer_id: 1,
+        total_price: 775.00,
+        sale_datetime: "2024-11-28T19:10:03", 
+        items: [
+            { medicine_id: 1, medicine_name: "Amoxicillin 500mg", quantity: 20, dosage: "-" },
+            { medicine_id: 3, medicine_name: "Aspirin 81mg", quantity: 1, dosage: "-" },
+        ]
+    },
+];
+
+
+// ----------------------------------------------------
+// 2. CONSTANTS & DOM references (Unchanged)
+// ----------------------------------------------------
 
 const UNIT_CHOICES = [
   "tablets",
@@ -76,81 +123,214 @@ const grandTotalEl = document.getElementById("grandTotal");
 const customerSearchInput = document.getElementById("customerSearchInput");
 const selectedCustomerInfo = document.getElementById("selectedCustomerInfo");
 const customerErrorEl = document.getElementById("customerError");
+const customerDropdown = document.getElementById('customer_dropdown');
+
+const doctorSearchInput = document.getElementById("doctor_search");
+const selectedDoctorInfo = document.getElementById("selectedDoctorInfo");
+const doctorLicenseEl = document.getElementById("doctor_license");
+const doctorErrorEl = document.getElementById("doctorError");
+const issueDateInput = document.getElementById("issueDateInput");
+const searchPrescriptionBtn = document.getElementById("searchPrescriptionBtn");
+const doctorIdHiddenInput = document.getElementById('doctor_id'); 
+const doctorDropdown = document.getElementById('doctor_dropdown');
 
 const submitSaleBtn = document.getElementById("submitSaleBtn");
 const salesHistoryTbody = document.getElementById("salesHistory");
 
-let allMedicines = [];
-let billItems = []; // { medicineId, name, price, quantity, unit, lineTotal }
-let selectedCustomer = null; // mock: { customer_id, full_name, contact }
+// Latest prescription of selected customer
+const latestPrescriptionBox = document.getElementById("latestPrescriptionBox");
+const latestPrescriptionMeta = document.getElementById("latestPrescriptionMeta");
+const latestPrescriptionTag = document.getElementById("latestPrescriptionTag");
+const latestPrescriptionItemsBody = document.getElementById(
+  "latestPrescriptionItemsBody"
+);
 
-// -----------------------------
-// Helpers
-// -----------------------------
+let allMedicines = [];
+let allCustomers = [];
+let allDoctors = [];
+
+let latestPrescription = null; 
+let latestPrescriptionItems = []; 
+
+let billItems = [];
+let selectedCustomer = null; 
+let selectedDoctor = null; 
+
+// Flatpickr instance
+let datePickerInstance = null;
+
+// ----------------------------------------------------
+// 3. HELPERS (Updated normalizeUnit)
+// ----------------------------------------------------
+
+function normalizeUnit(unit) {
+  const lowerUnit = (unit || "").toLowerCase();
+  
+  if (lowerUnit === "boxes" || lowerUnit === "tablets" || lowerUnit === "blisters") {
+      return "capsules"; // Everything that is 'pill-like' becomes capsules
+  }
+  if (lowerUnit === "bottles") {
+      return "bottles";
+  }
+  if (lowerUnit === "tubes") {
+      return "tubes";
+  }
+  // Default fallback if a new unit type is introduced
+  return "capsules";
+}
+
+function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
 function updateSelectedSummary() {
   if (billItems.length === 0) {
     selectedSummaryEl.textContent = "Selected medicines: none";
     return;
   }
   const names = billItems.map(
-    (it) => `${it.name} x${it.quantity} ${it.unit || ""}`
+    (it) => `${it.name} x${it.quantity} ${normalizeUnit(it.unit || "")}`
   );
   selectedSummaryEl.textContent = "Selected medicines: " + names.join(", ");
 }
 
-// stock ของยาแต่ละตัว
 function getStockFor(id) {
-  const med = mockMedicines.find((m) => m._id === id);
-  return med ? med.quantity : Infinity;
+    const med = allMedicines.find((m) => m.medicine_id === id);
+    return med ? med.quantity : 0; 
 }
 
-// render options ของ unit select
-function renderUnitOptions(selectedUnit) {
-  return UNIT_CHOICES.map(
-    (u) =>
-      `<option value="${u}" ${u === selectedUnit ? "selected" : ""}>${u}</option>`
-  ).join("");
-}
 
-// -----------------------------
-// LOAD MEDICINES (จาก mock)
-// -----------------------------
+// ----------------------------------------------------
+// 4. MOCK DATA FETCH FUNCTIONS (Unchanged)
+// ----------------------------------------------------
+
 async function fetchMedicines() {
-  allMedicines = mockMedicines.map((m) => ({ ...m }));
-  renderSearchResults("");
+    allMedicines = mockMedicines;
 }
 
-// -----------------------------
-// Search result table (with checkbox)
-// -----------------------------
+async function fetchCustomers() {
+    allCustomers = mockCustomers;
+}
+
+async function fetchDoctors() {
+    allDoctors = mockDoctors;
+}
+
+async function fetchSales() {
+    const sales = mockSalesHistory;
+
+    if (sales.length === 0) {
+      salesHistoryTbody.innerHTML =
+        `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No sales yet.</td></tr>`;
+      return;
+    }
+
+    salesHistoryTbody.innerHTML = sales
+      .sort((a, b) => new Date(b.sale_datetime) - new Date(a.sale_datetime))
+      .map((s) => {
+        const detail = (s.items || [])
+          .map((it) => {
+            const dosageText =
+              it.dosage && it.dosage.trim() !== ""
+                ? it.dosage.trim()
+                : "-";
+            const name = it.medicine_name || it.medicine_id || "Unknown";
+            return `${name} x${it.quantity} (Dosage: ${dosageText})`;
+          })
+          .join(", ");
+
+        const cid = s.customer_id ?? "-";
+        const customer =
+          allCustomers.find((c) => c.customer_id === cid) || null;
+        const cname = customer ? customer.full_name : "-";
+        
+        const isDangerous = (s.items || []).some(item => {
+            const med = mockMedicines.find(m => m.medicine_id === item.medicine_id);
+            return med && med.is_dangerous;
+        }) ? 'True' : 'False';
+
+
+        const total =
+          typeof s.total_price === "number" ? s.total_price : 0;
+        const date = s.sale_datetime
+          ? new Date(s.sale_datetime).toLocaleString('en-GB', { 
+                day: '2-digit', month: '2-digit', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                hour12: false 
+            })
+          : "-";
+
+        return `
+          <tr class="border-b">
+            <td class="py-2 px-2 text-left w-1/6">${date}</td>
+            <td class="py-2 px-2 text-left w-1/6">[${cid}] ${cname}</td>
+            <td class="py-2 px-2 text-right w-1/6">${total.toFixed(
+              2
+            )}</td>
+            <td class="py-1 px-2 text-center w-1/6">${(s.items || []).length}</td>
+            <td class="py-2 px-2 text-left w-2/6">${detail}</td>
+            <td class="py-2 px-2 text-center w-1/6">${isDangerous}</td>
+          </tr>
+        `;
+      })
+      .join("");
+}
+
+// ----------------------------------------------------
+// 5. SEARCH RESULTS & BILL (Unchanged from previous logic)
+// ----------------------------------------------------
+
 function renderSearchResults(keyword) {
+  
+  if (latestPrescriptionItems.length === 0) {
+    searchResults.innerHTML =
+        `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No Prescription loaded. Please search using Customer, Doctor, and Issue Date.</td></tr>`;
+    return;
+  }
+
   const q = (keyword || "").toLowerCase();
-  const filtered = allMedicines.filter(
-    (m) =>
-      m.name.toLowerCase().includes(q) ||
-      (m.brand && m.brand.toLowerCase().includes(q))
-  );
+  const source = latestPrescriptionItems; 
+
+  const filtered = source.filter((m) => {
+    const name = (m.medicine_name || m.name || "").toLowerCase();
+    return name.includes(q);
+  });
 
   if (filtered.length === 0) {
     searchResults.innerHTML =
-      `<tr><td colspan="4" class="py-1 text-gray-400 text-center">No medicines found.</td></tr>`;
+      `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No medicines found in this prescription.</td></tr>`;
     return;
   }
 
   searchResults.innerHTML = filtered
     .map((m) => {
-      const inBill = billItems.some((it) => it.medicineId === m._id);
-      const unitLabel = m.unit ? ` / ${m.unit}` : "";
+      const id = m.medicine_id;
+      const name = m.medicine_name || m.name || "";
+      const price = typeof m.price === "number" ? m.price : m.priceUnit || 0;
+      const stock = getStockFor(id); 
+      const unit = m.unit || "";
+      const dosage = m.dosage || "-";
+      
+      const medDetails = allMedicines.find(med => med.medicine_id === id);
+      const dangerous = medDetails && medDetails.is_dangerous === true ? 'True' : 'False';
+
+      const inBill = billItems.some((it) => it.medicineId === id);
+      const displayUnit = normalizeUnit(unit);
+      
       return `
         <tr class="border-b">
-          <td class="py-1">${m.name}</td>
-          <td class="py-1 text-right">${m.price.toFixed(2)}${unitLabel}</td>
-          <td class="py-1 text-right">${m.quantity} ${m.unit || ""}</td>
+          <td class="py-1">${name}</td>
+          <td class="py-1 text-right">${Number(price || 0).toFixed(2)} / ${displayUnit}</td>
+          <td class="py-1 text-right">${stock} ${displayUnit}</td>
+          <td class="py-1 text-left text-xs">${dosage}</td>
+          <td class="py-1 text-center">${dangerous}</td>
           <td class="py-1 text-center">
             <input
               type="checkbox"
-              data-select="${m._id}"
+              data-select="${id}"
               ${inBill ? "checked" : ""}
+              ${stock <= 0 ? "disabled" : ""}
             />
           </td>
         </tr>
@@ -159,13 +339,11 @@ function renderSearchResults(keyword) {
     .join("");
 }
 
-// -----------------------------
-// CURRENT BILL
-// -----------------------------
 function renderBill() {
   if (billItems.length === 0) {
+    // Colspan is 5 (Name, Dosage, Price, Qty, Total, X)
     billItemsTbody.innerHTML =
-      `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`;
+      `<tr><td colspan="5" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
     grandTotalEl.textContent = "0.00";
     updateSelectedSummary();
     renderSearchResults(searchInput.value || "");
@@ -177,6 +355,13 @@ function renderBill() {
       (item, idx) => `
       <tr class="border-b">
         <td class="py-1">${item.name}</td>
+        <td class="py-1 text-left text-xs">
+          ${
+            item.dosage && item.dosage.trim() !== ""
+              ? item.dosage
+              : "-"
+          }
+        </td>
         <td class="py-1 text-right">${item.price.toFixed(2)}</td>
         <td class="py-1 text-center">
           <input
@@ -186,14 +371,6 @@ function renderBill() {
             data-idx="${idx}"
             class="w-16 border rounded px-1 py-0.5 text-center text-sm qty-input"
           />
-        </td>
-        <td class="py-1 text-center">
-          <select
-            data-idx="${idx}"
-            class="border rounded px-1 py-0.5 text-xs unit-select"
-          >
-            ${renderUnitOptions(item.unit || "")}
-          </select>
         </td>
         <td class="py-1 text-right">${item.lineTotal.toFixed(2)}</td>
         <td class="py-1 text-center">
@@ -216,26 +393,43 @@ function renderBill() {
 }
 
 function addToBill(med) {
-  const existing = billItems.find((it) => it.medicineId === med._id);
-  const stock = getStockFor(med._id);
-  const currentQty = existing ? existing.quantity : 0;
+  const id = med.medicine_id;
+  const name = med.medicine_name || med.name || "";
+  const unit = med.unit || "";
+  const dosage = med.dosage || "";
+  const price = typeof med.price === "number" ? med.price : med.priceUnit || 0;
 
-  if (currentQty + 1 > stock) {
-    alert(`Not enough stock for ${med.name}. Max = ${stock}`);
+  const existing = billItems.find((it) => it.medicineId === id);
+  const stock = getStockFor(id);
+  let requestedQty = 1;
+  
+  if (!existing && med.quantity && med.quantity > 0) {
+      requestedQty = med.quantity;
+  } else if (existing) {
+      requestedQty = existing.quantity + 1;
+  }
+
+  if (requestedQty > stock) {
+    alert(`Cannot add/increase item: Not enough stock for ${med.name}. Available = ${stock}`);
     return;
   }
+
+  const medDetails = allMedicines.find(m => m.medicine_id === id);
 
   if (existing) {
     existing.quantity += 1;
     existing.lineTotal = existing.quantity * existing.price;
   } else {
     billItems.push({
-      medicineId: med._id,
-      name: med.name,
-      price: med.price,
-      quantity: 1,
-      unit: med.unit || "",
-      lineTotal: med.price,
+      medicineId: id,
+      name,
+      price,
+      quantity: requestedQty,
+      unit, 
+      dosage,
+      lineTotal: requestedQty * price,
+      fromPrescription: !!med.prescription_id,
+      is_dangerous: medDetails ? medDetails.is_dangerous : false,
     });
   }
   renderBill();
@@ -249,48 +443,42 @@ function removeFromBillById(id) {
   }
 }
 
-// -----------------------------
-// CUSTOMER SEARCH (ใช้ mock แทน backend)
-// -----------------------------
-function findCustomer() {
-  const qRaw = customerSearchInput.value.trim();
-  const q = qRaw.toLowerCase();
+// ----------------------------------------------------
+// 6. CUSTOMER & PRESCRIPTION LOGIC (Updated with dropdown)
+// ----------------------------------------------------
 
+function handleCustomerSearch() {
+  const searchTerm = customerSearchInput.value.trim();
+
+  selectedCustomer = null;
+  selectedCustomerInfo.textContent = "No customer selected.";
   customerErrorEl.classList.add("hidden");
 
-  if (!q) {
-    selectedCustomer = null;
-    selectedCustomerInfo.textContent = "No customer selected.";
+  // Reset all related states when search changes
+  billItems = [];
+  renderBill();
+  latestPrescription = null;
+  latestPrescriptionItems = [];
+  latestPrescriptionBox.classList.add("hidden");
+  renderSearchResults(searchInput.value || "");
+
+  if (searchTerm.length === 0) {
+    customerDropdown.classList.add('hidden');
     return;
   }
 
   const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+  const qDigits = onlyDigits(searchTerm);
+  const q = searchTerm.toLowerCase();
 
-  // 1) ถ้าพิมพ์มาเป็นเลขล้วน เช่น "2" ให้ลองแมตช์ customer_id ตรงเป๊ะก่อน
-  const qDigits = onlyDigits(qRaw);
-  if (qDigits) {
-    const byId = mockCustomers.filter(
-      (c) => String(c.customer_id) === qDigits
-    );
-    if (byId.length === 1) {
-      selectedCustomer = byId[0];
-      const id = selectedCustomer.customer_id;
-      const name = selectedCustomer.full_name || "-";
-      const contact = selectedCustomer.contact || "";
-      selectedCustomerInfo.textContent =
-        `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
-      return;
-    }
-  }
-
-  // 2) ไม่เข้าเคสข้างบน หรือหา id ไม่เจอ → ค่อยใช้การค้นหาแบบกว้างเหมือนเดิม
-  const matches = mockCustomers.filter((c) => {
+  const filtered = allCustomers.filter((c) => {
     const idStr = String(c.customer_id || "").toLowerCase();
     const nameStr = (c.full_name || "").toLowerCase();
     const contactStr = (c.contact || "").toLowerCase();
     const contactDigits = onlyDigits(c.contact);
 
     return (
+      idStr === q ||
       idStr.includes(q) ||
       nameStr.includes(q) ||
       contactStr.includes(q) ||
@@ -298,67 +486,276 @@ function findCustomer() {
     );
   });
 
-  if (matches.length === 0) {
-    selectedCustomer = null;
-    selectedCustomerInfo.textContent = "No customer found.";
+  if (filtered.length === 0) {
+    customerDropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No customers found</div>';
+    customerDropdown.classList.remove('hidden');
     return;
   }
 
-  if (matches.length > 1) {
-    selectedCustomer = null;
-    selectedCustomerInfo.textContent =
-      `Found ${matches.length} customers — please type more specific (e.g. full ID or phone).`;
-    return;
-  }
+  customerDropdown.innerHTML = filtered.map(customer => `
+    <div 
+      class="customer-option px-4 py-2 hover:bg-pink-50 cursor-pointer border-b" 
+      style="border-color: #f8bbd0;"
+      data-id="${customer.customer_id}"
+      data-name="${escapeHtml(customer.full_name)}"
+      data-contact="${escapeHtml(customer.contact || '')}"
+    >
+      <div class="font-medium" style="color: #ad1457;">${escapeHtml(customer.full_name)}</div>
+      <div class="text-xs text-gray-600">
+        ID: ${customer.customer_id} | Contact: ${escapeHtml(customer.contact || '-')}
+      </div>
+    </div>
+  `).join('');
 
-  selectedCustomer = matches[0];
-  const id = selectedCustomer.customer_id || "-";
-  const name = selectedCustomer.full_name || "-";
-  const contact = selectedCustomer.contact || "";
+  customerDropdown.classList.remove('hidden');
 
-  selectedCustomerInfo.textContent =
-    `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+  customerDropdown.querySelectorAll('.customer-option').forEach(option => {
+    option.onclick = () => {
+      const id = Number(option.dataset.id);
+      const name = option.dataset.name;
+      const contact = option.dataset.contact;
+
+      selectedCustomer = {
+        customer_id: id,
+        full_name: name,
+        contact: contact
+      };
+
+      customerSearchInput.value = name;
+      selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+      customerErrorEl.classList.add("hidden");
+
+      // Load prescriptions for selected customer
+      loadAllPrescriptionsForCustomer(id);
+
+      customerDropdown.classList.add('hidden');
+    };
+  });
 }
 
-// -----------------------------
-// SALES HISTORY (mockSales)
-// -----------------------------
-async function fetchSales() {
-  if (mockSales.length === 0) {
-    salesHistoryTbody.innerHTML =
-      `<tr><td colspan="5" class="py-1 text-gray-400 text-center">No sales yet.</td></tr>`;
+// Keep findCustomer for backward compatibility (if needed)
+function findCustomer() {
+  handleCustomerSearch();
+}
+
+function loadAllPrescriptionsForCustomer(customerId) {
+  
+  const customerPrescriptions = mockPrescriptions.filter(p => p.customer_id === customerId);
+  
+  latestPrescription = null; 
+  latestPrescriptionItems = [];
+  latestPrescriptionBox.classList.add("hidden");
+
+  if (customerPrescriptions.length === 0) {
+    renderSearchResults(searchInput.value || ""); 
     return;
   }
 
-  salesHistoryTbody.innerHTML = mockSales
-    .map((s) => {
-      const detail = s.items
-        .map((it) => `${it.name} x${it.quantity} ${it.unit || ""}`)
-        .join(", ");
+  const sortedPrescriptions = customerPrescriptions.sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date));
+  
+  const latest = sortedPrescriptions[0];
+  
+  if (latest) {
+    latestPrescription = latest;
+    latestPrescriptionItems = latest.items.map(item => {
+        const fullMed = allMedicines.find(m => m.medicine_id === item.medicine_id);
+        const stock = fullMed ? fullMed.quantity : 0;
+        return {
+            ...item,
+            stock: stock, 
+            unit: item.unit, 
+            prescription_item_id: item.prescription_item_id || Math.random() 
+        };
+    });
 
-      const cid = s.customerId || "-";
-      const cname = s.customerName || "-";
+    const doctor = allDoctors.find(d => d.doctor_id === latest.doctor_id);
+    const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
+    const issueDate = new Date(latest.issue_date).toLocaleDateString();
+    
+    latestPrescriptionMeta.textContent = `Prescription #${latest.prescription_id} • Dr. ${doctorName} • Issue Date: ${issueDate}`;
+    latestPrescriptionTag.textContent = "Latest"; 
+    latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
+    latestPrescriptionBox.classList.remove("hidden");
 
+    latestPrescriptionItemsBody.innerHTML = latestPrescriptionItems.map((item, index) => {
+      const displayUnit = normalizeUnit(item.unit);
+      
       return `
-        <tr class="border-b">
-          <td class="py-2 px-2 text-left w-1/5">${new Date(
-            s.date
-          ).toLocaleString()}</td>
-          <td class="py-2 px-2 text-left w-1/5">[${cid}] ${cname}</td>
-          <td class="py-2 px-2 text-right w-1/5">${s.totalAmount.toFixed(
-            2
-          )}</td>
-          <td class="py-1 px-2 text-center w-1/5">${s.items.length}</td>
-          <td class="py-2 px-2 text-left w-1/5">${detail}</td>
+        <tr>
+          <td>${item.medicine_name}</td>
+          <td>${item.dosage || '-'}</td>
+          <td>${item.quantity} ${displayUnit}</td>
+          <td><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
         </tr>
       `;
-    })
-    .join("");
+    }).join("");
+  }
+  
+  renderSearchResults(searchInput.value || ""); 
 }
 
-// -----------------------------
-// CONFIRM SALE (mock + ลด stock mock)
-// -----------------------------
+function searchPrescriptionsByFilters() {
+    
+    // 1. Validation check
+    const customerId = selectedCustomer ? selectedCustomer.customer_id : null;
+    const doctorId = selectedDoctor ? selectedDoctor.doctor_id : null;
+    const issueDate = issueDateInput.value.trim(); // YYYY-MM-DD (C.S.)
+
+    if (!customerId || !doctorId || !issueDate) {
+        alert("Please fill in Customer, Doctor, and Issue Date before searching.");
+        return;
+    }
+
+    // 2. Reset
+    latestPrescription = null;
+    latestPrescriptionItems = [];
+    latestPrescriptionBox.classList.add("hidden");
+    renderSearchResults(searchInput.value || "");
+    billItems = [];
+    renderBill();
+
+    // 3. Search mock data for an exact match
+    const matchingPrescription = mockPrescriptions.find(p => 
+        p.customer_id === customerId && 
+        p.doctor_id === doctorId && 
+        p.issue_date === issueDate // YYYY-MM-DD match (C.S.)
+    );
+
+    if (!matchingPrescription) {
+        alert("No prescription found matching all three criteria.");
+        return;
+    }
+
+    // 4. Render the matching prescription
+    latestPrescription = matchingPrescription;
+    latestPrescriptionItems = matchingPrescription.items.map(item => {
+        const fullMed = allMedicines.find(m => m.medicine_id === item.medicine_id);
+        const stock = fullMed ? fullMed.quantity : 0;
+        return {
+            ...item,
+            stock: stock,
+            unit: item.unit, 
+            prescription_item_id: item.prescription_item_id || Math.random() 
+        };
+    });
+    
+    const doctor = allDoctors.find(d => d.doctor_id === latestPrescription.doctor_id);
+    const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
+    const issueDateDisplay = new Date(latestPrescription.issue_date).toLocaleDateString();
+    
+    latestPrescriptionMeta.textContent = `Prescription #${latestPrescription.prescription_id} • Dr. ${doctorName} • Issue Date: ${issueDateDisplay}`;
+    latestPrescriptionTag.textContent = "MATCHED"; 
+    latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700";
+    latestPrescriptionBox.classList.remove("hidden");
+
+    latestPrescriptionItemsBody.innerHTML = latestPrescriptionItems.map((item) => {
+        const displayUnit = normalizeUnit(item.unit);
+        return `
+          <tr>
+            <td>${item.medicine_name}</td>
+            <td>${item.dosage || '-'}</td>
+            <td>${item.quantity} ${displayUnit}</td>
+            <td><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
+          </tr>
+        `;
+    }).join("");
+    
+    renderSearchResults(searchInput.value || ""); 
+}
+
+// ----------------------------------------------------
+// 7. DOCTOR LOGIC (Unchanged)
+// ----------------------------------------------------
+
+function handleDoctorSearch() {
+  const searchTerm = doctorSearchInput.value.trim();
+
+  selectedDoctor = null;
+  doctorIdHiddenInput.value = '';
+  selectedDoctorInfo.textContent = "No doctor selected.";
+  doctorLicenseEl.textContent = "";
+
+  if (searchTerm.length === 0) {
+    doctorDropdown.classList.add('hidden');
+    return;
+  }
+
+  const filtered = allDoctors.filter(doctor => {
+    const q = searchTerm.toLowerCase();
+    const name = (doctor.doctor_full_name || '').toLowerCase();
+    const license = (doctor.license_no || '').toString().toLowerCase();
+    const docIdStr = (doctor.doctor_id || '').toString().toLowerCase();
+    
+    return (
+      name.includes(q) ||
+      license.includes(q) ||
+      docIdStr.includes(q)
+    );
+  });
+
+  if (filtered.length === 0) {
+    doctorDropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No doctors found</div>';
+    doctorDropdown.classList.remove('hidden');
+    return;
+  }
+
+  doctorDropdown.innerHTML = filtered.map(doctor => `
+    <div 
+      class="doctor-option px-4 py-2 hover:bg-pink-50 cursor-pointer border-b" 
+      style="border-color: #f8bbd0;"
+      data-id="${doctor.doctor_id}"
+      data-name="${escapeHtml(doctor.doctor_full_name)}"
+      data-license="${escapeHtml(doctor.license_no)}"
+    >
+      <div class="font-medium" style="color: #ad1457;">${escapeHtml(doctor.doctor_full_name)}</div>
+      <div class="text-xs text-gray-600">
+        ID: ${doctor.doctor_id} | License: ${doctor.license_no || '-'}
+      </div>
+    </div>
+  `).join('');
+
+  doctorDropdown.classList.remove('hidden');
+
+  doctorDropdown.querySelectorAll('.doctor-option').forEach(option => {
+    option.onclick = () => {
+      const id = Number(option.dataset.id); 
+      const name = option.dataset.name;
+      const license = option.dataset.license;
+
+      selectedDoctor = {
+          doctor_id: id,
+          doctor_full_name: name,
+          license_no: license
+      };
+      
+      doctorIdHiddenInput.value = id;
+      doctorSearchInput.value = name;
+      doctorLicenseEl.textContent = `License: ${license}`;
+
+      selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
+
+      doctorDropdown.classList.add('hidden');
+    };
+  });
+}
+
+// ----------------------------------------------------
+// 8. STOCK UPDATE FUNCTION (Unchanged)
+// ----------------------------------------------------
+
+function updateMockStock(soldItems) {
+    soldItems.forEach(soldItem => {
+        const med = mockMedicines.find(m => m.medicine_id === soldItem.medicineId);
+        if (med) {
+            med.quantity = Math.max(0, med.quantity - soldItem.quantity);
+        }
+    });
+}
+
+
+// ----------------------------------------------------
+// 9. SUBMIT SALE (MOCK Update) (Unchanged)
+// ----------------------------------------------------
 async function submitSale() {
   if (billItems.length === 0) {
     alert("No items in bill.");
@@ -370,67 +767,86 @@ async function submitSale() {
     customerSearchInput.focus();
     return;
   }
+  
+  if (!selectedDoctor) {
+    doctorErrorEl.classList.remove("hidden");
+    doctorSearchInput.focus();
+    return;
+  }
+  
+  // Final Stock Check
+  for (const item of billItems) {
+      const currentStock = getStockFor(item.medicineId);
+      if (item.quantity > currentStock) {
+          alert(`Error: Cannot confirm sale. Quantity of ${item.name} (${item.quantity}) exceeds current stock (${currentStock}).`);
+          return;
+      }
+  }
 
-  const customerId =
-    selectedCustomer.customer_id || "unknown";
-  const customerName =
-    selectedCustomer.full_name || "Unknown";
-
-  const totalAmount = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
-
-  // ลด stock ใน mockMedicines
-  billItems.forEach((it) => {
-    const med = mockMedicines.find((m) => m._id === it.medicineId);
-    if (med) {
-      med.quantity -= it.quantity;
-      if (med.quantity < 0) med.quantity = 0;
-    }
-  });
-
-  // บันทึก sale ลง mockSales
+  // MOCK: Prepare data for new sale
   const newSale = {
-    id: "sale" + (mockSales.length + 1),
-    date: new Date().toISOString(),
-    customerId,
-    customerName,
-    totalAmount,
-    items: billItems.map((it) => ({
-      medicineId: it.medicineId,
-      name: it.name,
-      quantity: it.quantity,
-      price: it.price,
-      unit: it.unit || "",
-    })),
+    sale_id: mockSalesHistory.length + 1004,
+    customer_id: selectedCustomer.customer_id,
+    total_price: billItems.reduce((sum, item) => sum + item.lineTotal, 0),
+    sale_datetime: new Date().toISOString(),
+    items: billItems.map(item => ({
+        medicine_id: item.medicineId,
+        medicine_name: item.name,
+        quantity: item.quantity,
+        dosage: item.dosage,
+    }))
   };
-  mockSales.unshift(newSale);
 
-  alert("Mock sale created! (not saved to DB)");
+  // MOCK: Update Stock BEFORE clearing bill items
+  updateMockStock(billItems);
 
-  // เคลียร์ฟอร์ม
+  // MOCK: Add to history
+  mockSalesHistory.push(newSale);
+  
+  alert("Sale created successfully! (MOCK)");
+
+  // Clear form
   billItems = [];
   selectedCustomer = null;
   customerSearchInput.value = "";
   selectedCustomerInfo.textContent = "No customer selected.";
   customerErrorEl.classList.add("hidden");
+  
+  selectedDoctor = null;
+  doctorSearchInput.value = "";
+  doctorIdHiddenInput.value = "";
+  selectedDoctorInfo.textContent = "No doctor selected.";
+  doctorLicenseEl.textContent = "";
+  doctorErrorEl.classList.add("hidden");
+  // Clear date picker
+  if (datePickerInstance) {
+    datePickerInstance.clear();
+  } else {
+    issueDateInput.value = "";
+  }
+
+  latestPrescriptionBox.classList.add("hidden");
+  latestPrescription = null;
+  latestPrescriptionItems = [];
 
   renderBill();
-  await fetchMedicines();
-  await fetchSales();
+  renderSearchResults(""); 
+  await fetchSales(); // Re-fetch sales history (MOCK) to update Recent Sales box
 }
 
-// -----------------------------
-// EVENT LISTENERS
-// -----------------------------
+// ----------------------------------------------------
+// 10. EVENT LISTENERS (Unchanged)
+// ----------------------------------------------------
 searchInput.addEventListener("input", (e) => {
   renderSearchResults(e.target.value);
 });
 
-// ติ๊ก checkbox เพื่อเลือก / ยกเลิกเลือกยา
+// Tick checkbox to select/unselect medicine
 searchResults.addEventListener("change", (e) => {
   const checkbox = e.target.closest("input[data-select]");
   if (!checkbox) return;
-  const id = checkbox.getAttribute("data-select");
-  const med = allMedicines.find((m) => m._id === id);
+  const id = Number(checkbox.getAttribute("data-select"));
+  let med = latestPrescriptionItems.find((m) => m.medicine_id === id) || null;
   if (!med) return;
 
   if (checkbox.checked) {
@@ -440,7 +856,20 @@ searchResults.addEventListener("change", (e) => {
   }
 });
 
-// เปลี่ยนจำนวนในบิล
+// Add item from Latest Prescription
+latestPrescriptionItemsBody.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-add-prescription-idx]");
+  if (!btn) return;
+  
+  const identifier = btn.getAttribute("data-add-prescription-idx");
+  const item = latestPrescriptionItems.find(i => String(i.prescription_item_id) === identifier);
+
+  if (item) {
+    addToBill(item);
+  }
+});
+
+// Change quantity in bill (Stock Check Implemented Here)
 billItemsTbody.addEventListener("input", (e) => {
   if (!e.target.classList.contains("qty-input")) return;
 
@@ -458,10 +887,10 @@ billItemsTbody.addEventListener("input", (e) => {
   }
 
   const item = billItems[idx];
-  const stock = getStockFor(item.medicineId);
+  const stock = getStockFor(item.medicineId); 
 
   if (val > stock) {
-    alert(`Not enough stock for ${item.name}. Max = ${stock}`);
+    alert(`Cannot set quantity: Not enough stock for ${item.name}. Max = ${stock}`);
     val = stock;
   }
 
@@ -472,16 +901,7 @@ billItemsTbody.addEventListener("input", (e) => {
   renderBill();
 });
 
-// เปลี่ยน unit ในบิล
-billItemsTbody.addEventListener("change", (e) => {
-  if (!e.target.classList.contains("unit-select")) return;
-  const idx = Number(e.target.dataset.idx);
-  if (idx < 0 || idx >= billItems.length) return;
-  billItems[idx].unit = e.target.value;
-  updateSelectedSummary();
-});
-
-// ลบรายการออกจากบิล
+// Remove item from bill
 billItemsTbody.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-remove]");
   if (!btn) return;
@@ -490,31 +910,68 @@ billItemsTbody.addEventListener("click", (e) => {
   renderBill();
 });
 
-// ค้นหา customer เมื่อ blur หรือกด Enter (ใช้ mock)
-customerSearchInput.addEventListener("blur", () => {
-  findCustomer();
+// Customer search input event
+customerSearchInput.addEventListener("input", handleCustomerSearch);
+customerSearchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+        customerDropdown.classList.add('hidden');
+    }, 200);
 });
 
-customerSearchInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    findCustomer();
-  }
+// Doctor search input event
+doctorSearchInput.addEventListener("input", handleDoctorSearch);
+doctorSearchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+        doctorDropdown.classList.add('hidden');
+    }, 200);
 });
 
-// ปุ่ม Confirm Sale
+// Search Prescription Button
+searchPrescriptionBtn.addEventListener("click", searchPrescriptionsByFilters);
+
+// Confirm Sale button
 submitSaleBtn.addEventListener("click", submitSale);
 
-// -----------------------------
-// INIT
-// -----------------------------
+// ----------------------------------------------------
+// 11. INITIALIZE FLATPICKR DATE PICKER
+// ----------------------------------------------------
+function initializeDatePicker() {
+  const dateInput = document.getElementById('issueDateInput');
+  if (dateInput && typeof flatpickr !== 'undefined') {
+    // Destroy existing instance if any
+    if (datePickerInstance) {
+      datePickerInstance.destroy();
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    datePickerInstance = flatpickr(dateInput, {
+      dateFormat: 'Y-m-d',
+      locale: 'en',
+      maxDate: today,
+      allowInput: true,
+    });
+  }
+}
+
+// ----------------------------------------------------
+// 12. INIT (Unchanged)
+// ----------------------------------------------------
 (async function init() {
   try {
     billItems = [];
-    renderBill();
+    await fetchCustomers();
+    await fetchDoctors();
     await fetchMedicines();
     await fetchSales();
+    
+    // Initialize Flatpickr with English locale
+    initializeDatePicker();
+    
+    renderBill();
+    renderSearchResults(""); 
     selectedCustomerInfo.textContent = "No customer selected.";
+    latestPrescriptionBox.classList.add("hidden");
+
   } catch (err) {
     console.error(err);
     alert("Failed to init sales page: " + err.message);
