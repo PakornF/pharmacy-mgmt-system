@@ -27,7 +27,6 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     if (
-      !prescription_id ||
       !doctor_id ||
       !customer_id ||
       !issue_date ||
@@ -37,9 +36,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Auto-generate prescription_id if not supplied (simple max+1 fallback)
+    let finalPrescriptionId = prescription_id;
+    if (!finalPrescriptionId) {
+      const latest = await Prescription.findOne()
+        .sort({ prescription_id: -1 })
+        .lean();
+      finalPrescriptionId = (latest?.prescription_id || 0) + 1;
+    }
+
     // header
     const prescription = await Prescription.create({
-      prescription_id,
+      prescription_id: finalPrescriptionId,
       doctor_id,
       customer_id,
       issue_date,
@@ -48,7 +56,7 @@ router.post("/", async (req, res) => {
 
     // items
     const itemsToInsert = items.map((i) => ({
-      prescription_id,
+      prescription_id: finalPrescriptionId,
       medicine_id: i.medicine_id,
       // ให้ dosage ว่างได้ (จะไปโชว์เป็น "-" ฝั่ง UI)
       dosage: i.dosage || "",
@@ -59,7 +67,7 @@ router.post("/", async (req, res) => {
     // populate ข้อมูลไว้ตอบกลับสวย ๆ (หมอ, ลูกค้า, รายการยา)
     const doctor = await Doctor.findOne({ doctor_id });
     const customer = await Customer.findOne({ customer_id });
-    const itemDetails = await PrescriptionItem.find({ prescription_id });
+    const itemDetails = await PrescriptionItem.find({ prescription_id: finalPrescriptionId });
     const medicines = await Medicine.find({
       medicine_id: { $in: itemDetails.map((it) => it.medicine_id) },
     });
