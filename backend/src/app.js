@@ -51,6 +51,7 @@ const spaRoutes = [
   "/medicine",
   "/sales",
   "/customer",
+  "/doctor",
   "/prescription",
   "/supplier",
   "/supply-order",

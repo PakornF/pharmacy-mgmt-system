@@ -235,8 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
   //-----------------------------------------
   // 3) Start at current path (normalized)
   //-----------------------------------------
-  // Always land on Overview when hitting the app root
-  const initialPage = "overview";
-  window.history.replaceState({ page: initialPage }, "", "/");
+  // Start on the current path (e.g., /medicine stays on medicine)
+  const initialPage = pathnameToPage(window.location.pathname);
   showPage(initialPage, true);
 });

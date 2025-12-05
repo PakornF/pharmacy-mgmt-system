@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     medicine: "medicine",
     sales: "sales",
     customer: "customer",
+    doctor: "doctor",
     prescription: "prescription",
     supplier: "supplier",
     "supply-order": "supply-order",
@@ -198,8 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 3) start at current path (or Overview)
-  // Always land on Overview on initial load
-  const initialPage = "overview";
-  window.history.replaceState({ page: initialPage }, "", "/");
+  // Start on the current path (e.g., /medicine stays on medicine)
+  const initialPage = pathnameToPage(window.location.pathname);
   showPage(initialPage, true);
 });
