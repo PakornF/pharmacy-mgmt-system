@@ -23,14 +23,14 @@ const mockDoctors = [
 // Mock Medicines: quantity คือ stock ปัจจุบัน
 const mockMedicines = [
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 1, medicine_name: "Amoxicillin 500mg", price: 120.00, quantity: 60, unit: "capsules", dosage: "-", is_dangerous: false },
-    { medicine_id: 2, medicine_name: "Antacid Liquid", price: 120.00, quantity: 47, unit: "bottles", dosage: "2", is_dangerous: false },
+    { medicine_id: 1, medicine_name: "Amoxicillin 500mg", price: 120.00, quantity: 60, unit: "capsules", dosage: "-" },
+    { medicine_id: 2, medicine_name: "Antacid Liquid", price: 120.00, quantity: 47, unit: "bottles", dosage: "2" },
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 3, medicine_name: "Aspirin 81mg", price: 20.00, quantity: 300, unit: "capsules", dosage: "-", is_dangerous: false },
+    { medicine_id: 3, medicine_name: "Aspirin 81mg", price: 20.00, quantity: 300, unit: "capsules", dosage: "-" },
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 4, medicine_name: "Atorvastatin 20mg", price: 95.00, quantity: 100, unit: "capsules", dosage: "-", is_dangerous: true },
+    { medicine_id: 4, medicine_name: "Atorvastatin 20mg", price: 95.00, quantity: 100, unit: "capsules", dosage: "-" },
     // boxes ถูก normalize เป็น capsules อยู่แล้ว
-    { medicine_id: 5, medicine_name: "Paracetamol 500mg", price: 15.50, quantity: 500, unit: "boxes", dosage: "-", is_dangerous: false }, 
+    { medicine_id: 5, medicine_name: "Paracetamol 500mg", price: 15.50, quantity: 500, unit: "boxes", dosage: "-" }, 
 ];
 
 // Prescriptions must reference existing medicine_id and customer_id
@@ -245,12 +245,6 @@ async function fetchSales() {
           allCustomers.find((c) => c.customer_id === cid) || null;
         const cname = customer ? customer.full_name : "-";
         
-        const isDangerous = (s.items || []).some(item => {
-            const med = mockMedicines.find(m => m.medicine_id === item.medicine_id);
-            return med && med.is_dangerous;
-        }) ? 'True' : 'False';
-
-
         const total =
           typeof s.total_price === "number" ? s.total_price : 0;
         const date = s.sale_datetime
@@ -270,7 +264,6 @@ async function fetchSales() {
             )}</td>
             <td class="py-1 px-2 text-center w-1/6">${(s.items || []).length}</td>
             <td class="py-2 px-2 text-left w-2/6">${detail}</td>
-            <td class="py-2 px-2 text-center w-1/6">${isDangerous}</td>
           </tr>
         `;
       })
@@ -285,7 +278,7 @@ function renderSearchResults(keyword) {
   
   if (latestPrescriptionItems.length === 0) {
     searchResults.innerHTML =
-        `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No Prescription loaded. Please search using Customer, Doctor, and Issue Date.</td></tr>`;
+        `<tr><td colspan="5" class="py-1 text-gray-400 text-center">No Prescription loaded. Please search using Customer, Doctor, and Issue Date.</td></tr>`;
     return;
   }
 
@@ -299,7 +292,7 @@ function renderSearchResults(keyword) {
 
   if (filtered.length === 0) {
     searchResults.innerHTML =
-      `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No medicines found in this prescription.</td></tr>`;
+      `<tr><td colspan="5" class="py-1 text-gray-400 text-center">No medicines found in this prescription.</td></tr>`;
     return;
   }
 
@@ -312,9 +305,6 @@ function renderSearchResults(keyword) {
       const unit = m.unit || "";
       const dosage = m.dosage || "-";
       
-      const medDetails = allMedicines.find(med => med.medicine_id === id);
-      const dangerous = medDetails && medDetails.is_dangerous === true ? 'True' : 'False';
-
       const inBill = billItems.some((it) => it.medicineId === id);
       const displayUnit = normalizeUnit(unit);
       
@@ -324,7 +314,6 @@ function renderSearchResults(keyword) {
           <td class="py-1 text-right">${Number(price || 0).toFixed(2)} / ${displayUnit}</td>
           <td class="py-1 text-right">${stock} ${displayUnit}</td>
           <td class="py-1 text-left text-xs">${dosage}</td>
-          <td class="py-1 text-center">${dangerous}</td>
           <td class="py-1 text-center">
             <input
               type="checkbox"
@@ -414,8 +403,6 @@ function addToBill(med) {
     return;
   }
 
-  const medDetails = allMedicines.find(m => m.medicine_id === id);
-
   if (existing) {
     existing.quantity += 1;
     existing.lineTotal = existing.quantity * existing.price;
@@ -429,7 +416,6 @@ function addToBill(med) {
       dosage,
       lineTotal: requestedQty * price,
       fromPrescription: !!med.prescription_id,
-      is_dangerous: medDetails ? medDetails.is_dangerous : false,
     });
   }
   renderBill();
