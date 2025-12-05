@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   const cardTotalMeds = document.getElementById("card-total-meds");
   const cardTotalQty = document.getElementById("card-total-qty");
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // dashboard.js
 
 document.addEventListener("DOMContentLoaded", () => {
-    const API_BASE = "http://localhost:8000";
+    const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
   
     //-----------------------------------------
     // 1) SIDEBAR PAGE SWITCHING

@@ -35,7 +35,7 @@ export const searchMedicinesForBilling = async (req, res) => {
 
 export const createSale = async (req, res) => {
   try {
-    const { customer_id, items } = req.body;
+    const { customer_id, prescription_id = null, items } = req.body;
 
     if (!customer_id || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -55,7 +55,7 @@ export const createSale = async (req, res) => {
     const detailedItems = [];
 
     for (const item of items) {
-      const { medicine_id, quantity } = item;
+      const { medicine_id, quantity, dosage = "" } = item;
       const med = medMap.get(medicine_id);
 
       if (!med) {
@@ -82,6 +82,7 @@ export const createSale = async (req, res) => {
         name: med.name,
         unit_price: med.price,
         quantity,
+        dosage,
         line_total: lineTotal,
       });
     }
@@ -96,6 +97,8 @@ export const createSale = async (req, res) => {
       customer_id,
       sale_datetime: new Date(),
       total_price,
+      // ผูกกับ prescription ถ้ามี (ไม่บังคับ)
+      prescription_id: prescription_id || null,
     });
     await sale.save();
 
@@ -108,6 +111,7 @@ export const createSale = async (req, res) => {
         medicine_id: item.medicine_id,
         unit_price: item.unit_price,
         quantity: item.quantity,
+        dosage: item.dosage || "",
       });
       saleItemsDocs.push(saleItem.save());
 
@@ -135,7 +139,46 @@ export const createSale = async (req, res) => {
 export const getAllSales = async (req, res) => {
   try {
     const sales = await Sale.find().sort({ sale_datetime: -1 });
-    res.status(200).json(sales);
+
+    if (sales.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const saleIds = sales.map((s) => s.sale_id);
+    const saleItems = await SaleItem.find({
+      sale_id: { $in: saleIds },
+    }).lean();
+
+    const medicineIds = [
+      ...new Set(saleItems.map((it) => it.medicine_id)),
+    ];
+    const medicines = await Medicine.find({
+      medicine_id: { $in: medicineIds },
+    }).lean();
+    const medMap = new Map(
+      medicines.map((m) => [m.medicine_id, m])
+    );
+
+    const itemsBySale = saleItems.reduce((acc, it) => {
+      acc[it.sale_id] = acc[it.sale_id] || [];
+      const med = medMap.get(it.medicine_id);
+      acc[it.sale_id].push({
+        sale_item_id: it.sale_item_id,
+        medicine_id: it.medicine_id,
+        medicine_name: med ? med.name : "Unknown medicine",
+        unit_price: it.unit_price,
+        quantity: it.quantity,
+        dosage: it.dosage || "",
+      });
+      return acc;
+    }, {});
+
+    const result = sales.map((s) => ({
+      ...s.toObject(),
+      items: itemsBySale[s.sale_id] || [],
+    }));
+
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching sales:", error);
     res.status(500).json({ message: "Error fetching sales", error: error.message });
@@ -155,8 +198,32 @@ export const getSaleWithItems = async (req, res) => {
       return res.status(404).json({ message: "Sale not found" });
     }
 
-    const items = await SaleItem.find({ sale_id: saleId });
-    return res.status(200).json({ sale, items });
+    const items = await SaleItem.find({ sale_id: saleId }).lean();
+
+    if (items.length === 0) {
+      return res.status(200).json({ sale, items: [] });
+    }
+
+    const medicineIds = [
+      ...new Set(items.map((it) => it.medicine_id)),
+    ];
+    const medicines = await Medicine.find({
+      medicine_id: { $in: medicineIds },
+    }).lean();
+    const medMap = new Map(
+      medicines.map((m) => [m.medicine_id, m])
+    );
+
+    const enrichedItems = items.map((it) => {
+      const med = medMap.get(it.medicine_id);
+      return {
+        ...it,
+        medicine_name: med ? med.name : "Unknown medicine",
+        dosage: it.dosage || "",
+      };
+    });
+
+    return res.status(200).json({ sale, items: enrichedItems });
   } catch (error) {
     console.error("Error fetching sale detail:", error);
     res.status(400).json({ message: "Error fetching sale", error: error.message });

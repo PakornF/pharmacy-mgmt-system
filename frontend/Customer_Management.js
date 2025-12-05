@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE = 'http://localhost:8000/customers';
+const API_BASE = (window.API_BASE || 'http://localhost:8000') + '/customers';
 
 // State
 let allCustomers = [];
@@ -578,4 +578,3 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-

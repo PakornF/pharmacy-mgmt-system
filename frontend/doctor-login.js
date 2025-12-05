@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const errorMessage = document.getElementById("errorMessage");
 
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = window.API_BASE || "http://localhost:8000";
 
   loginForm.addEventListener("submit", async(e) => {
     e.preventDefault();
