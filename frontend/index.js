@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   //-----------------------------------------
   // 1) SIDEBAR PAGE SWITCHING
@@ -7,8 +7,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const links = document.querySelectorAll(".sidebar-link");
   const pages = document.querySelectorAll("section[data-page]");
 
+<<<<<<< HEAD
   function showPage(target) {
     // hide all pages
+=======
+  const ROUTE_MAP = {
+    "": "overview",
+    overview: "overview",
+    medicine: "medicine",
+    sales: "sales",
+    customer: "customer",
+    prescription: "prescription",
+    supplier: "supplier",
+    "supply-order": "supply-order",
+  };
+
+  function pathnameToPage(pathname) {
+    const slug = pathname.replace(/^\//, "").split("/")[0];
+    const page = ROUTE_MAP[slug] || "overview";
+    return page;
+  }
+
+  function pushPathForPage(page) {
+    const slug = page === "overview" ? "" : page;
+    const newPath = `/${slug}`;
+    window.history.pushState({ page }, "", newPath);
+  }
+
+  function showPage(target, skipPush = false) {
+    // show / hide sections
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0
     pages.forEach((page) => {
       if (page.dataset.page === target) {
         page.classList.remove("hidden");
@@ -198,9 +226,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+<<<<<<< HEAD
   //-----------------------------------------
   // 3) เริ่มที่หน้า Overview
   //-----------------------------------------
   showPage("overview");
+=======
+  // 3) start at current path (or Overview)
+  // Always land on Overview on initial load
+  const initialPage = "overview";
+  window.history.replaceState({ page: initialPage }, "", "/");
+  showPage(initialPage, true);
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0
 });
 

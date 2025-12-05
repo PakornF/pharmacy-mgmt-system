@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   // 1) Sidebar page switching (History API)
   const links = document.querySelectorAll(".sidebar-link");
@@ -11,11 +11,16 @@ document.addEventListener("DOMContentLoaded", () => {
     medicine: "medicine",
     sales: "sales",
     customer: "customer",
+<<<<<<< HEAD:index.js
     prescription: "prescription",
+=======
+    doctor: "doctor",
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
     supplier: "supplier",
     "supply-order": "supply-order",
   };
 
+<<<<<<< HEAD:index.js
   function pathnameToPage(pathname) {
     const slug = pathname.replace(/^\//, "").split("/")[0];
     return ROUTE_MAP[slug] || "overview";
@@ -29,6 +34,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showPage(target, skipPush = false) {
     // show / hide sections
+=======
+  function slugForPage(page) {
+    return page === "overview" ? "" : page;
+  }
+
+  function pathnameToPage(pathname) {
+    const slug = pathname.replace(/^\//, "").split("/")[0];
+    const page = ROUTE_MAP[slug] || "overview";
+    return page;
+  }
+
+  function pushPathForPage(page) {
+    const slug = slugForPage(page);
+    window.history.pushState({ page }, "", `/${slug}`);
+  }
+
+  function showPage(target, skipPush = false) {
+    // hide all pages
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
     pages.forEach((page) => {
       if (page.dataset.page === target) {
         page.classList.remove("hidden");
@@ -46,7 +70,11 @@ document.addEventListener("DOMContentLoaded", () => {
           "bg-rose-200",
           "rounded-full",
           "font-semibold",
+<<<<<<< HEAD:index.js
           "pl-6",
+=======
+          "pl-6",          
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
           "pr-6",
           "py-3",
           "text-black",
@@ -67,11 +95,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+<<<<<<< HEAD:index.js
     // keep url in sync so refresh/back/forward stay on the same page
+=======
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
     if (!skipPush) {
       pushPathForPage(target);
     }
 
+<<<<<<< HEAD:index.js
+=======
+    // Load dashboard only when switching to Overview
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
     if (target === "overview") {
       loadDashboard();
     }
@@ -84,11 +119,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+<<<<<<< HEAD:index.js
   // Handle browser back/forward
+=======
+  // Handle back/forward
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
   window.addEventListener("popstate", () => {
     const page = pathnameToPage(window.location.pathname);
     showPage(page, true);
   });
+<<<<<<< HEAD:index.js
+=======
+
+  //-----------------------------------------
+  // 2) DASHBOARD DATA FETCHING
+  //-----------------------------------------
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
 
   // 2) Dashboard fetching
   const cardTotalMeds = document.getElementById("card-total-meds");
@@ -107,7 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const debugOutput = document.getElementById("debug-output");
 
   async function loadDashboard() {
+<<<<<<< HEAD:index.js
     if (!cardStatusText) return;
+=======
+    if (!cardStatusText) return; 
+
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
     cardStatusText.textContent = "Loading data from server...";
 
     try {
@@ -196,7 +247,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+<<<<<<< HEAD:index.js
   // 3) start at current path (or Overview)
   const initialPage = pathnameToPage(window.location.pathname);
+=======
+  //-----------------------------------------
+  // 3) Start at current path (normalized)
+  //-----------------------------------------
+  // Always land on Overview when hitting the app root
+  const initialPage = "overview";
+  window.history.replaceState({ page: initialPage }, "", "/");
+>>>>>>> 9ec962b7f4c6a4a6fd270d2570f97a18f65b2cc0:frontend/dashboard.js
   showPage(initialPage, true);
 });

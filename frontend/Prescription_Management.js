@@ -1,5 +1,5 @@
 // API Base URLs
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.API_BASE || 'http://localhost:8000';
 const PRESCRIPTION_API = `${API_BASE}/prescriptions`;
 const DOCTOR_API = `${API_BASE}/doctors`;
 const CUSTOMER_API = `${API_BASE}/customers`;
@@ -692,4 +692,3 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-

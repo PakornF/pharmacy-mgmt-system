@@ -25,15 +25,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend static files
-const frontendPath = path.join(__dirname, "../frontend");
+// Serve frontend static files from repo-level /frontend
+const frontendPath = path.join(__dirname, "../../frontend");
 app.use(express.static(frontendPath));
 
 // Connect DB
 connectDB();
 
 // Routes
-app.use("/dashboard", dashboardRoutes);
+// Dashboard API lives under /api to avoid conflicting with SPA /dashboard route
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/medicines", medicineRoutes);
 app.use("/prescriptions", prescriptionRoutes);
