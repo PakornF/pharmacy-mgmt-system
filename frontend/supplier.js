@@ -1,330 +1,275 @@
-let mockSuppliers = [
-    {
-      id: "sup1",
-      name: "Health Pharma Co., Ltd.",
-      contactName: "Somchai Wong",
-      phone: "081-111-2222",
-      email: "somchai@healthpharma.com",
-      address: "Bangkok, Thailand",
-      notes: "Main generic drug supplier",
-    },
-    {
-      id: "sup2",
-      name: "Premium Med Supply",
-      contactName: "Ms. May",
-      phone: "089-333-4444",
-      email: "may@premiummed.com",
-      address: "Chiang Mai, Thailand",
-      notes: "Skin care products",
-    },
-  ];
+// -----------------------------
+// Constants & DOM references
+// -----------------------------
+const UNIT_CHOICES = [
+  "tablets",
+  "capsules",
+  "boxes",
+  "bottles",
+  "tubes",
+  "blisters",
+];
 
-  let mockMedicines = [
-    {
-      id: "med1",
-      name: "Paracetamol 500mg",
-      brand: "Tylenol",
-      price: 5,
-      quantity: 100,
-      unit: "tablets",
-      supplierId: "sup1",
-    },
-    {
-      id: "med2",
-      name: "Amoxicillin 250mg",
-      brand: "Amoxi",
-      price: 12,
-      quantity: 50,
-      unit: "capsules",
-      supplierId: "sup1",
-    },
-    {
-      id: "med3",
-      name: "Cough Syrup",
-      brand: "FluCare",
-      price: 30,
-      quantity: 30,
-      unit: "bottles",
-      supplierId: "sup2",
-    },
-  ];
-  
-  const supplierSearchInput = document.getElementById("supplierSearchInput");
-  const supplierTableBody = document.getElementById("supplierTableBody");
-  
-  const addSupplierBtn = document.getElementById("addSupplierBtn");
-  const cancelEditBtn = document.getElementById("cancelEditBtn");
-  const supplierForm = document.getElementById("supplierForm");
-  const formTitle = document.getElementById("formTitle");
-  
-  const supplierIdInput = document.getElementById("supplierId");
-  const supplierNameInput = document.getElementById("supplierNameInput");
-  const contactNameInput = document.getElementById("contactNameInput");
-  const phoneInput = document.getElementById("phoneInput");
-  const emailInput = document.getElementById("emailInput");
-  const addressInput = document.getElementById("addressInput");
-  const notesInput = document.getElementById("notesInput");
-  
-  const selectedSupplierLabel = document.getElementById("selectedSupplierLabel");
-  const supplierMedicinesBody = document.getElementById("supplierMedicinesBody");
-  
-  let selectedSupplierId = null;
-  
-  // render supplier list 
-  function renderSupplierList(keyword = "") {
-    const q = keyword.toLowerCase();
-  
-    const filtered = mockSuppliers.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        (s.contactName && s.contactName.toLowerCase().includes(q))
-    );
-  
-    if (filtered.length === 0) {
-      supplierTableBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No suppliers found.</td></tr>`;
-      return;
+const supplierForm = document.getElementById("supplierForm");
+const supplierSearchInput = document.getElementById("supplierSearchInput");
+const supplierNameInput = document.getElementById("supplierNameInput");
+const contactNameInput = document.getElementById("contactNameInput");
+const phoneInput = document.getElementById("phoneInput");
+const emailInput = document.getElementById("emailInput");
+const addressInput = document.getElementById("addressInput");
+const notesInput = document.getElementById("notesInput");
+
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+const formTitle = document.getElementById("formTitle");
+const supplierIdHidden = document.getElementById("supplierId");
+
+let allSuppliers = [];
+
+const supplierTableBody = document.getElementById("supplierTableBody"); // Added supplier table body reference
+
+// -----------------------------
+// Fetch suppliers from backend
+// -----------------------------
+async function fetchAndStoreSuppliers() {
+  try {
+    const response = await fetch("http://localhost:8000/suppliers"); // Fetch from backend API
+    if (!response.ok) {
+      throw new Error("Failed to fetch suppliers");
     }
-  
-    supplierTableBody.innerHTML = filtered
-      .map(
-        (s) => `
+    allSuppliers = await response.json();
+    renderSupplierList(allSuppliers, ""); // Initial render with all suppliers
+  } catch (error) {
+    console.error("Error fetching suppliers:", error);
+    alert("Error fetching suppliers from the server.");
+  }
+}
+
+function clearSupplierForm() {
+  supplierIdHidden.value = "";
+  supplierNameInput.value = "";
+  contactNameInput.value = "";
+  phoneInput.value = "";
+  emailInput.value = "";
+  addressInput.value = "";
+  notesInput.value = "";
+  formTitle.textContent = "Add Supplier";
+}
+
+function fillFormForEdit(supplier) {
+  supplierIdHidden.value = supplier._id;
+  supplierNameInput.value = supplier.supplier_name || "";
+  contactNameInput.value = supplier.contact_person || "";
+  phoneInput.value = supplier.phone || "";
+  emailInput.value = supplier.email || "";
+  addressInput.value = supplier.address || "";
+  notesInput.value = supplier.notes || "";
+  formTitle.textContent = "Edit Supplier";
+}
+
+// -----------------------------
+// Render Supplier List
+// -----------------------------
+function renderSupplierList(suppliers, keyword = "") {
+  const q = keyword.toLowerCase();
+
+  const filtered = suppliers.filter(
+    (s) =>
+      s.supplier_name.toLowerCase().includes(q) ||
+      s.contact_person.toLowerCase().includes(q) ||
+      String(s.supplier_id).includes(q)
+  );
+
+  if (filtered.length === 0) {
+    supplierTableBody.innerHTML =
+      `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No suppliers found.</td></tr>`;
+    return;
+  }
+
+  supplierTableBody.innerHTML = filtered
+    .map(
+      (s) => `
         <tr class="hover:bg-pink-50">
-          <td class="py-2 px-2 text-left">${s.name}</td>
-          <td class="py-2 px-2 text-left">${s.contactName || "-"}</td>
+          <td class="py-2 px-2 text-left">${s.supplier_name}</td>
+          <td class="py-2 px-2 text-left">${s.contact_person || "-"}</td>
           <td class="py-2 px-2 text-left">${s.phone || "-"}</td>
           <td class="py-2 px-2 text-right space-x-2">
             <button
               class="text-xs text-pink-600 hover:underline"
-              data-view="${s.id}"
+              data-view="${s._id}"
             >
               View
             </button>
             <button
               class="text-xs text-blue-600 hover:underline"
-              data-edit="${s.id}"
+              data-edit="${s._id}"
             >
               Edit
             </button>
             <button
               class="text-xs text-red-600 hover:underline"
-              data-delete="${s.id}"
+              data-delete="${s._id}"
             >
               Delete
             </button>
           </td>
         </tr>
       `
-      )
-      .join("");
-  }
-  
-  // render medicines of selected supplier 
-  function renderSupplierMedicines(supplierId) {
-    const supplier = mockSuppliers.find((s) => s.id === supplierId);
-    if (!supplier) {
-      selectedSupplierLabel.textContent = "No supplier selected";
-      supplierMedicinesBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-sm text-gray-400 text-center">Select a supplier to see medicines.</td></tr>`;
-      return;
-    }
-  
-    selectedSupplierLabel.textContent = `Selected: ${supplier.name}`;
-  
-    const meds = mockMedicines.filter((m) => m.supplierId === supplierId);
-  
-    if (meds.length === 0) {
-      supplierMedicinesBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-sm text-gray-400 text-center">No medicines from this supplier.</td></tr>`;
-      return;
-    }
-  
-    supplierMedicinesBody.innerHTML = meds
-    .map(
-      (m) => `
-        <tr>
-          <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
-          <td class="py-2 px-2 text-left w-1/4">${m.brand || "-"}</td>
-          <td class="py-2 px-2 text-right w-1/4">
-            ${m.price.toFixed(2)} / ${m.unit || "unit"}
-          </td>
-          <td class="py-2 px-2 text-right w-1/4">
-            ${m.quantity} ${m.unit || ""}
-          </td>
-        </tr>
-      `
     )
     .join("");
-  }
-  
-  // form helpers 
-  function clearForm() {
-    supplierIdInput.value = "";
-    supplierNameInput.value = "";
-    contactNameInput.value = "";
-    phoneInput.value = "";
-    emailInput.value = "";
-    addressInput.value = "";
-    notesInput.value = "";
-  }
-  
-  function fillFormForEdit(id) {
-    const s = mockSuppliers.find((sup) => sup.id === id);
-    if (!s) return;
-  
-    supplierIdInput.value = s.id;
-    supplierNameInput.value = s.name;
-    contactNameInput.value = s.contactName || "";
-    phoneInput.value = s.phone || "";
-    emailInput.value = s.email || "";
-    addressInput.value = s.address || "";
-    notesInput.value = s.notes || "";
-  
-    formTitle.textContent = "Edit Supplier";
-  }
-  
-  // event: search
-  supplierSearchInput.addEventListener("input", (e) => {
-    renderSupplierList(e.target.value);
-  });
-  
-  // event: table actions
-  supplierTableBody.addEventListener("click", (e) => {
-    const viewBtn = e.target.closest("button[data-view]");
-    const editBtn = e.target.closest("button[data-edit]");
-    const deleteBtn = e.target.closest("button[data-delete]");
-  
-    if (viewBtn) {
-      const id = viewBtn.getAttribute("data-view");
-      selectedSupplierId = id;
-      renderSupplierMedicines(id);
+}
+
+// -----------------------------
+// Render Medicines of Supplier
+// -----------------------------
+async function renderSupplierMedicines(supplierId) {
+  try {
+    const response = await fetch(`http://localhost:8000/suppliers/${supplierId}/medicines`); // Fetch medicines for a supplier
+    if (!response.ok) {
+      throw new Error('Failed to fetch medicines');
+    }
+    const medicines = await response.json();
+
+    const supplierMedicinesBody = document.getElementById("supplierMedicinesBody");
+    if (medicines.length === 0) {
+      supplierMedicinesBody.innerHTML =
+        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines from this supplier.</td></tr>`;
       return;
     }
-  
-    if (editBtn) {
-      const id = editBtn.getAttribute("data-edit");
-      fillFormForEdit(id);
-      formTitle.textContent = "Edit Supplier";
+
+    supplierMedicinesBody.innerHTML = medicines
+      .map(
+        (m) => `
+          <tr>
+            <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
+            <td class="py-2 px-2 text-left w-1/4">${m.brand || "-"}</td>
+            <td class="py-2 px-2 text-right w-1/4">
+              ${m.price.toFixed(2)} / ${m.unit || "unit"}
+            </td>
+            <td class="py-2 px-2 text-right w-1/4">
+              ${m.quantity} ${m.unit || ""}
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+  } catch (error) {
+    console.error("Error fetching medicines:", error);
+  }
+}
+
+// -----------------------------
+// Handle form submission
+// -----------------------------
+async function submitSupplierForm(event) {
+  event.preventDefault();
+
+  const supplierData = {
+    supplier_name: supplierNameInput.value.trim(),
+    contact_person: contactNameInput.value.trim(),
+    phone: phoneInput.value.trim(),
+    email: emailInput.value.trim(),
+    address: addressInput.value.trim(),
+    notes: notesInput.value.trim(),
+  };
+
+  try {
+    const isEdit = Boolean(supplierIdHidden.value);
+    const url = isEdit
+      ? `http://localhost:8000/suppliers/${supplierIdHidden.value}`
+      : "http://localhost:8000/suppliers";
+    const method = isEdit ? "PUT" : "POST";
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(supplierData),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      const detail = result && result.message ? `: ${result.message}` : "";
+      alert(`Error creating supplier${detail}`);
       return;
     }
-  
-    if (deleteBtn) {
-      const id = deleteBtn.getAttribute("data-delete");
-      const s = mockSuppliers.find((sup) => sup.id === id);
-      if (!s) return;
-      if (!confirm(`Delete supplier "${s.name}" ?`)) return;
-  
-      mockSuppliers = mockSuppliers.filter((sup) => sup.id !== id);
-      if (selectedSupplierId === id) {
-        selectedSupplierId = null;
-        renderSupplierMedicines(null);
+
+    alert(isEdit ? "Supplier updated successfully!" : "Supplier created successfully!");
+    clearSupplierForm();
+    await fetchAndStoreSuppliers();
+  } catch (error) {
+    console.error("Error creating supplier:", error);
+    alert("Failed to create supplier.");
+  }
+}
+
+// -----------------------------
+// Table actions (view / edit / delete)
+// -----------------------------
+supplierTableBody.addEventListener("click", async (event) => {
+  const viewBtn = event.target.closest("button[data-view]");
+  const editBtn = event.target.closest("button[data-edit]");
+  const deleteBtn = event.target.closest("button[data-delete]");
+
+  if (viewBtn) {
+    const id = viewBtn.getAttribute("data-view");
+    const supplier = allSuppliers.find((s) => s._id === id);
+    if (!supplier) return;
+    alert(
+      [
+        `Name: ${supplier.supplier_name}`,
+        `Contact: ${supplier.contact_person}`,
+        `Phone: ${supplier.phone}`,
+        `Email: ${supplier.email}`,
+        `Address: ${supplier.address}`,
+        `Notes: ${supplier.notes || "-"}`,
+      ].join("\n")
+    );
+    return;
+  }
+
+  if (editBtn) {
+    const id = editBtn.getAttribute("data-edit");
+    const supplier = allSuppliers.find((s) => s._id === id);
+    if (!supplier) return;
+    fillFormForEdit(supplier);
+    return;
+  }
+
+  if (deleteBtn) {
+    const id = deleteBtn.getAttribute("data-delete");
+    const supplier = allSuppliers.find((s) => s._id === id);
+    if (!supplier) return;
+    const confirmed = confirm(`Delete supplier "${supplier.supplier_name}"?`);
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/suppliers/${id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        const detail = result && result.message ? `: ${result.message}` : "";
+        alert(`Error deleting supplier${detail}`);
+        return;
       }
-      renderSupplierList(supplierSearchInput.value || "");
-      return;
+      alert("Supplier deleted.");
+      await fetchAndStoreSuppliers();
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      alert("Failed to delete supplier.");
     }
-  });
-  
-  // event: add supplier button
-  addSupplierBtn.addEventListener("click", () => {
-    clearForm();
-    formTitle.textContent = "Add Supplier";
-  });
-  
-  // event: cancel edit
-  cancelEditBtn.addEventListener("click", () => {
-    clearForm();
-    formTitle.textContent = "Add Supplier";
-  });
-  
-  // event: submit form
-  supplierForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-  
-    const id = supplierIdInput.value || null;
-  
-    const name = supplierNameInput.value.trim();
-    const contact = contactNameInput.value.trim();
-    const phone = phoneInput.value.trim();
-    const email = emailInput.value.trim();
-    const address = addressInput.value.trim();
-    const notes = notesInput.value.trim();
-  
-    // VALIDATION
-    if (!name) {
-      alert("Supplier name is required.");
-      supplierNameInput.focus();
-      return;
-    }
-  
-    if (!contact) {
-      alert("Contact Person is required.");
-      contactNameInput.focus();
-      return;
-    }
-  
-    if (!phone) {
-      alert("Phone is required.");
-      phoneInput.focus();
-      return;
-    }
-  
-    const phoneDigits = phone.replace(/\D/g, "");
-    if (phoneDigits.length < 6) {
-      alert("Please enter a valid phone number.");
-      phoneInput.focus();
-      return;
-    }
-  
-    if (!email) {
-      alert("Email is required.");
-      emailInput.focus();
-      return;
-    }
-  
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
-      alert("Please enter a valid email address.");
-      emailInput.focus();
-      return;
-    }
-  
-    if (!address) {
-      alert("Address is required.");
-      addressInput.focus();
-      return;
-    }
-    // END VALIDATION
-  
-    const payload = {
-      name,
-      contactName: contact,
-      phone,
-      email,
-      address,
-      notes,
-    };
-  
-    if (id) {
-      const idx = mockSuppliers.findIndex((s) => s.id === id);
-      if (idx !== -1) {
-        mockSuppliers[idx] = { ...mockSuppliers[idx], ...payload };
-      }
-      alert("Supplier updated.");
-    } else {
-      const newId = "sup" + (mockSuppliers.length + 1);
-      mockSuppliers.push({ id: newId, ...payload });
-      alert("Supplier added.");
-    }
-  
-    clearForm();
-    formTitle.textContent = "Add Supplier";
-    renderSupplierList(supplierSearchInput.value || "");
-  });
-  
-  // init
-  function initSupplierPage() {
-    renderSupplierList();
-    renderSupplierMedicines(null);
   }
-  
-  document.addEventListener("DOMContentLoaded", initSupplierPage);
+});
+
+// -----------------------------
+// INIT
+// -----------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  fetchAndStoreSuppliers(); // Fetch the supplier list on page load
+  supplierForm.addEventListener("submit", submitSupplierForm);
+  supplierSearchInput.addEventListener("input", (e) =>
+    renderSupplierList(allSuppliers, e.target.value || "")
+  );
+  cancelEditBtn.addEventListener("click", clearSupplierForm);
+});
