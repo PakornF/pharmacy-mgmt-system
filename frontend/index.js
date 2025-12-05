@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   // 1) Sidebar page switching (History API)
   const links = document.querySelectorAll(".sidebar-link");
@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     medicine: "medicine",
     sales: "sales",
     customer: "customer",
+    doctor: "doctor",
     prescription: "prescription",
     supplier: "supplier",
     "supply-order": "supply-order",
@@ -18,7 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function pathnameToPage(pathname) {
     const slug = pathname.replace(/^\//, "").split("/")[0];
-    return ROUTE_MAP[slug] || "overview";
+    const page = ROUTE_MAP[slug] || "overview";
+    return page;
   }
 
   function pushPathForPage(page) {
@@ -197,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 3) start at current path (or Overview)
+  // Start on the current path (e.g., /medicine stays on medicine)
   const initialPage = pathnameToPage(window.location.pathname);
   showPage(initialPage, true);
 });

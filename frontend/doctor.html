@@ -17,7 +17,11 @@
         <div class="flex items-center justify-between mb-3">
           <div>
             <h2 class="font-semibold text-lg">Doctors</h2>
-            <span id="doctorCount" class="text-xs text-gray-500"></span>
+            <div class="text-xs text-gray-500 space-x-2">
+              <span id="doctorCount"></span>
+              <span id="doctorLoadingText" class="hidden">Loading...</span>
+              <span id="doctorErrorText" class="hidden text-red-500"></span>
+            </div>
           </div>
 
           <!-- ปุ่ม Add Doctor -->
@@ -182,12 +186,9 @@
               id="usernameInput"
               type="text"
               class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="e.g., doctor001"
+              placeholder="e.g., drsomchai"
               required
             />
-            <p class="text-[11px] text-gray-400 mt-1">
-              Username for doctor login. Must be unique.
-            </p>
           </div>
 
           <!-- Password -->
@@ -199,12 +200,9 @@
               id="passwordInput"
               type="password"
               class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="Enter password"
+              placeholder="Set a password"
               required
             />
-            <p class="text-[11px] text-gray-400 mt-1">
-              Password for doctor login.
-            </p>
           </div>
 
           <!-- Buttons -->

@@ -1,13 +1,12 @@
 // doctor.js - เชื่อมกับ backend จริง
 
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  // กำหนด API BASE URL
+  const API_BASE = (window.API_BASE || "http://localhost:8000");
   const DOCTOR_API = `${API_BASE}/doctors`;
 
-  // -----------------------------
-  // State
-  // -----------------------------
-  let doctors = []; // ข้อมูลจาก backend
+  let doctors = [];
+  let selectedDoctorId = null;
 
   // -----------------------------
   // DOM elements
@@ -28,32 +27,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const doctorFirstNameInput = document.getElementById("doctorFirstNameInput");
   const doctorLastNameInput = document.getElementById("doctorLastNameInput");
   const licenseInput = document.getElementById("licenseInput");
+
   const usernameInput = document.getElementById("usernameInput");
   const passwordInput = document.getElementById("passwordInput");
-
-  let selectedDoctorId = null;
+  const loadingText = document.getElementById("doctorLoadingText");
+  const errorText = document.getElementById("doctorErrorText");
 
   // -----------------------------
-  // Load doctors from backend
+  // Helper: format doctor ID (ใช้เพื่อแสดงผลเท่านั้น)
+  // -----------------------------
+  function formatDoctorId(num) {
+    if (num === undefined || num === null || num === 0) return "-";
+    return `DOC-${String(num).padStart(3, "0")}`;
+  }
+
+  // -----------------------------
+  // Load Doctors from API
   // -----------------------------
   async function loadDoctors() {
+    loadingText.classList.remove("hidden");
+    errorText.classList.add("hidden");
     try {
-      const response = await fetch(DOCTOR_API);
-      if (!response.ok) {
-        throw new Error("Failed to fetch doctors");
+      const res = await fetch(DOCTOR_API);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch doctors (status ${res.status})`);
       }
-      doctors = await response.json();
-      renderDoctorList(doctorSearchInput.value || "");
-    } catch (error) {
-      console.error("Error loading doctors:", error);
-      alert("Failed to load doctors: " + error.message);
-      doctors = [];
-      renderDoctorList("");
+      doctors = await res.json();
+      renderDoctorList(doctorSearchInput.value);
+      // Pre-fill next ID in modal for display (Backend should handle ID, but we mock display)
+      doctorIdInput.value = "Auto-generated";
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+      errorText.textContent = err.message || "Failed to connect to API.";
+      errorText.classList.remove("hidden");
+    } finally {
+      loadingText.classList.add("hidden");
     }
   }
 
   // -----------------------------
-  // Render list
+  // Render list (รวม logic การกรองไว้ในนี้)
   // -----------------------------
   function renderDoctorList(keyword = "") {
     const term = keyword.trim().toLowerCase();
@@ -96,11 +109,12 @@ document.addEventListener("DOMContentLoaded", () => {
         "border-b hover:bg-pink-50 cursor-pointer transition-colors";
 
       tr.innerHTML = `
-        <td class="py-2 px-3">${doctor.doctor_id || "-"}</td>
+        <td class="py-2 px-3">${formatDoctorId(doctor.doctor_id) || "-"}</td>
         <td class="py-2 px-3">${fullName || "Unknown"}</td>
         <td class="py-2 px-3">${doctor.license_no || "-"}</td>
       `;
 
+      // ใช้ doctor.doctor_id เป็นตัวระบุในการเลือก
       tr.addEventListener("click", () => {
         selectDoctor(doctor.doctor_id);
       });
@@ -113,16 +127,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Selected doctor info
   // -----------------------------
   function selectDoctor(id) {
-    const doctor = doctors.find((d) => d.doctor_id === id);
+    // ค้นหาด้วย doctor_id
+    const doctor = doctors.find((d) => d.doctor_id === id); 
     if (!doctor) return;
 
     selectedDoctorId = doctor.doctor_id;
     const fullName = `Dr. ${doctor.doctor_first_name || ""} ${doctor.doctor_last_name || ""}`.trim();
 
     selectedDoctorBox.innerHTML = `
-      <p><span class="font-semibold">Doctor ID:</span> ${doctor.doctor_id || "-"}</p>
+      <p><span class="font-semibold">Doctor ID:</span> ${formatDoctorId(doctor.doctor_id) || "-"}</p>
       <p><span class="font-semibold">Full Name:</span> ${fullName || "Unknown"}</p>
-      <p><span class="font-semibold">License No.:</span> ${doctor.license_no || "-"}</p>
+      <p><span class="font-semibold">License No.:</span> ${
+        doctor.license_no || "-"
+      }</p>
+      <p><span class="font-semibold">Username:</span> ${
+        doctor.username || "-"
+      }</p>
     `;
   }
 
@@ -135,7 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
     doctorFirstNameInput.value = "";
     doctorLastNameInput.value = "";
     licenseInput.value = "";
-    if (usernameInput) usernameInput.value = "";
+    // ตรวจสอบว่า element มีอยู่จริงก่อนตั้งค่า value
+    if (usernameInput) usernameInput.value = ""; 
     if (passwordInput) passwordInput.value = "";
     doctorModal.classList.remove("hidden");
     document.body.classList.add("overflow-hidden");
@@ -144,6 +165,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeModal() {
     doctorModal.classList.add("hidden");
     document.body.classList.remove("overflow-hidden");
+  }
+
+  if (closeModalBtn) {
+      closeModalBtn.addEventListener("click", closeModal);
+  }
+  if (cancelModalBtn) {
+      cancelModalBtn.addEventListener("click", closeModal);
   }
 
   // -----------------------------
@@ -162,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Please fill in all required fields (First name, Last name, License number, Username, and Password).");
       return;
     }
-
+    
     // check duplicate license (เช็คใน doctors array ที่โหลดมาแล้ว)
     const duplicate = doctors.find(
       (d) => (d.license_no || "").toLowerCase() === licenseNumber.toLowerCase()
@@ -191,16 +219,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: `Server error (status ${response.status})` }));
         throw new Error(error.message || "Failed to create doctor");
       }
-
-      alert("Doctor added successfully!");
-      await loadDoctors(); // reload จาก backend
+      
+      const createdDoctor = await response.json();
+      
+      // อัปเดตรายการแพทย์ใน Local และ UI
+      doctors.push(createdDoctor);
+      renderDoctorList(doctorSearchInput.value || "");
+      selectDoctor(createdDoctor.doctor_id);
       closeModal();
-    } catch (error) {
-      console.error("Error creating doctor:", error);
-      alert("Error: " + error.message);
+      alert("Doctor added successfully.");
+
+    } catch (err) {
+      console.error("Error creating doctor:", err);
+      alert(err.message || "Failed to create doctor.");
     }
   });
 
@@ -214,23 +248,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (addDoctorBtn) {
     addDoctorBtn.addEventListener("click", openModal);
   }
-
-  closeModalBtn.addEventListener("click", closeModal);
-
-  cancelModalBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    closeModal();
-  });
-
-  // click backdrop to close
-  doctorModal.addEventListener("click", (e) => {
-    if (e.target === doctorModal) {
-      closeModal();
-    }
-  });
-
+  
   // -----------------------------
-  // Init: Load doctors from backend
+  // Init: เริ่มโหลดข้อมูล
   // -----------------------------
   loadDoctors();
 });

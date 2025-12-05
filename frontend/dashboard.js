@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
   //-----------------------------------------
   // 1) SIDEBAR PAGE SWITCHING
@@ -7,7 +7,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const links = document.querySelectorAll(".sidebar-link");
   const pages = document.querySelectorAll("section[data-page]");
 
-  function showPage(target) {
+  const ROUTE_MAP = {
+    "": "overview",
+    overview: "overview",
+    medicine: "medicine",
+    sales: "sales",
+    customer: "customer",
+    doctor: "doctor",
+    supplier: "supplier",
+    "supply-order": "supply-order",
+  };
+
+  function slugForPage(page) {
+    return page === "overview" ? "" : page;
+  }
+
+  function pathnameToPage(pathname) {
+    const slug = pathname.replace(/^\//, "").split("/")[0];
+    const page = ROUTE_MAP[slug] || "overview";
+    return page;
+  }
+
+  function pushPathForPage(page) {
+    const slug = slugForPage(page);
+    window.history.pushState({ page }, "", `/${slug}`);
+  }
+
+  function showPage(target, skipPush = false) {
     // hide all pages
     pages.forEach((page) => {
       if (page.dataset.page === target) {
@@ -22,19 +48,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const isActive = btn.dataset.target === target;
 
       if (isActive) {
-        // ปุ่ม active = วงรีชมพู + padding ขยาย + ตัวอักษรเข้ากลางมากขึ้น
         btn.classList.add(
           "bg-rose-200",
           "rounded-full",
           "font-semibold",
-          "pl-6",               // ขยับตัวหนังสือออกจากขอบ
+          "pl-6",          
           "pr-6",
           "py-3",
           "text-black",
           "shadow-sm"
         );
       } else {
-        // ปุ่ม inactive = ตัวหนังสือธรรมดา
         btn.classList.remove(
           "bg-rose-200",
           "rounded-full",
@@ -50,6 +74,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    if (!skipPush) {
+      pushPathForPage(target);
+    }
+
     // Load dashboard only when switching to Overview
     if (target === "overview") {
       loadDashboard();
@@ -62,6 +90,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const target = btn.dataset.target;
       showPage(target);
     });
+  });
+
+  // Handle back/forward
+  window.addEventListener("popstate", () => {
+    const page = pathnameToPage(window.location.pathname);
+    showPage(page, true);
   });
 
   //-----------------------------------------
@@ -84,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const debugOutput = document.getElementById("debug-output");
 
   async function loadDashboard() {
-    if (!cardStatusText) return; // ป้องกัน error เวลาอยู่หน้าอื่น
+    if (!cardStatusText) return; 
 
     cardStatusText.textContent = "Loading data from server...";
 
@@ -199,8 +233,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   //-----------------------------------------
-  // 3) เริ่มที่หน้า Overview
+  // 3) Start at current path (normalized)
   //-----------------------------------------
-  showPage("overview");
+  // Start on the current path (e.g., /medicine stays on medicine)
+  const initialPage = pathnameToPage(window.location.pathname);
+  showPage(initialPage, true);
 });
-
