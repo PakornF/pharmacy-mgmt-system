@@ -1,17 +1,12 @@
 // frontend/sales.js
 
-// -----------------------------
 // API base
-// -----------------------------
 const API_BASE = "http://localhost:8000";
 const PRESCRIPTION_API_BASE = `${API_BASE}/prescriptions`;
 const CUSTOMER_API_BASE = `${API_BASE}/customers`;
 const SALES_API_BASE = `${API_BASE}/sales`;
 
-
-// -----------------------------
 // Prescription helpers
-// -----------------------------
 
 async function loadLatestPrescriptionForCustomer(customerId) {
   latestPrescription = null;
@@ -99,9 +94,7 @@ async function loadLatestPrescriptionForCustomer(customerId) {
   }
 }
 
-// -----------------------------
 // Constants & DOM references
-// -----------------------------
 
 const UNIT_CHOICES = [
   "tablets",
@@ -146,9 +139,7 @@ let latestPrescriptionItems = [];
 let billItems = [];
 let selectedCustomer = null; // mock: { customer_id, full_name, contact }
 
-// -----------------------------
 // Helpers
-// -----------------------------
 function updateSelectedSummary() {
   if (billItems.length === 0) {
     selectedSummaryEl.textContent = "Selected medicines: none";
@@ -223,9 +214,9 @@ function renderSearchResults(keyword) {
 
   searchResults.innerHTML = filtered
     .map((m) => {
-      const id = m.medicine_id || m._id;
+      const id = m.medicine_id;
       const name = m.medicine_name || m.name || "";
-      const price = typeof m.price === "number" ? m.price : m.priceUnit;
+      const price = typeof m.price === "number" ? m.price : m.priceUnit || 0;
       const stock =
         typeof m.stock === "number"
           ? m.stock
@@ -320,7 +311,7 @@ function renderBill() {
 }
 
 function addToBill(med) {
-  const id = med.medicine_id || med._id;
+  const id = med.medicine_id;
   const name = med.medicine_name || med.name || "";
   const unit = med.unit || "";
   const dosage = med.dosage || "";
@@ -603,7 +594,7 @@ searchResults.addEventListener("change", (e) => {
   let med =
     latestPrescriptionItems.find((m) => m.medicine_id === id) || null;
   if (!med) {
-    med = allMedicines.find((m) => m._id === id) || null;
+    med = allMedicines.find((m) => m.medicine_id === id) || null;
   }
   if (!med) return;
 

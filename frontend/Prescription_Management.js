@@ -127,7 +127,12 @@ async function loadDoctors() {
   try {
     const response = await fetch(DOCTOR_API);
     if (!response.ok) throw new Error('Failed to fetch doctors');
-    allDoctors = await response.json();
+    const doctors = await response.json();
+    // สร้าง doctor_full_name จาก first_name + last_name
+    allDoctors = doctors.map(d => ({
+      ...d,
+      doctor_full_name: `${d.doctor_first_name || ''} ${d.doctor_last_name || ''}`.trim() || 'Unknown'
+    }));
   } catch (error) {
     console.error('Error loading doctors:', error);
   }
@@ -157,7 +162,7 @@ async function loadMedicines() {
 
 // Handle Doctor Search
 function handleDoctorSearch() {
-  const searchTerm = document.getElementById('doctor_search').value.toLowerCase().trim();
+  const searchTerm = document.getElementById('doctor_search').value.trim();
   const dropdown = document.getElementById('doctor_dropdown');
   
   if (searchTerm.length === 0) {
@@ -165,14 +170,31 @@ function handleDoctorSearch() {
     return;
   }
   
+  const searchLower = searchTerm.toLowerCase();
+  const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+  const qDigits = onlyDigits(searchTerm);
+  
+  // ค้นหาจาก ID (ถ้าพิมพ์เป็นตัวเลข) หรือชื่อ หรือ license
   const filtered = allDoctors.filter(doctor => {
     const name = (doctor.doctor_full_name || '').toLowerCase();
+    const firstName = (doctor.doctor_first_name || '').toLowerCase();
+    const lastName = (doctor.doctor_last_name || '').toLowerCase();
     const license = (doctor.license_no || '').toString().toLowerCase();
-    const docId = (doctor.doctor_id || '').toString().toLowerCase();
+    const docId = (doctor.doctor_id || '').toString();
+    const docIdStr = docId.toLowerCase();
+    
+    // ถ้าพิมพ์เป็นตัวเลขล้วน ให้ลอง match กับ doctor_id ตรงเป๊ะก่อน
+    if (qDigits && docId === qDigits) {
+      return true;
+    }
+    
+    // ค้นหาจากชื่อ, license, หรือ ID
     return (
-      name.includes(searchTerm) ||
-      license.includes(searchTerm) ||
-      docId.includes(searchTerm)
+      name.includes(searchLower) ||
+      firstName.includes(searchLower) ||
+      lastName.includes(searchLower) ||
+      license.includes(searchLower) ||
+      docIdStr.includes(searchLower)
     );
   });
   
@@ -633,12 +655,14 @@ async function handleFormSubmit(e) {
     return;
   }
   
-  // ถ้า user พิมพ์ชื่อหมอไว้ แต่ hidden doctor_id ยังว่าง
+  // ถ้า user พิมพ์ชื่อหมอหรือ ID ไว้ แต่ hidden doctor_id ยังว่าง
   // ให้ลอง match จาก allDoctors อัตโนมัติก่อน (เหมือน customer)
   let doctorId = document.getElementById('doctor_id').value;
   const doctorSearchVal = document.getElementById('doctor_search').value.trim();
   if (!doctorId && doctorSearchVal && allDoctors.length > 0) {
     const searchLower = doctorSearchVal.toLowerCase();
+    const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+    const qDigits = onlyDigits(doctorSearchVal);
 
     // helper ตัดคำขึ้นต้น "dr." / "dr " ออก เพื่อให้ match ได้ง่ายขึ้น
     const normalizeName = (name) => {
@@ -652,19 +676,37 @@ async function handleFormSubmit(e) {
       return n.trim();
     };
 
-    let matchedDoctor =
-      // 1) ชื่อเต็มตรงกันแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ หรือมี/ไม่มี "Dr."
-      allDoctors.find((d) => {
+    let matchedDoctor = null;
+
+    // 1) ถ้าพิมพ์เป็นตัวเลขล้วน ให้ลอง match กับ doctor_id ตรงเป๊ะก่อน
+    if (qDigits) {
+      matchedDoctor = allDoctors.find((d) => String(d.doctor_id) === qDigits);
+    }
+
+    // 2) ถ้ายังไม่เจอ ให้ลองหาแบบชื่อเต็มตรงกัน
+    if (!matchedDoctor) {
+      matchedDoctor = allDoctors.find((d) => {
         const full = (d.doctor_full_name || '').toLowerCase();
         const norm = normalizeName(d.doctor_full_name).toLowerCase();
         return full === searchLower || norm === searchLower;
-      }) ||
-      // 2) ถ้าไม่เจอ ให้ลองหาแบบ includes (user พิมพ์มาแค่บางส่วน)
-      allDoctors.find((d) => {
+      });
+    }
+
+    // 3) ถ้ายังไม่เจอ ให้ลองหาแบบ includes (user พิมพ์มาแค่บางส่วน)
+    if (!matchedDoctor) {
+      matchedDoctor = allDoctors.find((d) => {
         const full = (d.doctor_full_name || '').toLowerCase();
         const norm = normalizeName(d.doctor_full_name).toLowerCase();
-        return full.includes(searchLower) || norm.includes(searchLower);
+        const firstName = (d.doctor_first_name || '').toLowerCase();
+        const lastName = (d.doctor_last_name || '').toLowerCase();
+        return (
+          full.includes(searchLower) ||
+          norm.includes(searchLower) ||
+          firstName.includes(searchLower) ||
+          lastName.includes(searchLower)
+        );
       });
+    }
 
     if (matchedDoctor) {
       doctorId = String(matchedDoctor.doctor_id);
