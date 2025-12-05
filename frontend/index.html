@@ -2,34 +2,234 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pharmacy Management - Redirecting...</title>
+  <title>Pharmacy Overview</title>
+  <script defer src="index.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // Route to the correct page based on the path so refresh keeps you where you are.
-    const path = window.location.pathname.replace(/^\\/+|\\/+$/g, "");
-    const routeMap = {
-      "": "dashboard.html",
-      overview: "dashboard.html",
-      medicine: "Medicine_Management.html",
-      sales: "sales.html",
-      customer: "Customer_Management.html",
-      supplier: "supplier.html",
-      doctor: "doctor.html",
-      "supply-order": "supply-order.html",
-      prescription: "Prescription_Management.html",
-    };
-    const target = routeMap[path] || "dashboard.html";
-    if (window.location.pathname.indexOf(target) === -1) {
-      window.location.replace(target);
-    }
-  </script>
 </head>
-<body class="bg-[#fce4ec] min-h-screen flex items-center justify-center">
-  <div class="text-center">
-    <p class="text-gray-600">Redirecting...</p>
-    <p class="text-sm text-gray-500 mt-2">
-      <a href="dashboard.html" class="text-rose-400 hover:text-rose-500">Click here if not redirected</a>
-    </p>
+<body class="bg-[#fce4ec] min-h-screen">
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-56 bg-white shadow-md px-4 py-8">
+        <nav class="space-y-6 text-lg">
+        <!-- ใช้ class sidebar-link และ data-target -->
+        <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="overview"
+      >
+        Overview
+      </button>
+      
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="medicine"
+      >
+        Medicine
+      </button>
+      
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="sales"
+      >
+        Sales
+      </button>
+      
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="customer"
+      >
+        Customer
+      </button>
+
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="doctor"
+      >
+        Doctor
+      </button>
+      
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="supplier"
+      >
+        Supplier
+      </button>
+      
+      <button
+        class="sidebar-link w-full text-left py-2 px-1 text-black 
+               hover:text-rose-400 transition-all duration-200 
+               focus:outline-none"
+        data-target="supply-order"
+      >
+        Supply Order
+      </button>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 py-8 px-6">
+      <div class="max-w-6xl mx-auto">
+
+        <!-- PAGE: Overview -->
+        <section data-page="overview">
+          <h1 class="text-3xl font-bold mb-6">Overview</h1>
+
+          <!-- Top summary cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white shadow rounded-xl p-4">
+              <p class="text-gray-500 text-sm">Total Medicine Items</p>
+              <p id="card-total-meds" class="text-3xl font-semibold mt-2">-</p>
+            </div>
+            <div class="bg-white shadow rounded-xl p-4">
+              <p class="text-gray-500 text-sm">Total Quantity in Stock</p>
+              <p id="card-total-qty" class="text-3xl font-semibold mt-2">-</p>
+            </div>
+            <div class="bg-white shadow rounded-xl p-4">
+              <p class="text-gray-500 text-sm">Awaited Prescriptions</p>
+              <p id="card-await-presc" class="text-3xl font-semibold mt-2">-</p>
+            </div>
+          </div>
+
+          <!-- Sales summary -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white shadow rounded-xl p-4">
+              <p class="text-gray-500 text-sm">Today's Total Sales</p>
+              <p id="card-sales-total" class="text-2xl font-semibold mt-2">-</p>
+              <p class="text-gray-400 text-xs" id="card-sales-count"></p>
+            </div>
+            <div class="bg-white shadow rounded-xl p-4">
+              <p class="text-gray-500 text-sm">Status</p>
+              <p id="card-status-text" class="text-sm text-gray-600 mt-2">
+                Loading...
+              </p>
+            </div>
+          </div>
+
+          <!-- Tables for alerts -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Low stock -->
+            <div class="bg-white shadow rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-semibold">Low Stock Alert</h2>
+                <span id="low-stock-count" class="text-xs text-gray-500"></span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead>
+                    <tr class="border-b">
+                      <th class="text-left py-2 pr-4">ID</th>
+                      <th class="text-left py-2 pr-4">Name</th>
+                      <th class="text-left py-2 pr-4">Brand</th>
+                      <th class="text-right py-2">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="low-stock-body">
+                    <tr><td colspan="4" class="py-2 text-gray-400">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Expired meds -->
+            <div class="bg-white shadow rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-semibold">Expired Medicines</h2>
+                <span id="expired-count" class="text-xs text-gray-500"></span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead>
+                    <tr class="border-b">
+                      <th class="text-left py-2 pr-4">ID</th>
+                      <th class="text-left py-2 pr-4">Name</th>
+                      <th class="text-left py-2 pr-4">Brand</th>
+                      <th class="text-left py-2">Expiry</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expired-body">
+                    <tr><td colspan="4" class="py-2 text-gray-400">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Debug / JSON section -->
+          <div class="mt-8">
+            <h2 class="text-lg font-semibold mb-2">Raw Data (debug)</h2>
+            <pre id="debug-output"
+              class="bg-gray-900 text-green-200 text-xs p-3 rounded-lg max-h-64 overflow-auto"></pre>
+          </div>
+        </section>
+
+        <!-- PAGE: Medicine -->
+        <section data-page="medicine" class="hidden">
+            <iframe 
+                src="Medicine_Management.html" 
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+        <!-- PAGE: Sales -->
+        <section data-page="sales" class="hidden">
+            <iframe 
+                src="sales.html"
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+        <!-- PAGE: Customer -->
+        <section data-page="customer" class="hidden">
+            <iframe 
+                src="Customer_Management.html" 
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+        <!-- PAGE: Doctor -->
+        <section data-page="doctor" class="hidden">
+            <iframe 
+                src="doctor.html" 
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+        <!-- PAGE: Supplier -->
+        <section data-page="supplier" class="hidden">
+            <iframe 
+                src="supplier.html" 
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+        <!-- PAGE: Supply Order -->
+        <section data-page="supply-order" class="hidden">
+            <iframe 
+                src="supply-order.html"
+                class="w-full h-screen border-0"
+                style="min-height: calc(100vh - 100px);"
+            ></iframe>
+        </section>
+
+      </div>
+    </main>
   </div>
 </body>
 </html>

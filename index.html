@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pharmacy Management - Redirecting...</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Route to the correct page based on the path so refresh keeps you where you are.
+    const path = window.location.pathname.replace(/^\\/+|\\/+$/g, "");
+    const routeMap = {
+      "": "dashboard.html",
+      overview: "dashboard.html",
+      medicine: "Medicine_Management.html",
+      sales: "sales.html",
+      customer: "Customer_Management.html",
+      supplier: "supplier.html",
+      doctor: "doctor.html",
+      "supply-order": "supply-order.html",
+      prescription: "Prescription_Management.html",
+    };
+    const target = routeMap[path] || "dashboard.html";
+    if (window.location.pathname.indexOf(target) === -1) {
+      window.location.replace(target);
+    }
+  </script>
+</head>
+<body class="bg-[#fce4ec] min-h-screen flex items-center justify-center">
+  <div class="text-center">
+    <p class="text-gray-600">Redirecting...</p>
+    <p class="text-sm text-gray-500 mt-2">
+      <a href="dashboard.html" class="text-rose-400 hover:text-rose-500">Click here if not redirected</a>
+    </p>
+  </div>
+</body>
+</html>

@@ -1,14 +1,34 @@
 document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "http://localhost:8000";
 
-  //-----------------------------------------
-  // 1) SIDEBAR PAGE SWITCHING
-  //-----------------------------------------
+  // 1) Sidebar page switching (History API)
   const links = document.querySelectorAll(".sidebar-link");
   const pages = document.querySelectorAll("section[data-page]");
 
-  function showPage(target) {
-    // hide all pages
+  const ROUTE_MAP = {
+    "": "overview",
+    overview: "overview",
+    medicine: "medicine",
+    sales: "sales",
+    customer: "customer",
+    prescription: "prescription",
+    supplier: "supplier",
+    "supply-order": "supply-order",
+  };
+
+  function pathnameToPage(pathname) {
+    const slug = pathname.replace(/^\//, "").split("/")[0];
+    return ROUTE_MAP[slug] || "overview";
+  }
+
+  function pushPathForPage(page) {
+    const slug = page === "overview" ? "" : page;
+    const newPath = `/${slug}`;
+    window.history.pushState({ page }, "", newPath);
+  }
+
+  function showPage(target, skipPush = false) {
+    // show / hide sections
     pages.forEach((page) => {
       if (page.dataset.page === target) {
         page.classList.remove("hidden");
@@ -17,24 +37,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // update active button
+    // active button style
     links.forEach((btn) => {
       const isActive = btn.dataset.target === target;
 
       if (isActive) {
-        // ปุ่ม active = วงรีชมพู + padding ขยาย + ตัวอักษรเข้ากลางมากขึ้น
         btn.classList.add(
           "bg-rose-200",
           "rounded-full",
           "font-semibold",
-          "pl-6",               // ขยับตัวหนังสือออกจากขอบ
+          "pl-6",
           "pr-6",
           "py-3",
           "text-black",
           "shadow-sm"
         );
       } else {
-        // ปุ่ม inactive = ตัวหนังสือธรรมดา
         btn.classList.remove(
           "bg-rose-200",
           "rounded-full",
@@ -45,18 +63,20 @@ document.addEventListener("DOMContentLoaded", () => {
           "text-black",
           "shadow-sm"
         );
-
         btn.classList.add("py-2", "px-1", "text-black");
       }
     });
 
-    // Load dashboard only when switching to Overview
+    // keep url in sync so refresh/back/forward stay on the same page
+    if (!skipPush) {
+      pushPathForPage(target);
+    }
+
     if (target === "overview") {
       loadDashboard();
     }
   }
 
-  // Attach event
   links.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
@@ -64,10 +84,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  //-----------------------------------------
-  // 2) DASHBOARD DATA FETCHING
-  //-----------------------------------------
+  // Handle browser back/forward
+  window.addEventListener("popstate", () => {
+    const page = pathnameToPage(window.location.pathname);
+    showPage(page, true);
+  });
 
+  // 2) Dashboard fetching
   const cardTotalMeds = document.getElementById("card-total-meds");
   const cardTotalQty = document.getElementById("card-total-qty");
   const cardAwaitPresc = document.getElementById("card-await-presc");
@@ -84,8 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const debugOutput = document.getElementById("debug-output");
 
   async function loadDashboard() {
-    if (!cardStatusText) return; // ป้องกัน error เวลาอยู่หน้าอื่น
-
+    if (!cardStatusText) return;
     cardStatusText.textContent = "Loading data from server...";
 
     try {
@@ -95,56 +117,36 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      if (debugOutput) {
-        debugOutput.textContent = JSON.stringify(data, null, 2);
-      }
+      debugOutput.textContent = JSON.stringify(data, null, 2);
 
-      // Top cards
-      if (cardTotalMeds) cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
-      if (cardTotalQty) cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
-      if (cardAwaitPresc) cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
+      cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
+      cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
+      cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
 
-      if (cardSalesTotal) {
-        cardSalesTotal.textContent =
-          data.todaySalesTotal != null
-            ? `${data.todaySalesTotal.toFixed(2)} ฿`
-            : "0 ฿";
-      }
+      cardSalesTotal.textContent =
+        data.todaySalesTotal != null
+          ? `${data.todaySalesTotal.toFixed(2)} ฿`
+          : "0 ฿";
 
-      if (cardSalesCount) {
-        cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
-      }
+      cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
 
-      // Status
       const lowCount = data.lowStockMeds?.length || 0;
       const expCount = data.expiredMeds?.length || 0;
-      if (cardStatusText) {
-        cardStatusText.textContent =
-          `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
-      }
+      cardStatusText.textContent =
+        `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
 
-      // Tables
       renderLowStock(data.lowStockMeds || []);
       renderExpired(data.expiredMeds || []);
-
     } catch (err) {
       console.error("Error loading dashboard:", err);
-      if (cardStatusText) {
-        cardStatusText.textContent = "Error loading dashboard: " + err.message;
-      }
-      if (debugOutput) {
-        debugOutput.textContent = err.stack || err.message;
-      }
+      cardStatusText.textContent = "Error loading dashboard: " + err.message;
+      debugOutput.textContent = err.stack || err.message;
     }
   }
 
   function renderLowStock(items) {
-    if (!lowStockBody) return;
-
     lowStockBody.innerHTML = "";
-    if (lowStockCount) {
-      lowStockCount.textContent = `${items.length} item(s)`;
-    }
+    lowStockCount.textContent = `${items.length} item(s)`;
 
     if (items.length === 0) {
       lowStockBody.innerHTML =
@@ -167,12 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderExpired(items) {
-    if (!expiredBody) return;
-
     expiredBody.innerHTML = "";
-    if (expiredCount) {
-      expiredCount.textContent = `${items.length} item(s)`;
-    }
+    expiredCount.textContent = `${items.length} item(s)`;
 
     if (items.length === 0) {
       expiredBody.innerHTML =
@@ -198,9 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  //-----------------------------------------
-  // 3) เริ่มที่หน้า Overview
-  //-----------------------------------------
-  showPage("overview");
+  // 3) start at current path (or Overview)
+  const initialPage = pathnameToPage(window.location.pathname);
+  showPage(initialPage, true);
 });
-
