@@ -1,7 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = (window.API_BASE || "http://localhost:8000") + "/api";
 
-  // 1) Sidebar page switching (History API)
+  //-----------------------------------------
+  // 1) SIDEBAR PAGE SWITCHING
+  //-----------------------------------------
   const links = document.querySelectorAll(".sidebar-link");
   const pages = document.querySelectorAll("section[data-page]");
 
@@ -9,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "": "overview",
     overview: "overview",
     medicine: "medicine",
+    medicines: "medicine",
     sales: "sales",
     customer: "customer",
     doctor: "doctor",
@@ -39,22 +42,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // active button style
+    // update active button
     links.forEach((btn) => {
       const isActive = btn.dataset.target === target;
 
       if (isActive) {
+        // ปุ่ม active = วงรีชมพู + padding ขยาย + ตัวอักษรเข้ากลางมากขึ้น
         btn.classList.add(
           "bg-rose-200",
           "rounded-full",
           "font-semibold",
-          "pl-6",
+          "pl-6",               // ขยับตัวหนังสือออกจากขอบ
           "pr-6",
           "py-3",
           "text-black",
           "shadow-sm"
         );
       } else {
+        // ปุ่ม inactive = ตัวหนังสือธรรมดา
         btn.classList.remove(
           "bg-rose-200",
           "rounded-full",
@@ -65,20 +70,22 @@ document.addEventListener("DOMContentLoaded", () => {
           "text-black",
           "shadow-sm"
         );
+
         btn.classList.add("py-2", "px-1", "text-black");
       }
     });
 
-    // keep url in sync so refresh/back/forward stay on the same page
-    if (!skipPush) {
-      pushPathForPage(target);
-    }
-
+    // Load dashboard only when switching to Overview
     if (target === "overview") {
       loadDashboard();
     }
+
+    if (!skipPush) {
+      pushPathForPage(target);
+    }
   }
 
+  // Attach event
   links.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
@@ -87,12 +94,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Handle browser back/forward
-  window.addEventListener("popstate", () => {
-    const page = pathnameToPage(window.location.pathname);
-    showPage(page, true);
+  window.addEventListener("popstate", (event) => {
+    const target = pathnameToPage(window.location.pathname);
+    showPage(target, true);
   });
 
-  // 2) Dashboard fetching
+  //-----------------------------------------
+  // 2) DASHBOARD DATA FETCHING
+  //-----------------------------------------
+
   const cardTotalMeds = document.getElementById("card-total-meds");
   const cardTotalQty = document.getElementById("card-total-qty");
   const cardAwaitPresc = document.getElementById("card-await-presc");
@@ -109,7 +119,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const debugOutput = document.getElementById("debug-output");
 
   async function loadDashboard() {
-    if (!cardStatusText) return;
+    if (!cardStatusText) return; // ป้องกัน error เวลาอยู่หน้าอื่น
+
     cardStatusText.textContent = "Loading data from server...";
 
     try {
@@ -119,36 +130,56 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      debugOutput.textContent = JSON.stringify(data, null, 2);
+      if (debugOutput) {
+        debugOutput.textContent = JSON.stringify(data, null, 2);
+      }
 
-      cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
-      cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
-      cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
+      // Top cards
+      if (cardTotalMeds) cardTotalMeds.textContent = data.totalMedicineItems ?? 0;
+      if (cardTotalQty) cardTotalQty.textContent = data.totalQuantityInStock ?? 0;
+      if (cardAwaitPresc) cardAwaitPresc.textContent = data.awaitedPrescriptions ?? 0;
 
-      cardSalesTotal.textContent =
-        data.todaySalesTotal != null
-          ? `${data.todaySalesTotal.toFixed(2)} ฿`
-          : "0 ฿";
+      if (cardSalesTotal) {
+        cardSalesTotal.textContent =
+          data.todaySalesTotal != null
+            ? `${data.todaySalesTotal.toFixed(2)} ฿`
+            : "0 ฿";
+      }
 
-      cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
+      if (cardSalesCount) {
+        cardSalesCount.textContent = `${data.todaySalesCount ?? 0} sales today`;
+      }
 
+      // Status
       const lowCount = data.lowStockMeds?.length || 0;
       const expCount = data.expiredMeds?.length || 0;
-      cardStatusText.textContent =
-        `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
+      if (cardStatusText) {
+        cardStatusText.textContent =
+          `System OK. ${lowCount} low-stock item(s), ${expCount} expired item(s).`;
+      }
 
+      // Tables
       renderLowStock(data.lowStockMeds || []);
       renderExpired(data.expiredMeds || []);
+
     } catch (err) {
       console.error("Error loading dashboard:", err);
-      cardStatusText.textContent = "Error loading dashboard: " + err.message;
-      debugOutput.textContent = err.stack || err.message;
+      if (cardStatusText) {
+        cardStatusText.textContent = "Error loading dashboard: " + err.message;
+      }
+      if (debugOutput) {
+        debugOutput.textContent = err.stack || err.message;
+      }
     }
   }
 
   function renderLowStock(items) {
+    if (!lowStockBody) return;
+
     lowStockBody.innerHTML = "";
-    lowStockCount.textContent = `${items.length} item(s)`;
+    if (lowStockCount) {
+      lowStockCount.textContent = `${items.length} item(s)`;
+    }
 
     if (items.length === 0) {
       lowStockBody.innerHTML =
@@ -171,8 +202,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderExpired(items) {
+    if (!expiredBody) return;
+
     expiredBody.innerHTML = "";
-    expiredCount.textContent = `${items.length} item(s)`;
+    if (expiredCount) {
+      expiredCount.textContent = `${items.length} item(s)`;
+    }
 
     if (items.length === 0) {
       expiredBody.innerHTML =

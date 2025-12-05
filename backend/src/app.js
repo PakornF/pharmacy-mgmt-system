@@ -49,6 +49,7 @@ const spaRoutes = [
   "/",
   "/overview",
   "/medicine",
+  "/medicines",
   "/sales",
   "/customer",
   "/doctor",

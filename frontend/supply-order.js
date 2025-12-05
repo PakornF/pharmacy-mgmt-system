@@ -2,64 +2,10 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
-  // Mock data
+  // Data stores (fetched from API)
   // ---------------------------
-  let mockSuppliers = [
-    {
-      id: "sup1",
-      name: "Health Pharma Co., Ltd.",
-    },
-    {
-      id: "sup2",
-      name: "Premium Med Supply",
-    },
-  ];
-
-  let mockMedicines = [
-    {
-      id: "med1",
-      name: "Paracetamol 500mg",
-      brand: "Tylenol",
-      price: 5,
-      quantity: 100,
-      unit: "", // base unit = เม็ด
-      supplierId: "sup1",
-      // extra summary fields (จากการรับของ)
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null, // small / large
-      packageVolume: null, // text เช่น "60 ml"
-      displayUnit: null, // หน่วยที่โชว์ใน stock (ตามที่รับของ)
-    },
-    {
-      id: "med2",
-      name: "Amoxicillin 250mg",
-      brand: "Amoxi",
-      price: 12,
-      quantity: 50,
-      unit: "",
-      supplierId: "sup1",
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null,
-      packageVolume: null,
-      displayUnit: null,
-    },
-    {
-      id: "med3",
-      name: "Cough Syrup",
-      brand: "FluCare",
-      price: 30,
-      quantity: 30,
-      unit: "", // base unit = ขวด
-      supplierId: "sup2",
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null,
-      packageVolume: null,
-      displayUnit: null,
-    },
-  ];
+  let suppliers = []; // { supplier_id, name, ... }
+  let medicines = []; // { id, name, supplier_id, price, quantity, unit, ... }
 
   let mockSupplyOrders = [];
 
@@ -88,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const stockTableBody = document.getElementById("stockTableBody");
 
-  // --- modal สำหรับ Mark as received ---
+  // --- modal for Mark as received ---
   const receiveBackdrop = document.getElementById("receiveModalBackdrop");
   const receiveTitle = document.getElementById("receiveModalTitle");
   const receiveSubtitle = document.getElementById("receiveModalSubtitle");
@@ -108,26 +54,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
 
-  // ใช้สำหรับ resolve promise ของ modal
+  // for resolve promise of modal
   let receiveResolve = null;
 
   // ---------------------------
   // Helpers
   // ---------------------------
   function findSupplierName(id) {
-    const s = mockSuppliers.find((sup) => sup.id === id);
+    const s = suppliers.find(
+      (sup) => String(sup.supplier_id) === String(id)
+    );
     return s ? s.name : "-";
   }
 
   function findMedicine(id) {
-    return mockMedicines.find((m) => m.id === id);
+    return medicines.find((m) => String(m.id) === String(id));
   }
 
   function formatDateTime(d) {
     return new Date(d).toLocaleString();
   }
 
-  // format date (YYYY-MM-DD) -> DD/MM/YYYY ให้ดูง่ายหน่อย
+  // format date (YYYY-MM-DD) -> DD/MM/YYYY
   function prettyDate(iso) {
     if (!iso) return "-";
     const [y, m, d] = iso.split("-");
@@ -143,15 +91,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render stock table
   // ---------------------------
   function renderStockTable() {
-    if (mockMedicines.length === 0) {
+    if (medicines.length === 0) {
       stockTableBody.innerHTML =
         `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
 
-    stockTableBody.innerHTML = mockMedicines
+    stockTableBody.innerHTML = medicines
       .map((m) => {
-        const supplierName = findSupplierName(m.supplierId);
+        const supplierName = findSupplierName(m.supplier_id);
         const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
 
         const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
@@ -191,8 +139,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderSupplierSelect() {
     orderSupplierSelect.innerHTML =
       `<option value="">Select supplier...</option>` +
-      mockSuppliers
-        .map((s) => `<option value="${s.id}">${s.name}</option>`)
+      suppliers
+        .map((s) => `<option value="${s.supplier_id}">${s.name}</option>`)
         .join("");
   }
 
@@ -204,7 +152,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const meds = mockMedicines.filter((m) => m.supplierId === supId);
+    const meds = medicines.filter(
+      (m) => String(m.supplier_id) === String(supId)
+    );
     if (meds.length === 0) {
       itemMedicineSelect.innerHTML =
         `<option value="">No medicines for this supplier</option>`;
@@ -727,12 +677,46 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   // Init
   // ---------------------------
-  function initSupplyOrderPage() {
-    renderSupplierSelect();
-    renderMedicineSelect();
-    renderOrderItems();
-    renderOrderList();
-    renderStockTable();
+  async function initSupplyOrderPage() {
+    try {
+      // Fetch suppliers
+      const supRes = await fetch("http://localhost:8000/suppliers");
+      if (!supRes.ok) throw new Error("Failed to load suppliers");
+      const supData = await supRes.json();
+      suppliers = supData.map((s) => ({
+        supplier_id: s.supplier_id,
+        name: s.supplier_name,
+        contact: s.contact_person,
+      }));
+
+      // Fetch medicines
+      const medRes = await fetch("http://localhost:8000/medicines");
+      if (!medRes.ok) throw new Error("Failed to load medicines");
+      const medData = await medRes.json();
+      medicines = medData.map((m) => ({
+        id: m.medicine_id || m._id,
+        name: m.name,
+        brand: m.brand,
+        price: m.price,
+        quantity: m.quantity,
+        unit: m.unit || "",
+        supplier_id: m.supplier_id,
+      }));
+
+      renderSupplierSelect();
+      renderMedicineSelect();
+      renderOrderItems();
+      renderOrderList();
+      renderStockTable();
+    } catch (err) {
+      console.error("Failed to load suppliers/medicines:", err);
+      alert("Failed to load suppliers/medicines from server.");
+      renderSupplierSelect();
+      renderMedicineSelect();
+      renderOrderItems();
+      renderOrderList();
+      renderStockTable();
+    }
   }
 
   initSupplyOrderPage();
