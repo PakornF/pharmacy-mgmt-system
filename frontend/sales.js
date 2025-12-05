@@ -123,6 +123,7 @@ const grandTotalEl = document.getElementById("grandTotal");
 const customerSearchInput = document.getElementById("customerSearchInput");
 const selectedCustomerInfo = document.getElementById("selectedCustomerInfo");
 const customerErrorEl = document.getElementById("customerError");
+const customerDropdown = document.getElementById('customer_dropdown');
 
 const doctorSearchInput = document.getElementById("doctor_search");
 const selectedDoctorInfo = document.getElementById("selectedDoctorInfo");
@@ -155,6 +156,8 @@ let billItems = [];
 let selectedCustomer = null; 
 let selectedDoctor = null; 
 
+// Flatpickr instance
+let datePickerInstance = null;
 
 // ----------------------------------------------------
 // 3. HELPERS (Updated normalizeUnit)
@@ -441,64 +444,98 @@ function removeFromBillById(id) {
 }
 
 // ----------------------------------------------------
-// 6. CUSTOMER & PRESCRIPTION LOGIC (Unchanged)
+// 6. CUSTOMER & PRESCRIPTION LOGIC (Updated with dropdown)
 // ----------------------------------------------------
 
-function findCustomer() {
-  const qRaw = customerSearchInput.value.trim();
-  const q = qRaw.toLowerCase();
-  
-  // Reset all related states
+function handleCustomerSearch() {
+  const searchTerm = customerSearchInput.value.trim();
+
+  selectedCustomer = null;
+  selectedCustomerInfo.textContent = "No customer selected.";
+  customerErrorEl.classList.add("hidden");
+
+  // Reset all related states when search changes
   billItems = [];
   renderBill();
   latestPrescription = null;
   latestPrescriptionItems = [];
   latestPrescriptionBox.classList.add("hidden");
-  selectedCustomer = null;
-  selectedCustomerInfo.textContent = "No customer selected.";
-  customerErrorEl.classList.add("hidden");
-  renderSearchResults(searchInput.value || ""); 
+  renderSearchResults(searchInput.value || "");
 
-  if (!q) {
+  if (searchTerm.length === 0) {
+    customerDropdown.classList.add('hidden');
     return;
   }
 
   const onlyDigits = (s) => (s || "").replace(/\D/g, "");
-  const qDigits = onlyDigits(qRaw);
-  let matches = [];
+  const qDigits = onlyDigits(searchTerm);
+  const q = searchTerm.toLowerCase();
 
-  matches = allCustomers.filter((c) => {
+  const filtered = allCustomers.filter((c) => {
     const idStr = String(c.customer_id || "").toLowerCase();
     const nameStr = (c.full_name || "").toLowerCase();
     const contactStr = (c.contact || "").toLowerCase();
     const contactDigits = onlyDigits(c.contact);
 
     return (
-      idStr === q || 
+      idStr === q ||
+      idStr.includes(q) ||
       nameStr.includes(q) ||
       contactStr.includes(q) ||
       (qDigits && contactDigits && contactDigits.includes(qDigits))
     );
   });
 
-  if (matches.length === 0) {
-    selectedCustomerInfo.textContent = "No customer found.";
+  if (filtered.length === 0) {
+    customerDropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No customers found</div>';
+    customerDropdown.classList.remove('hidden');
     return;
   }
 
-  if (matches.length > 1) {
-    selectedCustomerInfo.textContent =
-      `Found ${matches.length} customers — please type more specific (e.g. full ID or phone).`;
-    return;
-  }
+  customerDropdown.innerHTML = filtered.map(customer => `
+    <div 
+      class="customer-option px-4 py-2 hover:bg-pink-50 cursor-pointer border-b" 
+      style="border-color: #f8bbd0;"
+      data-id="${customer.customer_id}"
+      data-name="${escapeHtml(customer.full_name)}"
+      data-contact="${escapeHtml(customer.contact || '')}"
+    >
+      <div class="font-medium" style="color: #ad1457;">${escapeHtml(customer.full_name)}</div>
+      <div class="text-xs text-gray-600">
+        ID: ${customer.customer_id} | Contact: ${escapeHtml(customer.contact || '-')}
+      </div>
+    </div>
+  `).join('');
 
-  selectedCustomer = matches[0];
-  const id = selectedCustomer.customer_id || "-";
-  const name = selectedCustomer.full_name || "-";
-  const contact = selectedCustomer.contact || "";
+  customerDropdown.classList.remove('hidden');
 
-  selectedCustomerInfo.textContent =
-    `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+  customerDropdown.querySelectorAll('.customer-option').forEach(option => {
+    option.onclick = () => {
+      const id = Number(option.dataset.id);
+      const name = option.dataset.name;
+      const contact = option.dataset.contact;
+
+      selectedCustomer = {
+        customer_id: id,
+        full_name: name,
+        contact: contact
+      };
+
+      customerSearchInput.value = name;
+      selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+      customerErrorEl.classList.add("hidden");
+
+      // Load prescriptions for selected customer
+      loadAllPrescriptionsForCustomer(id);
+
+      customerDropdown.classList.add('hidden');
+    };
+  });
+}
+
+// Keep findCustomer for backward compatibility (if needed)
+function findCustomer() {
+  handleCustomerSearch();
 }
 
 function loadAllPrescriptionsForCustomer(customerId) {
@@ -781,7 +818,12 @@ async function submitSale() {
   selectedDoctorInfo.textContent = "No doctor selected.";
   doctorLicenseEl.textContent = "";
   doctorErrorEl.classList.add("hidden");
-  issueDateInput.value = "";
+  // Clear date picker
+  if (datePickerInstance) {
+    datePickerInstance.clear();
+  } else {
+    issueDateInput.value = "";
+  }
 
   latestPrescriptionBox.classList.add("hidden");
   latestPrescription = null;
@@ -868,13 +910,12 @@ billItemsTbody.addEventListener("click", (e) => {
   renderBill();
 });
 
-// Search customer when blur or press Enter
-customerSearchInput.addEventListener("blur", findCustomer);
-customerSearchInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    findCustomer();
-  }
+// Customer search input event
+customerSearchInput.addEventListener("input", handleCustomerSearch);
+customerSearchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+        customerDropdown.classList.add('hidden');
+    }, 200);
 });
 
 // Doctor search input event
@@ -892,7 +933,28 @@ searchPrescriptionBtn.addEventListener("click", searchPrescriptionsByFilters);
 submitSaleBtn.addEventListener("click", submitSale);
 
 // ----------------------------------------------------
-// 11. INIT (Unchanged)
+// 11. INITIALIZE FLATPICKR DATE PICKER
+// ----------------------------------------------------
+function initializeDatePicker() {
+  const dateInput = document.getElementById('issueDateInput');
+  if (dateInput && typeof flatpickr !== 'undefined') {
+    // Destroy existing instance if any
+    if (datePickerInstance) {
+      datePickerInstance.destroy();
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    datePickerInstance = flatpickr(dateInput, {
+      dateFormat: 'Y-m-d',
+      locale: 'en',
+      maxDate: today,
+      allowInput: true,
+    });
+  }
+}
+
+// ----------------------------------------------------
+// 12. INIT (Unchanged)
 // ----------------------------------------------------
 (async function init() {
   try {
@@ -901,6 +963,9 @@ submitSaleBtn.addEventListener("click", submitSale);
     await fetchDoctors();
     await fetchMedicines();
     await fetchSales();
+    
+    // Initialize Flatpickr with English locale
+    initializeDatePicker();
     
     renderBill();
     renderSearchResults(""); 

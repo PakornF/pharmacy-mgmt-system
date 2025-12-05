@@ -5,6 +5,10 @@
   <title>Sales - Pharmacy Management</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <style>
     /* Force date input to show text/placeholder */
     input[type="date"]::-webkit-datetime-edit,
@@ -89,7 +93,7 @@
         <h2 class="font-semibold mb-3">Current Bill</h2>
 
         <div class="grid grid-cols-3 gap-4 mb-3">
-          <div class="col-span-1">
+          <div class="col-span-1 relative">
             <label class="block text-sm font-medium mb-1">
               Customer (ID/Phone) <span class="text-red-500">*</span>
             </label>
@@ -105,6 +109,11 @@
             <p id="selectedCustomerInfo" class="mt-1 text-xs text-gray-500">
               No customer selected.
             </p>
+            <div
+              id="customer_dropdown"
+              class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
+            >
+            </div>
           </div>
 
           <div class="col-span-1 relative">
@@ -141,8 +150,9 @@
             </label>
             <input
               id="issueDateInput"
-              type="date"
+              type="text"
               class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Select date"
             />
             <p id="dateError" class="text-xs text-red-500 mt-1 hidden">
               Please select an issue date before confirming sale.
