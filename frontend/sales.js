@@ -23,14 +23,14 @@ const mockDoctors = [
 // Mock Medicines: quantity คือ stock ปัจจุบัน
 const mockMedicines = [
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 1, medicine_name: "Amoxicillin 500mg", price: 120.00, quantity: 60, unit: "capsules", dosage: "-", is_dangerous: false },
-    { medicine_id: 2, medicine_name: "Antacid Liquid", price: 120.00, quantity: 47, unit: "bottles", dosage: "2", is_dangerous: false },
+    { medicine_id: 1, medicine_name: "Amoxicillin 500mg", price: 120.00, quantity: 60, unit: "capsules", dosage: "-" },
+    { medicine_id: 2, medicine_name: "Antacid Liquid", price: 120.00, quantity: 47, unit: "bottles", dosage: "2" },
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 3, medicine_name: "Aspirin 81mg", price: 20.00, quantity: 300, unit: "capsules", dosage: "-", is_dangerous: false },
+    { medicine_id: 3, medicine_name: "Aspirin 81mg", price: 20.00, quantity: 300, unit: "capsules", dosage: "-" },
     // เปลี่ยน tablets เป็น capsules
-    { medicine_id: 4, medicine_name: "Atorvastatin 20mg", price: 95.00, quantity: 100, unit: "capsules", dosage: "-", is_dangerous: true },
+    { medicine_id: 4, medicine_name: "Atorvastatin 20mg", price: 95.00, quantity: 100, unit: "capsules", dosage: "-" },
     // boxes ถูก normalize เป็น capsules อยู่แล้ว
-    { medicine_id: 5, medicine_name: "Paracetamol 500mg", price: 15.50, quantity: 500, unit: "boxes", dosage: "-", is_dangerous: false }, 
+    { medicine_id: 5, medicine_name: "Paracetamol 500mg", price: 15.50, quantity: 500, unit: "boxes", dosage: "-" }, 
 ];
 
 // Prescriptions must reference existing medicine_id and customer_id
@@ -114,7 +114,6 @@ const UNIT_CHOICES = [
 ];
 
 const searchInput = document.getElementById("searchInput");
-const searchResults = document.getElementById("searchResults");
 const selectedSummaryEl = document.getElementById("selectedSummary");
 
 const billItemsTbody = document.getElementById("billItems");
@@ -130,7 +129,6 @@ const selectedDoctorInfo = document.getElementById("selectedDoctorInfo");
 const doctorLicenseEl = document.getElementById("doctor_license");
 const doctorErrorEl = document.getElementById("doctorError");
 const issueDateInput = document.getElementById("issueDateInput");
-const searchPrescriptionBtn = document.getElementById("searchPrescriptionBtn");
 const doctorIdHiddenInput = document.getElementById('doctor_id'); 
 const doctorDropdown = document.getElementById('doctor_dropdown');
 
@@ -245,12 +243,6 @@ async function fetchSales() {
           allCustomers.find((c) => c.customer_id === cid) || null;
         const cname = customer ? customer.full_name : "-";
         
-        const isDangerous = (s.items || []).some(item => {
-            const med = mockMedicines.find(m => m.medicine_id === item.medicine_id);
-            return med && med.is_dangerous;
-        }) ? 'True' : 'False';
-
-
         const total =
           typeof s.total_price === "number" ? s.total_price : 0;
         const date = s.sale_datetime
@@ -270,7 +262,6 @@ async function fetchSales() {
             )}</td>
             <td class="py-1 px-2 text-center w-1/6">${(s.items || []).length}</td>
             <td class="py-2 px-2 text-left w-2/6">${detail}</td>
-            <td class="py-2 px-2 text-center w-1/6">${isDangerous}</td>
           </tr>
         `;
       })
@@ -282,77 +273,24 @@ async function fetchSales() {
 // ----------------------------------------------------
 
 function renderSearchResults(keyword) {
-  
-  if (latestPrescriptionItems.length === 0) {
-    searchResults.innerHTML =
-        `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No Prescription loaded. Please search using Customer, Doctor, and Issue Date.</td></tr>`;
-    return;
-  }
-
-  const q = (keyword || "").toLowerCase();
-  const source = latestPrescriptionItems; 
-
-  const filtered = source.filter((m) => {
-    const name = (m.medicine_name || m.name || "").toLowerCase();
-    return name.includes(q);
-  });
-
-  if (filtered.length === 0) {
-    searchResults.innerHTML =
-      `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No medicines found in this prescription.</td></tr>`;
-    return;
-  }
-
-  searchResults.innerHTML = filtered
-    .map((m) => {
-      const id = m.medicine_id;
-      const name = m.medicine_name || m.name || "";
-      const price = typeof m.price === "number" ? m.price : m.priceUnit || 0;
-      const stock = getStockFor(id); 
-      const unit = m.unit || "";
-      const dosage = m.dosage || "-";
-      
-      const medDetails = allMedicines.find(med => med.medicine_id === id);
-      const dangerous = medDetails && medDetails.is_dangerous === true ? 'True' : 'False';
-
-      const inBill = billItems.some((it) => it.medicineId === id);
-      const displayUnit = normalizeUnit(unit);
-      
-      return `
-        <tr class="border-b">
-          <td class="py-1">${name}</td>
-          <td class="py-1 text-right">${Number(price || 0).toFixed(2)} / ${displayUnit}</td>
-          <td class="py-1 text-right">${stock} ${displayUnit}</td>
-          <td class="py-1 text-left text-xs">${dosage}</td>
-          <td class="py-1 text-center">${dangerous}</td>
-          <td class="py-1 text-center">
-            <input
-              type="checkbox"
-              data-select="${id}"
-              ${inBill ? "checked" : ""}
-              ${stock <= 0 ? "disabled" : ""}
-            />
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
+  // Table removed - no longer rendering search results
 }
 
 function renderBill() {
   if (billItems.length === 0) {
-    // Colspan is 5 (Name, Dosage, Price, Qty, Total, X)
+    // Colspan is 7 (Name, Dosage, Price, Qty, Unit, Total, X)
     billItemsTbody.innerHTML =
-      `<tr><td colspan="5" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
+      `<tr><td colspan="7" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
     grandTotalEl.textContent = "0.00";
     updateSelectedSummary();
-    renderSearchResults(searchInput.value || "");
     return;
   }
 
   billItemsTbody.innerHTML = billItems
     .map(
-      (item, idx) => `
+      (item, idx) => {
+        const displayUnit = normalizeUnit(item.unit || "");
+        return `
       <tr class="border-b">
         <td class="py-1">${item.name}</td>
         <td class="py-1 text-left text-xs">
@@ -366,12 +304,14 @@ function renderBill() {
         <td class="py-1 text-center">
           <input
             type="number"
-            min="1"
-            value="${item.quantity}"
+            min="0"
+            value="${item.quantity || 0}"
             data-idx="${idx}"
             class="w-16 border rounded px-1 py-0.5 text-center text-sm qty-input"
+            placeholder="0"
           />
         </td>
+        <td class="py-1 text-center">${displayUnit}</td>
         <td class="py-1 text-right">${item.lineTotal.toFixed(2)}</td>
         <td class="py-1 text-center">
           <button
@@ -382,14 +322,14 @@ function renderBill() {
           </button>
         </td>
       </tr>
-    `
+    `;
+      }
     )
     .join("");
 
   const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
   grandTotalEl.textContent = total.toFixed(2);
   updateSelectedSummary();
-  renderSearchResults(searchInput.value || "");
 }
 
 function addToBill(med) {
@@ -414,8 +354,6 @@ function addToBill(med) {
     return;
   }
 
-  const medDetails = allMedicines.find(m => m.medicine_id === id);
-
   if (existing) {
     existing.quantity += 1;
     existing.lineTotal = existing.quantity * existing.price;
@@ -429,9 +367,47 @@ function addToBill(med) {
       dosage,
       lineTotal: requestedQty * price,
       fromPrescription: !!med.prescription_id,
-      is_dangerous: medDetails ? medDetails.is_dangerous : false,
     });
   }
+  renderBill();
+}
+
+// Add to bill from prescription (only add, don't increase quantity if exists)
+function addToBillFromPrescription(med) {
+  const id = med.medicine_id;
+  const name = med.medicine_name || med.name || "";
+  const unit = med.unit || "";
+  const dosage = med.dosage || "";
+  const price = typeof med.price === "number" ? med.price : med.priceUnit || 0;
+
+  // Check if item already exists in bill
+  const existing = billItems.find((it) => it.medicineId === id);
+  if (existing) {
+    // If already exists, don't add or increase - just return
+    return;
+  }
+
+  // Use quantity from prescription, or default to 1
+  const requestedQty = (med.quantity && med.quantity > 0) ? med.quantity : 1;
+  const stock = getStockFor(id);
+
+  if (requestedQty > stock) {
+    alert(`Cannot add item: Not enough stock for ${name}. Available = ${stock}, Requested = ${requestedQty}`);
+    return;
+  }
+
+  // Add new item to bill
+  billItems.push({
+    medicineId: id,
+    name,
+    price,
+    quantity: requestedQty,
+    unit, 
+    dosage,
+    lineTotal: requestedQty * price,
+    fromPrescription: true,
+  });
+  
   renderBill();
 }
 
@@ -460,7 +436,6 @@ function handleCustomerSearch() {
   latestPrescription = null;
   latestPrescriptionItems = [];
   latestPrescriptionBox.classList.add("hidden");
-  renderSearchResults(searchInput.value || "");
 
   if (searchTerm.length === 0) {
     customerDropdown.classList.add('hidden');
@@ -525,10 +500,10 @@ function handleCustomerSearch() {
       selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
       customerErrorEl.classList.add("hidden");
 
-      // Load prescriptions for selected customer
-      loadAllPrescriptionsForCustomer(id);
-
       customerDropdown.classList.add('hidden');
+      
+      // Check if all three fields are filled and search automatically
+      checkAndSearchPrescription();
     };
   });
 }
@@ -547,7 +522,6 @@ function loadAllPrescriptionsForCustomer(customerId) {
   latestPrescriptionBox.classList.add("hidden");
 
   if (customerPrescriptions.length === 0) {
-    renderSearchResults(searchInput.value || ""); 
     return;
   }
 
@@ -582,16 +556,14 @@ function loadAllPrescriptionsForCustomer(customerId) {
       
       return `
         <tr>
-          <td>${item.medicine_name}</td>
-          <td>${item.dosage || '-'}</td>
-          <td>${item.quantity} ${displayUnit}</td>
-          <td><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
+          <td class="py-1 px-2 text-left">${item.medicine_name}</td>
+          <td class="py-1 px-2 text-left">${item.dosage || '-'}</td>
+          <td class="py-1 px-2 text-center">${item.quantity} ${displayUnit}</td>
+          <td class="py-1 px-2 text-center"><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
         </tr>
       `;
     }).join("");
   }
-  
-  renderSearchResults(searchInput.value || ""); 
 }
 
 function searchPrescriptionsByFilters() {
@@ -602,15 +574,13 @@ function searchPrescriptionsByFilters() {
     const issueDate = issueDateInput.value.trim(); // YYYY-MM-DD (C.S.)
 
     if (!customerId || !doctorId || !issueDate) {
-        alert("Please fill in Customer, Doctor, and Issue Date before searching.");
-        return;
+        return; // Return silently if not all fields are filled
     }
 
     // 2. Reset
     latestPrescription = null;
     latestPrescriptionItems = [];
     latestPrescriptionBox.classList.add("hidden");
-    renderSearchResults(searchInput.value || "");
     billItems = [];
     renderBill();
 
@@ -622,7 +592,7 @@ function searchPrescriptionsByFilters() {
     );
 
     if (!matchingPrescription) {
-        alert("No prescription found matching all three criteria.");
+        // Silently return if no prescription found (no alert)
         return;
     }
 
@@ -652,15 +622,13 @@ function searchPrescriptionsByFilters() {
         const displayUnit = normalizeUnit(item.unit);
         return `
           <tr>
-            <td>${item.medicine_name}</td>
-            <td>${item.dosage || '-'}</td>
-            <td>${item.quantity} ${displayUnit}</td>
-            <td><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
+            <td class="py-1 px-2 text-left">${item.medicine_name}</td>
+            <td class="py-1 px-2 text-left">${item.dosage || '-'}</td>
+            <td class="py-1 px-2 text-center">${item.quantity} ${displayUnit}</td>
+            <td class="py-1 px-2 text-center"><button class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600" data-add-prescription-idx="${item.prescription_item_id}">Add</button></td>
           </tr>
         `;
     }).join("");
-    
-    renderSearchResults(searchInput.value || ""); 
 }
 
 // ----------------------------------------------------
@@ -735,6 +703,9 @@ function handleDoctorSearch() {
       selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
 
       doctorDropdown.classList.add('hidden');
+      
+      // Check if all three fields are filled and search automatically
+      checkAndSearchPrescription();
     };
   });
 }
@@ -830,33 +801,15 @@ async function submitSale() {
   latestPrescriptionItems = [];
 
   renderBill();
-  renderSearchResults(""); 
   await fetchSales(); // Re-fetch sales history (MOCK) to update Recent Sales box
 }
 
 // ----------------------------------------------------
 // 10. EVENT LISTENERS (Unchanged)
 // ----------------------------------------------------
-searchInput.addEventListener("input", (e) => {
-  renderSearchResults(e.target.value);
-});
+// Search input removed - table no longer exists
 
-// Tick checkbox to select/unselect medicine
-searchResults.addEventListener("change", (e) => {
-  const checkbox = e.target.closest("input[data-select]");
-  if (!checkbox) return;
-  const id = Number(checkbox.getAttribute("data-select"));
-  let med = latestPrescriptionItems.find((m) => m.medicine_id === id) || null;
-  if (!med) return;
-
-  if (checkbox.checked) {
-    addToBill(med);
-  } else {
-    removeFromBillById(id);
-  }
-});
-
-// Add item from Latest Prescription
+// Add item from Latest Prescription (only add, don't increase quantity)
 latestPrescriptionItemsBody.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-add-prescription-idx]");
   if (!btn) return;
@@ -865,25 +818,43 @@ latestPrescriptionItemsBody.addEventListener("click", (e) => {
   const item = latestPrescriptionItems.find(i => String(i.prescription_item_id) === identifier);
 
   if (item) {
-    addToBill(item);
+    addToBillFromPrescription(item);
   }
 });
 
 // Change quantity in bill (Stock Check Implemented Here)
+// Allow free typing, validate on blur or Enter
 billItemsTbody.addEventListener("input", (e) => {
   if (!e.target.classList.contains("qty-input")) return;
+  // Allow free typing - don't validate during input
+});
 
+billItemsTbody.addEventListener("blur", (e) => {
+  if (!e.target.classList.contains("qty-input")) return;
+  
   const idx = Number(e.target.dataset.idx);
   if (idx < 0 || idx >= billItems.length) return;
 
-  let raw = e.target.value;
-  if (raw === "") {
+  let raw = e.target.value.trim();
+  
+  // If empty, set to 0
+  if (raw === "" || raw === null || raw === undefined) {
+    const item = billItems[idx];
+    item.quantity = 0;
+    item.lineTotal = 0;
+    // Force update the input value immediately to show 0
+    e.target.value = "0";
+    // Update totals without re-rendering the whole table
+    const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
+    grandTotalEl.textContent = total.toFixed(2);
+    updateSelectedSummary();
     return;
   }
 
   let val = Number(raw);
-  if (isNaN(val) || val <= 0) {
-    val = 1;
+  if (isNaN(val) || val < 0) {
+    val = 0;
+    e.target.value = "0";
   }
 
   const item = billItems[idx];
@@ -896,9 +867,22 @@ billItemsTbody.addEventListener("input", (e) => {
 
   item.quantity = val;
   item.lineTotal = item.quantity * item.price;
-  e.target.value = val;
+  e.target.value = val.toString();
 
-  renderBill();
+  // Update totals without re-rendering the whole table
+  const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
+  grandTotalEl.textContent = total.toFixed(2);
+  updateSelectedSummary();
+});
+
+billItemsTbody.addEventListener("keydown", (e) => {
+  if (!e.target.classList.contains("qty-input")) return;
+  
+  // Validate on Enter key
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.target.blur(); // Trigger blur event which will validate
+  }
 });
 
 // Remove item from bill
@@ -926,11 +910,22 @@ doctorSearchInput.addEventListener('blur', () => {
     }, 200);
 });
 
-// Search Prescription Button
-searchPrescriptionBtn.addEventListener("click", searchPrescriptionsByFilters);
-
 // Confirm Sale button
 submitSaleBtn.addEventListener("click", submitSale);
+
+// ----------------------------------------------------
+// 10.5. AUTO-SEARCH PRESCRIPTION WHEN ALL FIELDS ARE FILLED
+// ----------------------------------------------------
+function checkAndSearchPrescription() {
+  const customerId = selectedCustomer ? selectedCustomer.customer_id : null;
+  const doctorId = selectedDoctor ? selectedDoctor.doctor_id : null;
+  const issueDate = issueDateInput.value.trim();
+  
+  // If all three fields are filled, search automatically
+  if (customerId && doctorId && issueDate) {
+    searchPrescriptionsByFilters();
+  }
+}
 
 // ----------------------------------------------------
 // 11. INITIALIZE FLATPICKR DATE PICKER
@@ -949,6 +944,10 @@ function initializeDatePicker() {
       locale: 'en',
       maxDate: today,
       allowInput: true,
+      onChange: function(selectedDates, dateStr, instance) {
+        // When date is selected, check if all fields are filled and search
+        checkAndSearchPrescription();
+      }
     });
   }
 }
@@ -968,7 +967,6 @@ function initializeDatePicker() {
     initializeDatePicker();
     
     renderBill();
-    renderSearchResults(""); 
     selectedCustomerInfo.textContent = "No customer selected.";
     latestPrescriptionBox.classList.add("hidden");
 
