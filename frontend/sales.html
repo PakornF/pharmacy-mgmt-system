@@ -1,4 +1,3 @@
-<!-- frontend/sales.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,15 +5,21 @@
   <title>Sales - Pharmacy Management</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Force date input to show text/placeholder */
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="date"]::-webkit-inner-spin-button,
+    input[type="date"]::-webkit-clear-button {
+      color: #9ca3af; /* Gray text color for placeholder appearance */
+    }
+  </style>
   <script defer src="sales.js"></script>
 </head>
 <body class="bg-[#fde4f1] min-h-screen">
   <div class="max-w-6xl mx-auto py-8 px-6">
     <h1 class="text-3xl font-semibold mb-6">Sales / Billing</h1>
 
-    <!-- Search + Add to bill -->
     <div class="grid md:grid-cols-2 gap-6 mb-8">
-      <!-- Search Medicine -->
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
         <h2 class="font-semibold mb-3">Search Medicine</h2>
         <input
@@ -27,7 +32,6 @@
           Selected medicines: none
         </p>
 
-        <!-- Latest prescription from doctor for selected customer -->
         <div
           id="latestPrescriptionBox"
           class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-3 mb-3"
@@ -35,7 +39,7 @@
           <div class="flex items-center justify-between mb-2">
             <div>
               <p class="text-sm font-semibold text-pink-700">
-                Latest Prescription from Doctor
+                Latest Prescription
               </p>
               <p
                 id="latestPrescriptionMeta"
@@ -54,15 +58,16 @@
               <thead>
                 <tr class="border-b bg-white">
                   <th class="py-1 px-2 text-left w-2/5">Medicine</th>
-                  <th class="py-1 px-2 text-left w-2/5">Dosage</th>
-                  <th class="py-1 px-1 text-center w-1/6">Qty</th>
-                  <th class="py-1 px-1 text-center w-1/6">Add</th>
+                  <th class="py-1 px-2 text-left w-1/5">Dosage</th>
+                  <th class="py-1 px-1 text-center w-1/5">Qty/Unit</th>
+                  <th class="py-1 px-1 text-center w-1/5">Add</th>
                 </tr>
               </thead>
               <tbody id="latestPrescriptionItemsBody"></tbody>
             </table>
           </div>
         </div>
+
         <div class="max-h-64 overflow-y-auto">
           <table class="w-full text-sm">
             <thead>
@@ -70,6 +75,8 @@
                 <th class="text-left py-1">Name</th>
                 <th class="text-right py-1">Price / Unit</th>
                 <th class="text-right py-1">Stock</th>
+                <th class="text-left py-1">Dosage</th>
+                <th class="text-center py-1">Dangerous</th>
                 <th class="text-center py-1">Select</th>
               </tr>
             </thead>
@@ -78,29 +85,81 @@
         </div>
       </div>
 
-      <!-- Current Bill -->
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
         <h2 class="font-semibold mb-3">Current Bill</h2>
 
+        <div class="grid grid-cols-3 gap-4 mb-3">
+          <div class="col-span-1">
+            <label class="block text-sm font-medium mb-1">
+              Customer (ID/Phone) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="customerSearchInput"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Enter customer ID or phone..."
+            />
+            <p id="customerError" class="text-xs text-red-500 mt-1 hidden">
+              Please search and select a valid customer before confirming sale.
+            </p>
+            <p id="selectedCustomerInfo" class="mt-1 text-xs text-gray-500">
+              No customer selected.
+            </p>
+          </div>
+
+          <div class="col-span-1 relative">
+            <label class="block text-sm font-medium mb-1">
+              Doctor <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="doctor_search"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Enter doctor's name..."
+            />
+            <input type="hidden" id="doctor_id" />
+            <p
+              id="doctorError"
+              class="text-xs text-red-500 mt-1 hidden"
+            >
+              Please select a doctor before confirming sale.
+            </p>
+            <p id="selectedDoctorInfo" class="mt-1 text-xs text-gray-500">
+              No doctor selected.
+            </p>
+            <span id="doctor_license" class="mt-2 text-xs text-gray-600"></span>
+            <div
+                id="doctor_dropdown"
+                class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
+            >
+              </div>
+          </div>
+
+          <div class="col-span-1">
+            <label class="block text-sm font-medium mb-1">
+              Issue Date <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="issueDateInput"
+              type="date"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+            />
+            <p id="dateError" class="text-xs text-red-500 mt-1 hidden">
+              Please select an issue date before confirming sale.
+            </p>
+          </div>
+        </div>
+        
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">
-            Customer (ID or Phone) <span class="text-red-500">*</span>
-          </label>
-          <input
-            id="customerSearchInput"
-            type="text"
-            class="w-full border rounded-xl px-3 py-2 text-sm"
-            placeholder="Enter customer ID or phone..."
-          />
-          <p
-          id="customerError"
-          class="text-xs text-red-500 mt-1 hidden"
-          >
-            Please search and select a valid customer before confirming sale.
-          </p>
-          <p id="selectedCustomerInfo" class="mt-1 text-xs text-gray-500">
-            No customer selected.
-          </p>
+            <button
+                id="searchPrescriptionBtn"
+                class="bg-pink-400 hover:bg-pink-500 text-white font-semibold py-1.5 px-4 rounded-xl text-sm"
+            >
+                Search Prescription
+            </button>
+            <span class="text-xs text-gray-500 ml-3">
+                (Search for prescription matching Customer, Doctor, and Issue Date)
+            </span>
         </div>
 
         <div class="max-h-64 overflow-y-auto mb-3">
@@ -134,18 +193,18 @@
       </div>
     </div>
 
-    <!-- Sales History -->
     <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
       <h2 class="font-semibold mb-3">Recent Sales</h2>
       <div class="max-h-64 overflow-y-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b bg-white">
-              <th class="py-2 px-2 text-left w-1/5">Date</th>
-              <th class="py-2 px-2 text-left w-1/5">Customer</th>
-              <th class="py-2 px-2 text-right w-1/5">Total</th>
-              <th class="py-2 px-2 text-center w-1/5">Items</th>
-              <th class="py-2 px-2 text-left w-1/5">Medicines</th>
+              <th class="py-2 px-2 text-left w-1/6">Date</th>
+              <th class="py-2 px-2 text-left w-1/6">Customer</th>
+              <th class="py-2 px-2 text-right w-1/6">Total</th>
+              <th class="py-2 px-2 text-center w-1/6">Items</th>
+              <th class="py-2 px-2 text-left w-2/6">Medicines</th>
+              <th class="py-2 px-2 text-center w-1/6">Dangerous</th>
             </tr>
           </thead>
           <tbody id="salesHistory" class="divide-y"></tbody>
