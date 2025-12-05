@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const stockTableBody = document.getElementById("stockTableBody");
 
-  // --- modal สำหรับ Mark as received ---
+  // --- modal for Mark as received ---
   const receiveBackdrop = document.getElementById("receiveModalBackdrop");
   const receiveTitle = document.getElementById("receiveModalTitle");
   const receiveSubtitle = document.getElementById("receiveModalSubtitle");
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
 
-  // ใช้สำหรับ resolve promise ของ modal
+  // for resolve promise of modal
   let receiveResolve = null;
 
   // ---------------------------
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return new Date(d).toLocaleString();
   }
 
-  // format date (YYYY-MM-DD) -> DD/MM/YYYY ให้ดูง่ายหน่อย
+  // format date (YYYY-MM-DD) -> DD/MM/YYYY
   function prettyDate(iso) {
     if (!iso) return "-";
     const [y, m, d] = iso.split("-");
