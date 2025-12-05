@@ -165,10 +165,16 @@ function handleDoctorSearch() {
     return;
   }
   
-  const filtered = allDoctors.filter(doctor => 
-    doctor.doctor_full_name.toLowerCase().includes(searchTerm) ||
-    doctor.license_no.toString().includes(searchTerm)
-  );
+  const filtered = allDoctors.filter(doctor => {
+    const name = (doctor.doctor_full_name || '').toLowerCase();
+    const license = (doctor.license_no || '').toString().toLowerCase();
+    const docId = (doctor.doctor_id || '').toString().toLowerCase();
+    return (
+      name.includes(searchTerm) ||
+      license.includes(searchTerm) ||
+      docId.includes(searchTerm)
+    );
+  });
   
   if (filtered.length === 0) {
     dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No doctors found</div>';
@@ -184,7 +190,9 @@ function handleDoctorSearch() {
       data-name="${escapeHtml(doctor.doctor_full_name)}"
     >
       <div class="font-medium" style="color: #ad1457;">${escapeHtml(doctor.doctor_full_name)}</div>
-      <div class="text-xs text-gray-600">License: ${doctor.license_no}</div>
+      <div class="text-xs text-gray-600">
+        ID: ${doctor.doctor_id} | License: ${doctor.license_no || '-'}
+      </div>
     </div>
   `).join('');
   
@@ -625,7 +633,48 @@ async function handleFormSubmit(e) {
     return;
   }
   
-  const doctorId = document.getElementById('doctor_id').value;
+  // ถ้า user พิมพ์ชื่อหมอไว้ แต่ hidden doctor_id ยังว่าง
+  // ให้ลอง match จาก allDoctors อัตโนมัติก่อน (เหมือน customer)
+  let doctorId = document.getElementById('doctor_id').value;
+  const doctorSearchVal = document.getElementById('doctor_search').value.trim();
+  if (!doctorId && doctorSearchVal && allDoctors.length > 0) {
+    const searchLower = doctorSearchVal.toLowerCase();
+
+    // helper ตัดคำขึ้นต้น "dr." / "dr " ออก เพื่อให้ match ได้ง่ายขึ้น
+    const normalizeName = (name) => {
+      if (!name) return '';
+      let n = name.trim();
+      if (n.toLowerCase().startsWith('dr. ')) {
+        n = n.slice(4);
+      } else if (n.toLowerCase().startsWith('dr ')) {
+        n = n.slice(3);
+      }
+      return n.trim();
+    };
+
+    let matchedDoctor =
+      // 1) ชื่อเต็มตรงกันแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ หรือมี/ไม่มี "Dr."
+      allDoctors.find((d) => {
+        const full = (d.doctor_full_name || '').toLowerCase();
+        const norm = normalizeName(d.doctor_full_name).toLowerCase();
+        return full === searchLower || norm === searchLower;
+      }) ||
+      // 2) ถ้าไม่เจอ ให้ลองหาแบบ includes (user พิมพ์มาแค่บางส่วน)
+      allDoctors.find((d) => {
+        const full = (d.doctor_full_name || '').toLowerCase();
+        const norm = normalizeName(d.doctor_full_name).toLowerCase();
+        return full.includes(searchLower) || norm.includes(searchLower);
+      });
+
+    if (matchedDoctor) {
+      doctorId = String(matchedDoctor.doctor_id);
+      document.getElementById('doctor_id').value = doctorId;
+      // sync ช่อง text ให้เป็นชื่อเต็มจากระบบด้วย
+      document.getElementById('doctor_search').value =
+        matchedDoctor.doctor_full_name || doctorSearchVal;
+    }
+  }
+
   const customerId = document.getElementById('customer_id').value;
   
   if (!doctorId) {

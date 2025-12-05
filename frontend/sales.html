@@ -26,6 +26,43 @@
         <p id="selectedSummary" class="text-xs text-gray-500 mb-2">
           Selected medicines: none
         </p>
+
+        <!-- Latest prescription from doctor for selected customer -->
+        <div
+          id="latestPrescriptionBox"
+          class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-3 mb-3"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <p class="text-sm font-semibold text-pink-700">
+                Latest Prescription from Doctor
+              </p>
+              <p
+                id="latestPrescriptionMeta"
+                class="text-xs text-pink-700/70"
+              ></p>
+            </div>
+            <span
+              id="latestPrescriptionTag"
+              class="text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700"
+            ></span>
+          </div>
+          <div
+            class="max-h-40 overflow-y-auto border border-pink-100 rounded-xl bg-white/60"
+          >
+            <table class="w-full text-[11px]">
+              <thead>
+                <tr class="border-b bg-white">
+                  <th class="py-1 px-2 text-left w-2/5">Medicine</th>
+                  <th class="py-1 px-2 text-left w-2/5">Dosage</th>
+                  <th class="py-1 px-1 text-center w-1/6">Qty</th>
+                  <th class="py-1 px-1 text-center w-1/6">Add</th>
+                </tr>
+              </thead>
+              <tbody id="latestPrescriptionItemsBody"></tbody>
+            </table>
+          </div>
+        </div>
         <div class="max-h-64 overflow-y-auto">
           <table class="w-full text-sm">
             <thead>
@@ -71,6 +108,7 @@
             <thead>
               <tr class="border-b">
                 <th class="text-left py-1">Name</th>
+                <th class="text-left py-1">Dosage</th>
                 <th class="text-right py-1">Price</th>
                 <th class="text-center py-1">Qty</th>
                 <th class="text-center py-1">Unit</th>
