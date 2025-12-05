@@ -1,61 +1,7 @@
 // frontend/sales.js
 
-// -----------------------------
-// Mock data (temporary)
-// -----------------------------
-let mockMedicines = [
-  {
-    _id: "med1",
-    name: "Paracetamol 500mg",
-    brand: "Tylenol",
-    price: 5,
-    quantity: 100,
-    unit: "tablets",
-  },
-  {
-    _id: "med2",
-    name: "Amoxicillin 250mg",
-    brand: "Amoxi",
-    price: 12,
-    quantity: 50,
-    unit: "capsules",
-  },
-  {
-    _id: "med3",
-    name: "Cough Syrup",
-    brand: "FluCare",
-    price: 30,
-    quantity: 30,
-    unit: "bottles",
-  },
-];
 
 let mockSales = [];
-
-// 👇 เพิ่ม mock customer ไว้ใช้ค้นหาแทน backend
-let mockCustomers = [
-  {
-    customer_id: 1,
-    full_name: "Alice Kim",
-    contact: "081-111-2222",
-  },
-  {
-    customer_id: 2,
-    full_name: "Bob Lee",
-    contact: "081-333-4444",
-  },
-  {
-    customer_id: 3,
-    full_name: "Charlie Park",
-    contact: "bob@example.com",
-  },
-];
-
-// -----------------------------
-// Constants & DOM references
-// -----------------------------
-// ❌ ไม่ใช้แล้ว (ไม่เรียก backend)
-// const CUSTOMER_API_BASE = "http://localhost:8000/customers";
 
 const UNIT_CHOICES = [
   "tablets",
@@ -74,6 +20,7 @@ const billItemsTbody = document.getElementById("billItems");
 const grandTotalEl = document.getElementById("grandTotal");
 
 const customerSearchInput = document.getElementById("customerSearchInput");
+const customerSearchResults = document.getElementById("customerSearchResults");
 const selectedCustomerInfo = document.getElementById("selectedCustomerInfo");
 const customerErrorEl = document.getElementById("customerError");
 
@@ -81,6 +28,7 @@ const submitSaleBtn = document.getElementById("submitSaleBtn");
 const salesHistoryTbody = document.getElementById("salesHistory");
 
 let allMedicines = [];
+let allCustomers = [];
 let billItems = []; // { medicineId, name, price, quantity, unit, lineTotal }
 let selectedCustomer = null; // mock: { customer_id, full_name, contact }
 
@@ -100,7 +48,7 @@ function updateSelectedSummary() {
 
 // stock ของยาแต่ละตัว
 function getStockFor(id) {
-  const med = mockMedicines.find((m) => m._id === id);
+  const med = allMedicines.find((m) => String(m._id) === String(id));
   return med ? med.quantity : Infinity;
 }
 
@@ -112,20 +60,44 @@ function renderUnitOptions(selectedUnit) {
   ).join("");
 }
 
-// -----------------------------
-// LOAD MEDICINES (จาก mock)
-// -----------------------------
 async function fetchMedicines() {
-  allMedicines = mockMedicines.map((m) => ({ ...m }));
-  renderSearchResults("");
+  try {
+    const response = await fetch('http://localhost:8000/medicines'); // Fetch from backend API
+    if (!response.ok) {
+      throw new Error('Failed to fetch medicines');
+    }
+    const medicines = await response.json();
+    allMedicines = Array.isArray(medicines) ? medicines : [];
+    renderMedicineSearchResults(allMedicines, ""); // Pass the data to the render function
+  } catch (error) {
+    console.error("Error fetching medicines:", error);
+    alert('Error fetching medicines from the server.');
+  }
 }
+
+async function fetchCustomers() {
+  try {
+    const response = await fetch('http://localhost:8000/customers'); // Fetch customers from backend
+    if (!response.ok) {
+      throw new Error('Failed to fetch customers');
+    }
+    const customers = await response.json();
+    allCustomers = Array.isArray(customers) ? customers : [];
+    renderCustomerSearchResults(allCustomers, ""); // Pass the data to render function
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    alert('Error fetching customers from the server.');
+  }
+}
+
 
 // -----------------------------
 // Search result table (with checkbox)
 // -----------------------------
-function renderSearchResults(keyword) {
+function renderMedicineSearchResults(medicines, keyword) {
+  const list = Array.isArray(medicines) ? medicines : [];
   const q = (keyword || "").toLowerCase();
-  const filtered = allMedicines.filter(
+  const filtered = list.filter(
     (m) =>
       m.name.toLowerCase().includes(q) ||
       (m.brand && m.brand.toLowerCase().includes(q))
@@ -139,7 +111,9 @@ function renderSearchResults(keyword) {
 
   searchResults.innerHTML = filtered
     .map((m) => {
-      const inBill = billItems.some((it) => it.medicineId === m._id);
+      const inBill = billItems.some(
+        (it) => String(it.medicineId) === String(m._id)
+      );
       const unitLabel = m.unit ? ` / ${m.unit}` : "";
       return `
         <tr class="border-b">
@@ -159,6 +133,41 @@ function renderSearchResults(keyword) {
     .join("");
 }
 
+function renderCustomerSearchResults(customers, keyword) {
+  if (!customerSearchResults) return;
+  const list = Array.isArray(customers) ? customers : [];
+  const q = (keyword || "").toLowerCase();
+  const filtered = list.filter(
+    (customer) =>
+      (customer.full_name || "").toLowerCase().includes(q) ||
+      (customer.contact || "").toLowerCase().includes(q) ||
+      String(customer.customer_id).includes(q)
+  );
+
+  if (filtered.length === 0) {
+    customerSearchResults.innerHTML =
+      `<tr><td colspan="4" class="py-1 text-gray-400 text-center">No customers found.</td></tr>`;
+    return;
+  }
+
+  customerSearchResults.innerHTML = filtered
+    .map((customer) => {
+      return `
+        <tr class="border-b">
+          <td class="py-1">${customer.customer_id}</td>
+          <td class="py-1">${customer.full_name}</td>
+          <td class="py-1">${customer.contact || ""}</td>
+          <td class="py-1 text-center">
+            <button class="select-customer-btn" data-customer-id="${customer.customer_id}">
+              Select
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 // -----------------------------
 // CURRENT BILL
 // -----------------------------
@@ -168,7 +177,7 @@ function renderBill() {
       `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`;
     grandTotalEl.textContent = "0.00";
     updateSelectedSummary();
-    renderSearchResults(searchInput.value || "");
+    renderMedicineSearchResults(allMedicines, searchInput.value || "");
     return;
   }
 
@@ -212,12 +221,13 @@ function renderBill() {
   const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
   grandTotalEl.textContent = total.toFixed(2);
   updateSelectedSummary();
-  renderSearchResults(searchInput.value || "");
+  renderMedicineSearchResults(allMedicines, searchInput.value || "");
 }
 
 function addToBill(med) {
-  const existing = billItems.find((it) => it.medicineId === med._id);
-  const stock = getStockFor(med._id);
+  const medId = String(med._id);
+  const existing = billItems.find((it) => it.medicineId === medId);
+  const stock = getStockFor(medId);
   const currentQty = existing ? existing.quantity : 0;
 
   if (currentQty + 1 > stock) {
@@ -230,7 +240,7 @@ function addToBill(med) {
     existing.lineTotal = existing.quantity * existing.price;
   } else {
     billItems.push({
-      medicineId: med._id,
+      medicineId: medId,
       name: med.name,
       price: med.price,
       quantity: 1,
@@ -269,7 +279,7 @@ function findCustomer() {
   // 1) ถ้าพิมพ์มาเป็นเลขล้วน เช่น "2" ให้ลองแมตช์ customer_id ตรงเป๊ะก่อน
   const qDigits = onlyDigits(qRaw);
   if (qDigits) {
-    const byId = mockCustomers.filter(
+    const byId = allCustomers.filter(
       (c) => String(c.customer_id) === qDigits
     );
     if (byId.length === 1) {
@@ -284,7 +294,7 @@ function findCustomer() {
   }
 
   // 2) ไม่เข้าเคสข้างบน หรือหา id ไม่เจอ → ค่อยใช้การค้นหาแบบกว้างเหมือนเดิม
-  const matches = mockCustomers.filter((c) => {
+  const matches = allCustomers.filter((c) => {
     const idStr = String(c.customer_id || "").toLowerCase();
     const nameStr = (c.full_name || "").toLowerCase();
     const contactStr = (c.contact || "").toLowerCase();
@@ -378,9 +388,9 @@ async function submitSale() {
 
   const totalAmount = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
 
-  // ลด stock ใน mockMedicines
+  // ลด stock ในรายการยาที่โหลดมา
   billItems.forEach((it) => {
-    const med = mockMedicines.find((m) => m._id === it.medicineId);
+    const med = allMedicines.find((m) => String(m._id) === String(it.medicineId));
     if (med) {
       med.quantity -= it.quantity;
       if (med.quantity < 0) med.quantity = 0;
@@ -422,15 +432,43 @@ async function submitSale() {
 // EVENT LISTENERS
 // -----------------------------
 searchInput.addEventListener("input", (e) => {
-  renderSearchResults(e.target.value);
+  renderMedicineSearchResults(allMedicines, e.target.value);
 });
+
+customerSearchInput.addEventListener("input", async (e) => {
+  selectedCustomer = null;
+  selectedCustomerInfo.textContent = "No customer selected.";
+  customerErrorEl.classList.add("hidden");
+  renderCustomerSearchResults(allCustomers, e.target.value);
+});
+
+if (customerSearchResults) {
+  customerSearchResults.addEventListener("click", (e) => {
+    const btn = e.target.closest(".select-customer-btn");
+    if (!btn) return;
+
+    const cid = btn.dataset.customerId;
+    const customer = allCustomers.find(
+      (c) => String(c.customer_id) === String(cid)
+    );
+    if (!customer) return;
+
+    selectedCustomer = customer;
+    const name = selectedCustomer.full_name || "-";
+    const contact = selectedCustomer.contact || "";
+    selectedCustomerInfo.textContent =
+      `Selected: [${selectedCustomer.customer_id}] ${name}` +
+      (contact ? ` (${contact})` : "");
+    customerErrorEl.classList.add("hidden");
+  });
+}
 
 // ติ๊ก checkbox เพื่อเลือก / ยกเลิกเลือกยา
 searchResults.addEventListener("change", (e) => {
   const checkbox = e.target.closest("input[data-select]");
   if (!checkbox) return;
   const id = checkbox.getAttribute("data-select");
-  const med = allMedicines.find((m) => m._id === id);
+  const med = allMedicines.find((m) => String(m._id) === String(id));
   if (!med) return;
 
   if (checkbox.checked) {
@@ -510,13 +548,13 @@ submitSaleBtn.addEventListener("click", submitSale);
 // -----------------------------
 (async function init() {
   try {
-    billItems = [];
-    renderBill();
+    // Fetch medicines from the database
     await fetchMedicines();
-    await fetchSales();
-    selectedCustomerInfo.textContent = "No customer selected.";
+    // Fetch customers from the database
+    await fetchCustomers();
+    // Fetch sales history from the database
   } catch (err) {
     console.error(err);
-    alert("Failed to init sales page: " + err.message);
+    alert("Failed to load medicines: " + err.message);
   }
 })();

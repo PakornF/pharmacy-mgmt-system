@@ -57,8 +57,10 @@ const spaRoutes = [
   "/supply-order",
 ];
 
-app.get(spaRoutes, (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
+spaRoutes.forEach((route) => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
 });
 
 // Fallback: any other GET (not matched above) returns SPA index
