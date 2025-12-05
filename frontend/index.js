@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "": "overview",
     overview: "overview",
     medicine: "medicine",
+    medicines: "medicine",
     sales: "sales",
     customer: "customer",
     doctor: "doctor",
@@ -78,6 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (target === "overview") {
       loadDashboard();
     }
+
+    if (!skipPush) {
+      pushPathForPage(target);
+    }
   }
 
   // Attach event
@@ -86,6 +91,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const target = btn.dataset.target;
       showPage(target);
     });
+  });
+
+  // Handle browser back/forward
+  window.addEventListener("popstate", (event) => {
+    const target = pathnameToPage(window.location.pathname);
+    showPage(target, true);
   });
 
   //-----------------------------------------
@@ -227,4 +238,3 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialPage = pathnameToPage(window.location.pathname);
   showPage(initialPage, true);
 });
-

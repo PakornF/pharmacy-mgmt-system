@@ -6,6 +6,18 @@ const path = require("path");
 const root = __dirname;
 const indexFile = path.join(root, "index.html");
 
+// Map specific paths to index.html so the SPA with sidebar is shown everywhere
+const pageMap = {
+  "/medicines": "index.html",
+  "/sales": "index.html",
+  "/supplier": "index.html",
+  "/supply-order": "index.html",
+  "/customer": "index.html",
+  "/doctor": "index.html",
+  "/prescription": "index.html",
+  "/overview": "index.html",
+};
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
@@ -43,8 +55,18 @@ const server = http.createServer((req, res) => {
     return res.end("Method Not Allowed");
   }
 
-  const cleanPath = safePath(req.url);
-  let filePath = path.join(root, cleanPath);
+  const cleanPath = "/" + safePath(req.url);
+
+  // Serve mapped pages explicitly
+  if (pageMap[cleanPath]) {
+    const mappedFile = path.join(root, pageMap[cleanPath]);
+    if (fs.existsSync(mappedFile)) {
+      res.statusCode = 200;
+      return serveFile(res, mappedFile);
+    }
+  }
+
+  let filePath = path.join(root, cleanPath.replace(/^\//, ""));
 
   try {
     const stat = fs.existsSync(filePath) && fs.statSync(filePath);
@@ -59,7 +81,7 @@ const server = http.createServer((req, res) => {
     // fall back to index
   }
 
-  // SPA fallback for deep links
+  // SPA fallback for deep links (default to index)
   if (fs.existsSync(indexFile)) {
     res.statusCode = 200;
     return serveFile(res, indexFile);
