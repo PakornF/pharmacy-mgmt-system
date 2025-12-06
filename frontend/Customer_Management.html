@@ -139,22 +139,27 @@
             <input 
               type="number" 
               id="customer_id" 
-              required
-              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
+              readonly
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400 bg-gray-100"
               style="border-color: #f8bbd0;"
+              placeholder="Auto-generated"
             />
+            <p class="text-xs text-gray-500 mt-1">Customer ID will be generated automatically</p>
           </div>
           
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Contact *</label>
             <input 
-              type="text" 
+              type="tel" 
               id="contact" 
               required
+              maxlength="10"
+              pattern="[0-9]{10}"
               class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
               style="border-color: #f8bbd0;"
-              placeholder="Phone number"
+              placeholder="Phone number (10 digits)"
             />
+            <p class="text-xs text-gray-500 mt-1">Enter 10 digits only</p>
           </div>
           
           <div>

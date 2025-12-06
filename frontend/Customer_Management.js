@@ -79,6 +79,26 @@ function setupEventListeners() {
   salesTab.addEventListener('click', () => switchHistoryTab('sales'));
   prescriptionsTab.addEventListener('click', () => switchHistoryTab('prescriptions'));
   
+  // Contact input: restrict to numbers only and max 10 digits
+  const contactInput = document.getElementById('contact');
+  if (contactInput) {
+    contactInput.addEventListener('input', (e) => {
+      // Remove any non-digit characters
+      e.target.value = e.target.value.replace(/\D/g, '');
+      // Limit to 10 digits
+      if (e.target.value.length > 10) {
+        e.target.value = e.target.value.slice(0, 10);
+      }
+    });
+    
+    // Prevent non-numeric input on keypress
+    contactInput.addEventListener('keypress', (e) => {
+      if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+  }
+  
   // Close modals on outside click
   customerModal.addEventListener('click', (e) => {
     if (e.target === customerModal) closeCustomerModal();
@@ -265,17 +285,30 @@ function attachCardEventListeners() {
   });
 }
 
+// Generate Customer ID automatically
+function generateCustomerId() {
+  if (allCustomers.length === 0) {
+    return 1; // Start from 1 if no customers exist
+  }
+  
+  // Find the maximum customer_id and add 1
+  const maxId = Math.max(...allCustomers.map(c => c.customer_id || 0));
+  return maxId + 1;
+}
+
 // Open Customer Modal (Add or Edit)
 function openCustomerModal(customer = null) {
   const modalTitle = document.getElementById('modalTitle');
   const form = customerForm;
+  const customerIdInput = document.getElementById('customer_id');
   
   if (customer) {
     // Edit mode
     modalTitle.textContent = 'Edit Customer';
     document.getElementById('customerMongoId').value = customer._id;
-    document.getElementById('customer_id').value = customer.customer_id;
-    document.getElementById('customer_id').disabled = true; // Don't allow editing ID
+    customerIdInput.value = customer.customer_id;
+    customerIdInput.readOnly = true;
+    customerIdInput.classList.add('bg-gray-100');
     
     // Split full_name into first_name and last_name
     const nameParts = customer.full_name ? customer.full_name.trim().split(/\s+/) : ['', ''];
@@ -302,7 +335,13 @@ function openCustomerModal(customer = null) {
     modalTitle.textContent = 'Add New Customer';
     form.reset();
     document.getElementById('customerMongoId').value = '';
-    document.getElementById('customer_id').disabled = false;
+    
+    // Generate Customer ID automatically
+    const newCustomerId = generateCustomerId();
+    customerIdInput.value = newCustomerId;
+    customerIdInput.readOnly = true;
+    customerIdInput.classList.add('bg-gray-100');
+    
     // Clear flatpickr if exists
     if (datePickerInstance) {
       datePickerInstance.clear();
@@ -310,8 +349,37 @@ function openCustomerModal(customer = null) {
   }
   
   customerModal.classList.remove('hidden');
-  // Reinitialize date picker when modal is shown
+  
+  // Setup contact input validation when modal is shown
   setTimeout(() => {
+    const contactInput = document.getElementById('contact');
+    if (contactInput) {
+      // Add input event listener to restrict to numbers and max 10 digits
+      const handleContactInput = (e) => {
+        // Remove any non-digit characters
+        e.target.value = e.target.value.replace(/\D/g, '');
+        // Limit to 10 digits
+        if (e.target.value.length > 10) {
+          e.target.value = e.target.value.slice(0, 10);
+        }
+      };
+      
+      // Remove old listener if exists and add new one
+      contactInput.removeEventListener('input', handleContactInput);
+      contactInput.addEventListener('input', handleContactInput);
+      
+      // Prevent non-numeric input on keypress
+      const handleKeyPress = (e) => {
+        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+          e.preventDefault();
+        }
+      };
+      
+      contactInput.removeEventListener('keypress', handleKeyPress);
+      contactInput.addEventListener('keypress', handleKeyPress);
+    }
+    
+    // Reinitialize date picker
     initializeDatePicker();
   }, 100);
 }
@@ -491,10 +559,20 @@ async function handleFormSubmit(e) {
   const mongoId = document.getElementById('customerMongoId').value;
   const firstName = document.getElementById('first_name').value.trim();
   const lastName = document.getElementById('last_name').value.trim();
+  const contactInput = document.getElementById('contact');
+  const contact = contactInput.value.trim();
+  
+  // Validate contact: must be exactly 10 digits
+  if (!/^\d{10}$/.test(contact)) {
+    alert('Contact must be exactly 10 digits');
+    contactInput.focus();
+    return;
+  }
+  
   const customerData = {
     customer_id: parseInt(document.getElementById('customer_id').value),
     full_name: `${firstName} ${lastName}`.trim(),
-    contact: document.getElementById('contact').value,
+    contact: contact,
     gender: document.getElementById('gender').value,
     day_of_birth: document.getElementById('day_of_birth').value,
   };
