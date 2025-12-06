@@ -47,9 +47,15 @@ router.get("/", async (req, res) => {
 // Create supply order with items
 router.post("/", async (req, res) => {
   try {
-    const { order_id, supplier_id, order_date, status = "PENDING", total_cost, items } = req.body;
-    if (!order_id || !supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
+    let { order_id, supplier_id, order_date, status = "PENDING", total_cost, items } = req.body;
+    if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (!order_id) {
+      const latest = await SupplyOrder.findOne().sort({ order_id: -1 }).lean();
+      const latestId = Number(latest?.order_id) || 0;
+      order_id = latestId + 1;
     }
 
     const supplier = await Supplier.findOne({ supplier_id });
@@ -68,12 +74,15 @@ router.post("/", async (req, res) => {
       total_cost: total_cost ?? computedTotal,
     });
 
-    const itemsToInsert = items.map((i) => ({
-      order_item_id: i.order_item_id,
+    const nowBase = Date.now();
+    const itemsToInsert = items.map((i, idx) => ({
+      order_item_id: i.order_item_id ?? nowBase + idx,
       order_id,
       medicine_id: i.medicine_id,
       ordered_quantity: i.ordered_quantity,
       cost_per_unit: i.cost_per_unit,
+      units_per_pack: i.units_per_pack ?? 1,
+      unit: i.unit,
       expiry_date: i.expiry_date,
     }));
     await SupplyOrderItem.insertMany(itemsToInsert);
@@ -115,12 +124,15 @@ router.put("/:order_id", async (req, res) => {
 
     if (items) {
       await SupplyOrderItem.deleteMany({ order_id: Number(order_id) });
-      const itemsToInsert = items.map((i) => ({
-        order_item_id: i.order_item_id,
+      const nowBase = Date.now();
+      const itemsToInsert = items.map((i, idx) => ({
+        order_item_id: i.order_item_id ?? nowBase + idx,
         order_id: Number(order_id),
         medicine_id: i.medicine_id,
         ordered_quantity: i.ordered_quantity,
         cost_per_unit: i.cost_per_unit,
+        units_per_pack: i.units_per_pack ?? 1,
+        unit: i.unit,
         expiry_date: i.expiry_date,
       }));
       await SupplyOrderItem.insertMany(itemsToInsert);
@@ -163,16 +175,17 @@ router.patch("/:order_id/status", async (req, res) => {
       // Update item metadata and increment medicine stock
       const items = await SupplyOrderItem.find({ order_id: Number(order_id) });
       for (const item of items) {
-        const update =
-          updatesByKey.get(String(item.order_item_id)) ||
-          updatesByKey.get(`med:${item.medicine_id}`);
+      const update =
+        updatesByKey.get(String(item.order_item_id)) ||
+        updatesByKey.get(`med:${item.medicine_id}`);
 
-        if (update) {
-          if (update.units_per_pack != null) item.units_per_pack = Number(update.units_per_pack) || 1;
-          if (update.expiry_date) item.expiry_date = update.expiry_date;
-          if (update.ordered_quantity != null) item.ordered_quantity = Number(update.ordered_quantity);
-          await item.save();
-        }
+      if (update) {
+        if (update.units_per_pack != null) item.units_per_pack = Number(update.units_per_pack) || 1;
+        if (update.expiry_date) item.expiry_date = update.expiry_date;
+        if (update.ordered_quantity != null) item.ordered_quantity = Number(update.ordered_quantity);
+        if (update.unit) item.unit = update.unit;
+        await item.save();
+      }
 
         const qtyToAdd =
           Number(item.ordered_quantity || 0) * Number(item.units_per_pack || 1);

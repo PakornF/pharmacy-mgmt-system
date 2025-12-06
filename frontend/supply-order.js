@@ -290,15 +290,14 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
-      // units/box สำหรับกล่องยาเม็ด
-      if (needsUnitsPerBox) {
-        receiveUnitsPerBoxGroup.classList.remove("hidden");
-        receiveUnitsPerBoxInput.value =
-          item.unitsPerPack != null ? String(item.unitsPerPack) : "";
-      } else {
-        receiveUnitsPerBoxGroup.classList.add("hidden");
-        receiveUnitsPerBoxInput.value = "";
-      }
+      // units per box (always show so user can confirm/adjust)
+      receiveUnitsPerBoxGroup.classList.remove("hidden");
+      receiveUnitsPerBoxInput.value =
+        item.units_per_pack != null
+          ? String(item.units_per_pack)
+          : item.unitsPerPack != null
+          ? String(item.unitsPerPack)
+          : "";
 
       // bottle / tube → size + volume
       if (needsSizeAndVolume) {
@@ -390,19 +389,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-      const isBox = unitLower.startsWith("box");
-      const isBottleOrTube =
-        unitLower.startsWith("bottle") || unitLower.startsWith("tube");
+    const isBottleOrTube =
+      unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-      const needsUnitsPerBox = isBox;
-      const needsSizeAndVolume = isBottleOrTube;
+    const needsSizeAndVolume = isBottleOrTube;
 
-      const info = await openReceiveModal({
-        med,
-        item: it,
-        needsUnitsPerBox,
-        needsSizeAndVolume,
-      });
+    const info = await openReceiveModal({
+      med,
+      item: it,
+      needsUnitsPerBox: true,
+      needsSizeAndVolume,
+    });
 
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
@@ -497,6 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const medId = itemMedicineSelect.value;
     const qtyVal = Number(itemQtyInput.value);
     let unitVal = itemUnitSelect.value;
+    const unitsPerPackVal = 1;
 
     if (!orderSupplierSelect.value) {
       alert("Please select supplier first.");
@@ -534,6 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
         medicineId: medId,
         quantity: qtyVal,
         unit: unitVal,
+        units_per_pack: unitsPerPackVal,
       });
     }
 
@@ -618,7 +617,8 @@ document.addEventListener("DOMContentLoaded", () => {
         medicine_id: med ? med.medicine_id || med.id : it.medicineId,
         ordered_quantity: it.quantity,
         cost_per_unit: med ? med.price : 0,
-        units_per_pack: 1,
+        units_per_pack: it.units_per_pack || 1,
+        unit: it.unit || med?.unit || "",
       };
     });
 
