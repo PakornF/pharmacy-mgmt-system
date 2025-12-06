@@ -14,11 +14,11 @@ const router = express.Router();
 // /medicines
 router.get("/", getAllMedicines);
 
-// /medicines/:id  (MongoDB _id)
-router.get("/:id", getMedicineById);
-
 // /medicines/code/:medicine_id  (business PK, e.g. MED001)
 router.get("/code/:medicine_id", getMedicineByCode);
+
+// /medicines/:id  (MongoDB _id)
+router.get("/:id", getMedicineById);
 
 // create
 router.post("/", createMedicine);
