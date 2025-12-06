@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let suppliers = []; // { supplier_id, name, ... }
   let medicines = []; // { id, name, supplier_id, price, quantity, unit, ... }
 
-  let mockSupplyOrders = [];
+  let supplyOrders = [];
 
   // ---------------------------
   // DOM elements
@@ -222,44 +222,44 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render order list (left table)
   // ---------------------------
   function renderOrderList() {
-    if (mockSupplyOrders.length === 0) {
+    if (supplyOrders.length === 0) {
       orderTableBody.innerHTML =
         `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No supply orders yet.</td></tr>`;
       return;
     }
 
-    orderTableBody.innerHTML = mockSupplyOrders
+    orderTableBody.innerHTML = supplyOrders
       .map((o) => {
-        const supplierName = findSupplierName(o.supplierId);
+        const supplierName = findSupplierName(o.supplier_id);
         const statusBadge =
-          o.status === "received"
+          (o.status || "").toUpperCase() === "DELIVERED"
             ? `<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">received</span>`
             : `<span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">pending</span>`;
 
         return `
           <tr class="hover:bg-pink-50">
-            <td class="py-2 px-2 text-left w-1/5">${o.id}</td>
+            <td class="py-2 px-2 text-left w-1/5">${o.order_id}</td>
             <td class="py-2 px-2 text-left w-1/5">${supplierName}</td>
             <td class="py-2 px-2 text-left w-1/5">${statusBadge}</td>
             <td class="py-2 px-2 text-left w-1/5">${formatDateTime(
-              o.createdAt
+              o.order_date
             )}</td>
             <td class="py-2 px-2 text-right w-1/5 space-x-2">
               <button
                 class="text-xs text-blue-600 hover:underline"
-                data-edit-order="${o.id}"
+                data-edit-order="${o.order_id}"
               >
                 Edit
               </button>
               <button
                 class="text-xs text-pink-600 hover:underline"
-                data-mark-received="${o.id}"
+                data-mark-received="${o.order_id}"
               >
                 Mark as received
               </button>
               <button
                 class="text-xs text-red-600 hover:underline"
-                data-delete-order="${o.id}"
+                data-delete-order="${o.order_id}"
               >
                 Delete
               </button>
@@ -372,31 +372,29 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ---------------------------
-  // Mark as received helper
-  // ---------------------------
+  // Mark as received helper (calls backend to update stock)
   async function handleMarkAsReceived(order) {
-    if (order.status === "received") {
+    if ((order.status || "").toUpperCase() === "DELIVERED") {
       alert("This order is already marked as received.");
       return;
     }
 
-    // วนทีละ item แล้วเปิด modal ให้กรอกข้อมูล
+    const itemPayloads = [];
+
+    // Collect receiving info per item
     for (let i = 0; i < order.items.length; i++) {
       const it = order.items[i];
-      const med = findMedicine(it.medicineId);
+      const med = findMedicine(it.medicine_id || it.medicineId);
       if (!med) continue;
 
-      // ใช้ unit ที่สั่งใน order เป็นหลัก
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-      const isBox = unitLower.startsWith("box"); // "box" หรือ "box(es)"
+      const isBox = unitLower.startsWith("box");
       const isBottleOrTube =
         unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-      // กล่อง → ถาม units per box
       const needsUnitsPerBox = isBox;
-      // ขวด / หลอด → ถาม size + volume
       const needsSizeAndVolume = isBottleOrTube;
 
       const info = await openReceiveModal({
@@ -406,63 +404,41 @@ document.addEventListener("DOMContentLoaded", () => {
         needsSizeAndVolume,
       });
 
-      // ถ้ากด Cancel → ยกเลิกทั้ง order
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
         return;
       }
 
-      const { expiryDate, unitsPerBox, size, volume } = info;
+      const { expiryDate, unitsPerBox } = info;
 
-      // --- อัปเดต stock ---
-      let added = 0;
-      if (needsUnitsPerBox && unitsPerBox) {
-        // กล่องยา → แปลงเป็นจำนวนหน่วยทั้งหมด (เช่น เม็ด / แคปซูล)
-        added = it.quantity * unitsPerBox;
-      } else {
-        // ขวด/หลอด หรือสั่งเป็นหน่วย base อยู่แล้ว
-        added = it.quantity;
-      }
-      med.quantity += added;
-
-      // --- เก็บข้อมูลลง item & medicine ---
-      it.expiryDate = expiryDate;
-      if (unitsPerBox != null) it.unitsPerPack = unitsPerBox;
-      if (size) it.size = size;
-      if (volume) it.volume = volume;
-
-      // summary ที่ level medicine
-      if (expiryDate) {
-        // เก็บเป็นวันหมดอายุที่ใกล้หมดสุด
-        if (!med.expiryDate || expiryDate < med.expiryDate) {
-          med.expiryDate = expiryDate;
-        }
-      }
-      if (unitsPerBox != null) med.unitsPerPack = unitsPerBox;
-      if (size) med.packageSize = size;
-      if (volume) med.packageVolume = volume;
-
-      // ตั้งหน่วยแสดงผลใน stock ให้ตรงกับ unit ที่ใช้ตอนรับของ
-      if (isBox) {
-        med.displayUnit = "box(es)";
-      } else if (isBottleOrTube) {
-        // ถ้ามี size → เช่น "small bottle"
-        med.displayUnit = size ? `${size} ${orderUnitRaw}` : orderUnitRaw;
-      } else {
-        med.displayUnit = orderUnitRaw || med.unit;
-      }
+      itemPayloads.push({
+        order_item_id: it.order_item_id,
+        medicine_id: it.medicine_id || it.medicineId,
+        ordered_quantity: it.ordered_quantity || it.quantity,
+        units_per_pack: unitsPerBox ?? it.units_per_pack ?? 1,
+        expiry_date: expiryDate,
+      });
     }
 
-    order.status = "received";
+    try {
+      const res = await fetch(`http://localhost:8000/supply-orders/${order.order_id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DELIVERED", items: itemPayloads }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = data && data.message ? `: ${data.message}` : "";
+        throw new Error(`Failed to mark as received${detail}`);
+      }
 
-    alert(`Order ${order.id} marked as received and stock updated.`);
-
-    if (orderIdInput.value === String(order.id)) {
-      orderStatusDisplay.value = order.status;
+      await loadSupplyOrders();
+      await refreshMedicines();
+      alert(`Order ${order.order_id} marked as received.`);
+    } catch (err) {
+      console.error("Mark received error:", err);
+      alert(err.message || "Failed to mark order as received.");
     }
-
-    renderOrderList();
-    renderStockTable();
   }
 
   // ---------------------------
@@ -483,15 +459,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadOrderIntoForm(orderId) {
-    const o = mockSupplyOrders.find((ord) => String(ord.id) === String(orderId));
+    const o = supplyOrders.find((ord) => String(ord.order_id) === String(orderId));
     if (!o) return;
 
-    orderIdInput.value = o.id;
-    orderSupplierSelect.value = o.supplierId;
+    orderIdInput.value = o.order_id;
+    orderSupplierSelect.value = o.supplier_id;
     orderStatusDisplay.value = o.status;
-    orderDateDisplay.value = formatDateTime(o.createdAt);
-    currentOrderItems = o.items.map((it) => ({ ...it }));
-    orderFormTitle.textContent = `Edit Order ${o.id}`;
+    orderDateDisplay.value = formatDateTime(o.order_date);
+    currentOrderItems = o.items.map((it) => ({
+      medicineId: it.medicine_id || it.medicineId,
+      quantity: it.ordered_quantity || it.quantity,
+      unit: it.unit || "",
+    }));
+    orderFormTitle.textContent = `Edit Order ${o.order_id}`;
     renderMedicineSelect();
     renderOrderItems();
   }
@@ -601,19 +581,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (deleteBtn) {
       const id = deleteBtn.dataset.deleteOrder;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
-      if (!confirm(`Delete order ${o.id}?`)) return;
-      mockSupplyOrders = mockSupplyOrders.filter(
-        (ord) => String(ord.id) !== String(id)
-      );
-      renderOrderList();
+      alert("Delete is not implemented yet.");
       return;
     }
 
     if (markBtn) {
       const id = markBtn.dataset.markReceived;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
       handleMarkAsReceived(o);
       return;
@@ -626,7 +602,42 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Submit order (create / update)
-  orderForm.addEventListener("submit", (e) => {
+  function nextOrderId() {
+    const maxId = supplyOrders.reduce(
+      (max, o) => Math.max(max, Number(o.order_id) || 0),
+      0
+    );
+    return maxId + 1;
+  }
+
+  function buildOrderPayload(orderId, supplierId) {
+    const items = currentOrderItems.map((it, idx) => {
+      const med = findMedicine(it.medicineId);
+      return {
+        order_item_id: Date.now() + idx,
+        medicine_id: med ? med.medicine_id || med.id : it.medicineId,
+        ordered_quantity: it.quantity,
+        cost_per_unit: med ? med.price : 0,
+        units_per_pack: 1,
+      };
+    });
+
+    const totalCost = items.reduce(
+      (sum, i) => sum + Number(i.ordered_quantity || 0) * Number(i.cost_per_unit || 0),
+      0
+    );
+
+    return {
+      order_id: orderId,
+      supplier_id: Number(supplierId),
+      order_date: new Date().toISOString(),
+      status: "PENDING",
+      total_cost: totalCost,
+      items,
+    };
+  }
+
+  orderForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const supplierId = orderSupplierSelect.value;
@@ -640,43 +651,85 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const existingId = orderIdInput.value || null;
-    if (existingId) {
-      // update
-      const o = mockSupplyOrders.find(
-        (ord) => String(ord.id) === String(existingId)
-      );
-      if (!o) return;
+    const existingId = orderIdInput.value ? Number(orderIdInput.value) : null;
+    const orderId = existingId || nextOrderId();
+    const payload = buildOrderPayload(orderId, supplierId);
 
-      if (o.status === "received") {
-        alert("Received order cannot be edited.");
-        return;
-      }
+    try {
+      const url = existingId
+        ? `http://localhost:8000/supply-orders/${orderId}`
+        : "http://localhost:8000/supply-orders";
+      const method = existingId ? "PUT" : "POST";
 
-      o.supplierId = supplierId;
-      o.items = currentOrderItems.map((it) => ({ ...it }));
-      alert(`Order ${o.id} updated.`);
-    } else {
-      // create new
-      const newId = mockSupplyOrders.length + 1;
-      const now = new Date().toISOString();
-      mockSupplyOrders.push({
-        id: newId,
-        supplierId,
-        status: "pending",
-        createdAt: now,
-        items: currentOrderItems.map((it) => ({ ...it })),
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      alert(`Order ${newId} created.`);
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = data && data.message ? `: ${data.message}` : "";
+        throw new Error(`Failed to save order${detail}`);
+      }
+      alert(existingId ? "Order updated." : "Order created.");
+      await loadSupplyOrders();
+      resetOrderForm();
+    } catch (err) {
+      console.error("Save order error:", err);
+      alert(err.message || "Failed to save order.");
     }
-
-    resetOrderForm();
-    renderOrderList();
   });
 
   // ---------------------------
   // Init
   // ---------------------------
+  async function loadSupplyOrders() {
+    try {
+      const res = await fetch("http://localhost:8000/supply-orders");
+      if (!res.ok) throw new Error("Failed to load supply orders");
+      const data = await res.json();
+      supplyOrders = data.map((o) => ({
+        ...o,
+        items: (o.items || []).map((it) => ({
+          ...it,
+          order_item_id: it.order_item_id,
+          medicineId: it.medicine_id,
+          quantity: it.ordered_quantity,
+          unit: it.unit || "",
+          units_per_pack: it.units_per_pack,
+          expiry_date: it.expiry_date,
+        })),
+      }));
+      renderOrderList();
+    } catch (err) {
+      console.error("Failed to load supply orders:", err);
+      supplyOrders = [];
+      renderOrderList();
+    }
+  }
+
+  async function refreshMedicines() {
+    try {
+      const medRes = await fetch("http://localhost:8000/medicines");
+      if (!medRes.ok) throw new Error("Failed to load medicines");
+      const medData = await medRes.json();
+      medicines = medData.map((m) => ({
+        id: m.medicine_id || m._id,
+        medicine_id: m.medicine_id || m._id,
+        name: m.name,
+        brand: m.brand,
+        price: m.price,
+        quantity: m.quantity,
+        unit: m.unit || "",
+        supplier_id: m.supplier_id,
+      }));
+      renderMedicineSelect();
+      renderStockTable();
+    } catch (err) {
+      console.error("Failed to refresh medicines:", err);
+    }
+  }
+
   async function initSupplyOrderPage() {
     try {
       // Fetch suppliers
@@ -695,6 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const medData = await medRes.json();
       medicines = medData.map((m) => ({
         id: m.medicine_id || m._id,
+        medicine_id: m.medicine_id || m._id,
         name: m.name,
         brand: m.brand,
         price: m.price,
@@ -706,7 +760,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSupplierSelect();
       renderMedicineSelect();
       renderOrderItems();
-      renderOrderList();
+      await loadSupplyOrders();
       renderStockTable();
     } catch (err) {
       console.error("Failed to load suppliers/medicines:", err);

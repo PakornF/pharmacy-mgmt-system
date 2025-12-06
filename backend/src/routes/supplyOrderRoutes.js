@@ -138,7 +138,7 @@ router.put("/:order_id", async (req, res) => {
 router.patch("/:order_id/status", async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { status } = req.body;
+    const { status, items: itemUpdates = [] } = req.body;
     if (!status || !["PENDING", "DELIVERED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
@@ -151,12 +151,38 @@ router.patch("/:order_id/status", async (req, res) => {
     await order.save();
 
     if (status === "DELIVERED" && !wasDelivered) {
+      // Map incoming updates by order_item_id or medicine_id for quick lookup
+      const updatesByKey = new Map();
+      if (Array.isArray(itemUpdates)) {
+        for (const u of itemUpdates) {
+          if (u?.order_item_id != null) updatesByKey.set(String(u.order_item_id), u);
+          else if (u?.medicine_id) updatesByKey.set(`med:${u.medicine_id}`, u);
+        }
+      }
+
+      // Update item metadata and increment medicine stock
       const items = await SupplyOrderItem.find({ order_id: Number(order_id) });
       for (const item of items) {
-        await Medicine.updateOne(
-          { medicine_id: item.medicine_id },
-          { $inc: { quantity: item.ordered_quantity } }
-        );
+        const update =
+          updatesByKey.get(String(item.order_item_id)) ||
+          updatesByKey.get(`med:${item.medicine_id}`);
+
+        if (update) {
+          if (update.units_per_pack != null) item.units_per_pack = Number(update.units_per_pack) || 1;
+          if (update.expiry_date) item.expiry_date = update.expiry_date;
+          if (update.ordered_quantity != null) item.ordered_quantity = Number(update.ordered_quantity);
+          await item.save();
+        }
+
+        const qtyToAdd =
+          Number(item.ordered_quantity || 0) * Number(item.units_per_pack || 1);
+
+        if (qtyToAdd > 0) {
+          await Medicine.updateOne(
+            { medicine_id: item.medicine_id },
+            { $inc: { quantity: qtyToAdd } }
+          );
+        }
       }
     }
 
