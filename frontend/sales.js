@@ -117,6 +117,11 @@ function getStockFor(id) {
     return med ? med.quantity : 0; 
 }
 
+function getMedicineNameById(id) {
+  const med = allMedicines.find((m) => String(m.medicine_id) === String(id));
+  return med ? med.name : null;
+}
+
 async function fetchPrescriptionsFromServer(params = {}) {
   const query = new URLSearchParams();
   if (params.customer_id) query.append("customer_id", params.customer_id);
@@ -141,6 +146,9 @@ function buildPrescriptionSection(prescription) {
   const rows = items.map((item) => {
     const displayUnit = normalizeUnit(item.unit);
     const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
+    const medName = item.medicine_name
+      || (medDetails && (medDetails.name || medDetails.medicine_name))
+      || "";
     const price = typeof item.price === "number"
       ? item.price
       : typeof (medDetails && medDetails.price) === "number"
@@ -154,7 +162,8 @@ function buildPrescriptionSection(prescription) {
     const lineTotal = price * item.quantity;
     return `
       <tr>
-        <td class="py-1 px-2 text-left">${item.medicine_name || item.medicine_id}</td>
+        <td class="py-1 px-2 text-left">${item.medicine_id || "-"}</td>
+        <td class="py-1 px-2 text-left">${medName || "-"}</td>
         <td class="py-1 px-2 text-left">${item.dosage || '-'}</td>
         <td class="py-1 px-2 text-center">${item.quantity} ${displayUnit}</td>
         <td class="py-1 px-2 text-right">${lineTotal.toFixed(2)}</td>
@@ -186,7 +195,8 @@ function buildPrescriptionSection(prescription) {
         <table class="w-full text-[11px]">
           <thead>
             <tr class="border-b bg-white">
-              <th class="py-1 px-2 text-left w-2/5">Medicine</th>
+              <th class="py-1 px-2 text-left w-1/5">Med ID</th>
+              <th class="py-1 px-2 text-left w-2/5">Name</th>
               <th class="py-1 px-2 text-left w-1/5">Dosage</th>
               <th class="py-1 px-2 text-center w-1/5">Qty/Unit</th>
               <th class="py-1 px-2 text-right w-1/5">Total</th>
@@ -256,13 +266,39 @@ async function fetchSales() {
           .sort((a, b) => new Date(b.sale_datetime) - new Date(a.sale_datetime))
           .slice(0, 5);
 
-        if (latestSales.length === 0) {
+        // Enrich each sale with fresh items from the database to ensure medicines reflect the actual sale
+        const enrichedSales = await Promise.all(
+          latestSales.map(async (sale) => {
+            try {
+              const detailRes = await fetch(`${SALES_API_BASE}/${sale.sale_id}`);
+              if (detailRes.ok) {
+                const detail = await detailRes.json();
+                // use only detail items; skip stale summary items
+                const detailItems = Array.isArray(detail.items) ? detail.items : [];
+                const detailSale = detail.sale ? detail.sale : sale;
+                // Guard: if the detail sale_id does not match, discard to avoid mixing data
+                if (detailSale.sale_id !== sale.sale_id) {
+                  console.warn(`Sale detail mismatch: summary sale_id=${sale.sale_id} detail sale_id=${detailSale.sale_id}`);
+                  return null;
+                }
+                return { ...detailSale, items: detailItems };
+              }
+            } catch (err) {
+              console.error(`Error fetching sale detail for sale_id ${sale.sale_id}:`, err);
+            }
+            return null; // avoid showing stale data if detail fetch fails
+          })
+        );
+
+        const filteredSales = enrichedSales.filter(Boolean);
+
+        if (filteredSales.length === 0) {
           salesHistoryTbody.innerHTML =
             `<tr><td colspan="6" class="py-1 text-gray-400 text-center">None</td></tr>`;
           return;
         }
 
-        salesHistoryTbody.innerHTML = latestSales
+        salesHistoryTbody.innerHTML = filteredSales
           .map((s) => {
             const detail = (s.items || [])
               .map((it) => {
@@ -270,8 +306,13 @@ async function fetchSales() {
                   it.dosage && it.dosage.trim() !== ""
                     ? it.dosage.trim()
                     : "-";
-                const name = it.medicine_name || it.medicine_id || "Unknown";
-                return `${name} x${it.quantity} (Dosage: ${dosageText})`;
+                const name =
+                  it.medicine_name ||
+                  (it.medicine && (it.medicine.name || it.medicine.medicine_name)) ||
+                  getMedicineNameById(it.medicine_id) ||
+                  "Unknown";
+                const medId = it.medicine_id ? String(it.medicine_id) : "N/A";
+                return `[${medId}] ${name} x${it.quantity} (Dosage: ${dosageText})`;
               })
               .join(", ");
 
@@ -529,7 +570,9 @@ function handleCustomerSearch() {
   const searchTerm = customerSearchInput.value.trim();
 
   selectedCustomer = null;
-  selectedCustomerInfo.textContent = "No customer selected.";
+  if (selectedCustomerInfo) {
+    selectedCustomerInfo.textContent = "No customer selected.";
+  }
   customerErrorEl.classList.add("hidden");
 
   // Reset all related states when search changes
@@ -599,7 +642,9 @@ function handleCustomerSearch() {
       };
 
       customerSearchInput.value = name;
-      selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+      if (selectedCustomerInfo) {
+        selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+      }
       customerErrorEl.classList.add("hidden");
 
       customerDropdown.classList.add('hidden');
@@ -816,7 +861,9 @@ function handleDoctorSearch() {
 
   selectedDoctor = null;
   doctorIdHiddenInput.value = '';
-  selectedDoctorInfo.textContent = "No doctor selected.";
+  if (selectedDoctorInfo) {
+    selectedDoctorInfo.textContent = "No doctor selected.";
+  }
   doctorLicenseEl.textContent = "";
 
   if (searchTerm.length === 0) {
@@ -877,7 +924,9 @@ function handleDoctorSearch() {
       doctorSearchInput.value = name;
       doctorLicenseEl.textContent = `License: ${license}`;
 
-      selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
+      if (selectedDoctorInfo) {
+        selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
+      }
 
       doctorDropdown.classList.add('hidden');
       
@@ -958,13 +1007,17 @@ async function submitSale() {
   billItems = [];
   selectedCustomer = null;
   customerSearchInput.value = "";
-  selectedCustomerInfo.textContent = "No customer selected.";
+  if (selectedCustomerInfo) {
+    selectedCustomerInfo.textContent = "No customer selected.";
+  }
   customerErrorEl.classList.add("hidden");
   
   selectedDoctor = null;
   doctorSearchInput.value = "";
   doctorIdHiddenInput.value = "";
-  selectedDoctorInfo.textContent = "No doctor selected.";
+  if (selectedDoctorInfo) {
+    selectedDoctorInfo.textContent = "No doctor selected.";
+  }
   doctorLicenseEl.textContent = "";
   doctorErrorEl.classList.add("hidden");
   // Clear date picker
@@ -1165,7 +1218,9 @@ function initializeDatePicker() {
     initializeDatePicker();
     
     renderBill();
-    selectedCustomerInfo.textContent = "No customer selected.";
+    if (selectedCustomerInfo) {
+      selectedCustomerInfo.textContent = "No customer selected.";
+    }
     latestPrescriptionBox.classList.add("hidden");
     renderSearchResults(getSearchTerm());
 

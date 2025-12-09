@@ -25,11 +25,74 @@
 
     <div class="grid md:grid-cols-2 gap-6 mb-8">
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="font-semibold">Prescription History</h2>
+        <h2 class="font-semibold mb-3">Prescription History</h2>
+
+        <div class="grid md:grid-cols-3 gap-3 mb-2">
+          <div class="col-span-1 relative">
+            <label class="block text-sm font-medium mb-1">
+              Customer (ID/Phone) <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="customerSearchInput"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Enter customer name, ID, or phone..."
+            />
+            <p id="customerError" class="text-xs text-red-500 mt-1 hidden">
+              Please search and select a valid customer before confirming sale.
+            </p>
+            <div
+              id="customer_dropdown"
+              class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
+            >
+            </div>
+          </div>
+
+          <div class="col-span-1 relative">
+            <label class="block text-sm font-medium mb-1">
+              Doctor
+            </label>
+            <input
+              id="doctor_search"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Enter doctor's name..."
+            />
+            <input type="hidden" id="doctor_id" />
+            <p
+              id="doctorError"
+              class="text-xs text-red-500 mt-1 hidden"
+            >
+              Please select a doctor before confirming sale.
+            </p>
+            <span id="doctor_license" class="mt-2 text-xs text-gray-600"></span>
+            <div
+                id="doctor_dropdown"
+                class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
+            >
+              </div>
+          </div>
+
+          <div class="col-span-1">
+            <label class="block text-sm font-medium mb-1">
+              Issue Date
+            </label>
+            <input
+              id="issueDateInput"
+              type="text"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="Select date"
+            />
+            <p id="dateError" class="text-xs text-red-500 mt-1 hidden">
+              Please select an issue date before confirming sale.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex justify-end mb-4">
           <button
             id="findPrescriptionBtn"
-            class="text-sm px-3 py-1 rounded-full border border-pink-200 text-pink-600 hover:bg-pink-50"
+            class="text-sm px-4 py-2 rounded-xl border border-pink-200 text-pink-600 hover:bg-pink-50"
           >
             Find
           </button>
@@ -61,75 +124,7 @@
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
         <h2 class="font-semibold mb-3">Current Bill</h2>
 
-        <div class="grid grid-cols-3 gap-4 mb-3">
-          <div class="col-span-1 relative">
-            <label class="block text-sm font-medium mb-1">
-              Customer (ID/Phone) <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="customerSearchInput"
-              type="text"
-              class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="Enter customer ID or phone..."
-            />
-            <p id="customerError" class="text-xs text-red-500 mt-1 hidden">
-              Please search and select a valid customer before confirming sale.
-            </p>
-            <p id="selectedCustomerInfo" class="mt-1 text-xs text-gray-500">
-              No customer selected.
-            </p>
-            <div
-              id="customer_dropdown"
-              class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
-            >
-            </div>
-          </div>
-
-          <div class="col-span-1 relative">
-            <label class="block text-sm font-medium mb-1">
-              Doctor
-            </label>
-            <input
-              id="doctor_search"
-              type="text"
-              class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="Enter doctor's name..."
-            />
-            <input type="hidden" id="doctor_id" />
-            <p
-              id="doctorError"
-              class="text-xs text-red-500 mt-1 hidden"
-            >
-              Please select a doctor before confirming sale.
-            </p>
-            <p id="selectedDoctorInfo" class="mt-1 text-xs text-gray-500">
-              No doctor selected.
-            </p>
-            <span id="doctor_license" class="mt-2 text-xs text-gray-600"></span>
-            <div
-                id="doctor_dropdown"
-                class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto"
-            >
-              </div>
-          </div>
-
-          <div class="col-span-1">
-            <label class="block text-sm font-medium mb-1">
-              Issue Date <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="issueDateInput"
-              type="text"
-              class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="Select date"
-            />
-            <p id="dateError" class="text-xs text-red-500 mt-1 hidden">
-              Please select an issue date before confirming sale.
-            </p>
-          </div>
-        </div>
-
-        <div class="max-h-64 overflow-y-auto mb-3">
+        <div class="max-h-64 overflow-y-auto mb-3 mt-3">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b">
