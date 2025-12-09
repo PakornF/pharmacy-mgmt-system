@@ -25,19 +25,19 @@ const supplierIdHidden = document.getElementById("supplierId");
 
 let allSuppliers = [];
 
-const supplierTableBody = document.getElementById("supplierTableBody"); // Added supplier table body reference
+const supplierTableBody = document.getElementById("supplierTableBody");
 
 // -----------------------------
 // Fetch suppliers from backend
 // -----------------------------
 async function fetchAndStoreSuppliers() {
   try {
-    const response = await fetch("http://localhost:8000/suppliers"); // Fetch from backend API
+    const response = await fetch("http://localhost:8000/suppliers");
     if (!response.ok) {
       throw new Error("Failed to fetch suppliers");
     }
     allSuppliers = await response.json();
-    renderSupplierList(allSuppliers, ""); // Initial render with all suppliers
+    renderSupplierList(allSuppliers, "");
   } catch (error) {
     console.error("Error fetching suppliers:", error);
     alert("Error fetching suppliers from the server.");
@@ -119,41 +119,104 @@ function renderSupplierList(suppliers, keyword = "") {
 }
 
 // -----------------------------
-// Render Medicines of Supplier
+// Show Supplier Info + Medicine list
 // -----------------------------
-async function renderSupplierMedicines(supplierId) {
+function showSupplierInformation(supplier, medicines = []) {
+  const label = document.getElementById("selectedSupplierLabel");
+  const infoBox = document.getElementById("supplierInfo");
+
+  if (!label || !infoBox) return;
+
+  if (!supplier) {
+    label.textContent = "No supplier selected";
+    infoBox.innerHTML =
+      `<p class="text-sm text-gray-400">No supplier selected.</p>`;
+    return;
+  }
+
+  label.textContent = `Supplier: ${supplier.supplier_name}`;
+
+  const medicineListText = medicines.length
+    ? medicines.map((m) => `• ${m.name}`).join("<br>")
+    : "No medicines for this supplier.";
+
+  infoBox.innerHTML = `
+    <div class="text-sm space-y-1">
+      <p><span class="font-semibold">Name:</span> ${supplier.supplier_name}</p>
+      <p><span class="font-semibold">Contact:</span> ${
+        supplier.contact_person || "-"
+      }</p>
+      <p><span class="font-semibold">Phone:</span> ${
+        supplier.phone || "-"
+      }</p>
+      <p><span class="font-semibold">Email:</span> ${
+        supplier.email || "-"
+      }</p>
+      <p><span class="font-semibold">Address:</span> ${
+        supplier.address || "-"
+      }</p>
+      <p><span class="font-semibold">Notes:</span> ${
+        supplier.notes || "-"
+      }</p>
+
+      <p class="mt-2 font-semibold">Medicine:</p>
+      <p>${medicineListText}</p>
+    </div>
+  `;
+}
+
+// -----------------------------
+// Render Medicines of Supplier (by supplier_id)
+// -----------------------------
+async function renderSupplierMedicinesByBusinessId(supplierBusinessId) {
+  const supplierMedicinesBody = document.getElementById(
+    "supplierMedicinesBody"
+  );
+  const hasTable = !!supplierMedicinesBody;
+
   try {
-    const response = await fetch(`http://localhost:8000/suppliers/${supplierId}/medicines`); // Fetch medicines for a supplier
+    const response = await fetch(
+      `http://localhost:8000/medicines?supplier_id=${supplierBusinessId}`
+    );
+
     if (!response.ok) {
-      throw new Error('Failed to fetch medicines');
+      throw new Error("Failed to fetch medicines");
     }
+
     const medicines = await response.json();
 
-    const supplierMedicinesBody = document.getElementById("supplierMedicinesBody");
-    if (medicines.length === 0) {
-      supplierMedicinesBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines from this supplier.</td></tr>`;
-      return;
+    if (hasTable) {
+      if (medicines.length === 0) {
+        supplierMedicinesBody.innerHTML =
+          `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines from this supplier.</td></tr>`;
+      } else {
+        supplierMedicinesBody.innerHTML = medicines
+          .map(
+            (m) => `
+              <tr>
+                <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
+                <td class="py-2 px-2 text-left w-1/4">${m.brand || "-"}</td>
+                <td class="py-2 px-2 text-right w-1/4">
+                  ${m.price.toFixed(2)} / ${m.unit || "unit"}
+                </td>
+                <td class="py-2 px-2 text-right w-1/4">
+                  ${m.quantity} ${m.unit || ""}
+                </td>
+              </tr>
+            `
+          )
+          .join("");
+      }
     }
 
-    supplierMedicinesBody.innerHTML = medicines
-      .map(
-        (m) => `
-          <tr>
-            <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
-            <td class="py-2 px-2 text-left w-1/4">${m.brand || "-"}</td>
-            <td class="py-2 px-2 text-right w-1/4">
-              ${m.price.toFixed(2)} / ${m.unit || "unit"}
-            </td>
-            <td class="py-2 px-2 text-right w-1/4">
-              ${m.quantity} ${m.unit || ""}
-            </td>
-          </tr>
-        `
-      )
-      .join("");
+    return medicines;
   } catch (error) {
     console.error("Error fetching medicines:", error);
+    if (hasTable) {
+      supplierMedicinesBody.innerHTML =
+        `<tr><td colspan="4" class="py-2 px-2 text-center text-red-400 text-sm">Failed to load medicines.</td></tr>`;
+    }
+    return [];
   }
 }
 
@@ -163,13 +226,43 @@ async function renderSupplierMedicines(supplierId) {
 async function submitSupplierForm(event) {
   event.preventDefault();
 
+  // อ่านค่าจากฟอร์ม + ตัดช่องว่าง
+  const supplier_name = supplierNameInput.value.trim();
+  const contact_person = contactNameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const email = emailInput.value.trim();
+  const address = addressInput.value.trim();
+  const notes = notesInput.value.trim();
+
+  // -------------------------
+  // Frontend validation
+  // -------------------------
+  if (!supplier_name || !contact_person || !phone || !email || !address) {
+    alert("กรุณากรอกข้อมูลให้ครบ: ชื่อบริษัท, ชื่อผู้ติดต่อ, เบอร์โทร, อีเมล และที่อยู่");
+    return;
+  }
+
+  // เบอร์โทร 10 หลัก (ตัวเลขล้วน)
+  const phoneRegex = /^\d{10}$/;
+  if (!phoneRegex.test(phone)) {
+    alert("กรุณากรอกเบอร์โทร 10 หลัก (ตัวเลขเท่านั้น)");
+    return;
+  }
+
+  // Email format แบบทั่วไป
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert("กรุณากรอกอีเมลให้ถูกต้อง เช่น example@gmail.com");
+    return;
+  }
+
   const supplierData = {
-    supplier_name: supplierNameInput.value.trim(),
-    contact_person: contactNameInput.value.trim(),
-    phone: phoneInput.value.trim(),
-    email: emailInput.value.trim(),
-    address: addressInput.value.trim(),
-    notes: notesInput.value.trim(),
+    supplier_name,
+    contact_person,
+    phone,
+    email,
+    address,
+    notes,
   };
 
   try {
@@ -194,7 +287,11 @@ async function submitSupplierForm(event) {
       return;
     }
 
-    alert(isEdit ? "Supplier updated successfully!" : "Supplier created successfully!");
+    alert(
+      isEdit
+        ? "Supplier updated successfully!"
+        : "Supplier created successfully!"
+    );
     clearSupplierForm();
     await fetchAndStoreSuppliers();
   } catch (error) {
@@ -211,23 +308,23 @@ supplierTableBody.addEventListener("click", async (event) => {
   const editBtn = event.target.closest("button[data-edit]");
   const deleteBtn = event.target.closest("button[data-delete]");
 
+  // ----- VIEW -----
   if (viewBtn) {
     const id = viewBtn.getAttribute("data-view");
     const supplier = allSuppliers.find((s) => s._id === id);
     if (!supplier) return;
-    alert(
-      [
-        `Name: ${supplier.supplier_name}`,
-        `Contact: ${supplier.contact_person}`,
-        `Phone: ${supplier.phone}`,
-        `Email: ${supplier.email}`,
-        `Address: ${supplier.address}`,
-        `Notes: ${supplier.notes || "-"}`,
-      ].join("\n")
+
+    // ใช้ supplier_id (เลขธุรกิจ) ไปดึงยา
+    const medicines = await renderSupplierMedicinesByBusinessId(
+      supplier.supplier_id
     );
+
+    // แสดงข้อมูล supplier + รายชื่อยา
+    showSupplierInformation(supplier, medicines);
     return;
   }
 
+  // ----- EDIT -----
   if (editBtn) {
     const id = editBtn.getAttribute("data-edit");
     const supplier = allSuppliers.find((s) => s._id === id);
@@ -236,6 +333,7 @@ supplierTableBody.addEventListener("click", async (event) => {
     return;
   }
 
+  // ----- DELETE -----
   if (deleteBtn) {
     const id = deleteBtn.getAttribute("data-delete");
     const supplier = allSuppliers.find((s) => s._id === id);
@@ -266,7 +364,7 @@ supplierTableBody.addEventListener("click", async (event) => {
 // INIT
 // -----------------------------
 document.addEventListener("DOMContentLoaded", () => {
-  fetchAndStoreSuppliers(); // Fetch the supplier list on page load
+  fetchAndStoreSuppliers();
   supplierForm.addEventListener("submit", submitSupplierForm);
   supplierSearchInput.addEventListener("input", (e) =>
     renderSupplierList(allSuppliers, e.target.value || "")

@@ -4,13 +4,17 @@ import {
   getSupplierById,
   createSupplier,
   updateSupplier,
-  deleteSupplier
+  deleteSupplier,
+  getSupplierMedicines,
 } from "../controllers/supplierController.js";
 
 const router = express.Router();
 
 // Get all suppliers
 router.get("/", getAllSuppliers);
+
+// Get medicines of a supplier (ใช้ในหน้า View)
+router.get("/:id/medicines", getSupplierMedicines);  
 
 // Get a supplier by ID
 router.get("/:id", getSupplierById);
