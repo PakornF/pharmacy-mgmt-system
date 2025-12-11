@@ -1,6 +1,7 @@
 import Sale from "../models/sale.js";
 import SaleItem from "../models/saleItem.js";
 import Medicine from "../models/medicine.js";
+import Prescription from "../models/prescription.js";
 
 // Helper: get next integer id for a field (e.g. sale_id, sale_item_id)
 const getNextIntId = async (Model, fieldName) => {
@@ -35,7 +36,7 @@ export const searchMedicinesForBilling = async (req, res) => {
 
 export const createSale = async (req, res) => {
   try {
-    const { customer_id, prescription_id = null, items } = req.body;
+    const { customer_id, prescription_id = null, prescription_ids = [], items } = req.body;
 
     if (!customer_id || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -92,13 +93,15 @@ export const createSale = async (req, res) => {
     let nextSaleItemId = await getNextIntId(SaleItem, "sale_item_id");
 
     // Create Sale document
+    const primaryPrescriptionId = prescription_id || (Array.isArray(prescription_ids) && prescription_ids.length > 0 ? prescription_ids[0] : null);
+
     const sale = new Sale({
       sale_id: nextSaleId,
       customer_id,
       sale_datetime: new Date(),
       total_price,
-      // ผูกกับ prescription ถ้ามี (ไม่บังคับ)
-      prescription_id: prescription_id || null,
+      // ผูกกับ prescription หลัก ถ้ามี (ไม่บังคับ)
+      prescription_id: primaryPrescriptionId,
     });
     await sale.save();
 
@@ -122,6 +125,21 @@ export const createSale = async (req, res) => {
       );
     }
     await Promise.all(saleItemsDocs);
+
+    // Mark linked prescription(s) as sold
+    const prescIds = new Set();
+    if (primaryPrescriptionId) prescIds.add(Number(primaryPrescriptionId));
+    if (Array.isArray(prescription_ids)) {
+      prescription_ids.forEach((pid) => {
+        if (pid !== null && pid !== undefined) prescIds.add(Number(pid));
+      });
+    }
+    if (prescIds.size > 0) {
+      await Prescription.updateMany(
+        { prescription_id: { $in: Array.from(prescIds) } },
+        { $set: { is_sale: true } }
+      );
+    }
 
     return res.status(201).json({
       message: "Sale created successfully",

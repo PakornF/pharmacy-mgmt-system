@@ -1,6 +1,6 @@
 import Medicine from "../models/medicine.js";
-// import Sale from "../models/Sale.js";              // when you create it
-// import Prescription from "../models/Prescription.js"; // when you create it
+import Sale from "../models/sale.js";
+import Prescription from "../models/prescription.js";
 
 export const getDashboardSummary = async (req, res) => {
   try {
@@ -38,35 +38,31 @@ export const getDashboardSummary = async (req, res) => {
       expiredMeds = [];
     }
 
-    // 5) Total sales for today (requires Sale model)
-    // let todaySales = await Sale.aggregate([
-    //   {
-    //     $match: {
-    //       createdAt: { $gte: todayStart, $lte: todayEnd },
-    //     },
-    //   },
-    //   {
-    //     $group: {
-    //       _id: null,
-    //       totalRevenue: { $sum: "$total_amount" },
-    //       count: { $sum: 1 },
-    //     },
-    //   },
-    // ]);
-    // const todaySalesTotal = todaySales[0]?.totalRevenue || 0;
-    // const todaySalesCount = todaySales[0]?.count || 0;
+    // 5) Total sales for today
+    const todaySales = await Sale.aggregate([
+      {
+        $addFields: {
+          saleDate: { $ifNull: ["$sale_datetime", "$createdAt"] },
+        },
+      },
+      {
+        $match: {
+          saleDate: { $gte: todayStart, $lte: todayEnd },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$total_price" },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    const todaySalesTotal = todaySales[0]?.totalRevenue || 0;
+    const todaySalesCount = todaySales[0]?.count || 0;
 
-    // TEMP placeholder if Sale model not ready:
-    const todaySalesTotal = 0;
-    const todaySalesCount = 0;
-
-    // 6) Awaited prescriptions (requires Prescription model)
-    // const awaitedCount = await Prescription.countDocuments({
-    //   status: "awaiting",
-    // });
-
-    // TEMP placeholder:
-    const awaitedCount = 0;
+    // 6) Awaited prescriptions: those not yet used in a sale
+    const awaitedCount = await Prescription.countDocuments({ is_sale: { $ne: true } });
 
     res.json({
       totalMedicineItems,
