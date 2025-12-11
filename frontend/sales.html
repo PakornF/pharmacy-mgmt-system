@@ -25,58 +25,9 @@
 
     <div class="grid md:grid-cols-2 gap-6 mb-8">
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
-        <h2 class="font-semibold mb-3">Search Medicine</h2>
-        <input
-          id="searchInput"
-          type="text"
-          placeholder="Search by name or brand..."
-          class="w-full border rounded-xl px-3 py-2 mb-2"
-        />
-        <p id="selectedSummary" class="text-xs text-gray-500 mb-2">
-          Selected medicines: none
-        </p>
+        <h2 class="font-semibold mb-3">Prescription History</h2>
 
-        <div
-          id="latestPrescriptionBox"
-          class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-3 mb-3"
-        >
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <p class="text-sm font-semibold text-pink-700">
-                Latest Prescription
-              </p>
-              <p
-                id="latestPrescriptionMeta"
-                class="text-xs text-pink-700/70"
-              ></p>
-            </div>
-            <span
-              id="latestPrescriptionTag"
-              class="text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700"
-            ></span>
-          </div>
-          <div
-            class="max-h-40 overflow-y-auto border border-pink-100 rounded-xl bg-white/60"
-          >
-            <table class="w-full text-[11px]">
-              <thead>
-                <tr class="border-b bg-white">
-                  <th class="py-1 px-2 text-left w-2/5">Medicine</th>
-                  <th class="py-1 px-2 text-left w-1/5">Dosage</th>
-                  <th class="py-1 px-2 text-center w-1/5">Qty/Unit</th>
-                  <th class="py-1 px-2 text-center w-1/5">Add</th>
-                </tr>
-              </thead>
-              <tbody id="latestPrescriptionItemsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
-        <h2 class="font-semibold mb-3">Current Bill</h2>
-
-        <div class="grid grid-cols-3 gap-4 mb-3">
+        <div class="grid md:grid-cols-3 gap-3 mb-2">
           <div class="col-span-1 relative">
             <label class="block text-sm font-medium mb-1">
               Customer (ID/Phone) <span class="text-red-500">*</span>
@@ -85,13 +36,10 @@
               id="customerSearchInput"
               type="text"
               class="w-full border rounded-xl px-3 py-2 text-sm"
-              placeholder="Enter customer ID or phone..."
+              placeholder="Enter customer name, ID, or phone..."
             />
             <p id="customerError" class="text-xs text-red-500 mt-1 hidden">
               Please search and select a valid customer before confirming sale.
-            </p>
-            <p id="selectedCustomerInfo" class="mt-1 text-xs text-gray-500">
-              No customer selected.
             </p>
             <div
               id="customer_dropdown"
@@ -102,7 +50,7 @@
 
           <div class="col-span-1 relative">
             <label class="block text-sm font-medium mb-1">
-              Doctor <span class="text-red-500">*</span>
+              Doctor
             </label>
             <input
               id="doctor_search"
@@ -117,9 +65,6 @@
             >
               Please select a doctor before confirming sale.
             </p>
-            <p id="selectedDoctorInfo" class="mt-1 text-xs text-gray-500">
-              No doctor selected.
-            </p>
             <span id="doctor_license" class="mt-2 text-xs text-gray-600"></span>
             <div
                 id="doctor_dropdown"
@@ -130,7 +75,7 @@
 
           <div class="col-span-1">
             <label class="block text-sm font-medium mb-1">
-              Issue Date <span class="text-red-500">*</span>
+              Issue Date
             </label>
             <input
               id="issueDateInput"
@@ -144,7 +89,42 @@
           </div>
         </div>
 
-        <div class="max-h-64 overflow-y-auto mb-3">
+        <div class="flex justify-end mb-4">
+          <button
+            id="findPrescriptionBtn"
+            class="text-sm px-4 py-2 rounded-xl border border-pink-200 text-pink-600 hover:bg-pink-50"
+          >
+            Find
+          </button>
+        </div>
+
+        <div
+          id="latestPrescriptionBox"
+          class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-3 mb-3"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <p class="text-sm font-semibold text-pink-700">
+                Found Prescription
+              </p>
+              <p
+                id="latestPrescriptionMeta"
+                class="text-xs text-pink-700/70"
+              ></p>
+            </div>
+            <span
+              id="latestPrescriptionTag"
+              class="text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700"
+            ></span>
+          </div>
+          <div id="prescriptionResults" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
+        <h2 class="font-semibold mb-3">Current Bill</h2>
+
+        <div class="max-h-64 overflow-y-auto mb-3 mt-3">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b">

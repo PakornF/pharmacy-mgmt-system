@@ -13,7 +13,6 @@ let allCustomers = [];
 let allMedicines = [];
 let prescriptionItems = [];
 let currentPrescriptionId = null;
-let currentStatusId = null;
 let itemCounter = 0;
 
 // DOM Elements
@@ -25,12 +24,10 @@ const emptyState = document.getElementById('emptyState');
 // Modal Elements
 const prescriptionModal = document.getElementById('prescriptionModal');
 const viewModal = document.getElementById('viewModal');
-const statusModal = document.getElementById('statusModal');
 const prescriptionForm = document.getElementById('prescriptionForm');
 const addPrescriptionBtn = document.getElementById('addPrescriptionBtn');
 const closeModal = document.getElementById('closeModal');
 const closeViewModal = document.getElementById('closeViewModal');
-const closeStatusModal = document.getElementById('closeStatusModal');
 
 // Flatpickr instance
 let datePickerInstance = null;
@@ -50,16 +47,12 @@ function setupEventListeners() {
   addPrescriptionBtn.addEventListener('click', () => openPrescriptionModal());
   closeModal.addEventListener('click', () => closePrescriptionModal());
   closeViewModal.addEventListener('click', () => closeViewModalFunc());
-  closeStatusModal.addEventListener('click', () => closeStatusModalFunc());
   
   // Form submission
   prescriptionForm.addEventListener('submit', handleFormSubmit);
   
   // Add item button
   document.getElementById('addItemBtn').addEventListener('click', addPrescriptionItem);
-  
-  // Status update
-  document.getElementById('updateStatusBtn').addEventListener('click', handleStatusUpdate);
   
   // Doctor search
   const doctorSearch = document.getElementById('doctor_search');
@@ -85,9 +78,6 @@ function setupEventListeners() {
   });
   viewModal.addEventListener('click', (e) => {
     if (e.target === viewModal) closeViewModalFunc();
-  });
-  statusModal.addEventListener('click', (e) => {
-    if (e.target === statusModal) closeStatusModalFunc();
   });
 }
 
@@ -325,9 +315,6 @@ function createPrescriptionCard(prescription) {
   const customer = allCustomers.find(c => c.customer_id === prescription.customer_id);
   const doctor = allDoctors.find(d => d.doctor_id === prescription.doctor_id);
   const issueDate = prescription.issue_date ? formatDate(prescription.issue_date) : 'N/A';
-  const status = prescription.status || 'incomplete';
-  const statusClass = status === 'complete' ? 'status-complete' : 'status-incomplete';
-  const statusText = status === 'complete' ? 'Complete' : 'Not Complete';
   
   return `
     <div class="prescription-card rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
@@ -336,7 +323,6 @@ function createPrescriptionCard(prescription) {
           <h3 class="text-xl font-bold mb-1" style="color: #ad1457;">Prescription #${prescription.prescription_id}</h3>
           <p class="text-sm text-gray-600">${issueDate}</p>
         </div>
-        <span class="px-3 py-1 rounded-full text-xs font-bold ${statusClass}">${statusText}</span>
       </div>
       
       <div class="space-y-2 mb-4">
@@ -363,14 +349,6 @@ function createPrescriptionCard(prescription) {
         >
           View
         </button>
-        <button 
-          class="status-btn flex-1 px-4 py-2 rounded-lg text-sm font-semibold btn-primary"
-          data-id="${prescription._id}"
-          data-prescription-id="${prescription.prescription_id}"
-          data-status="${status}"
-        >
-          Update Status
-        </button>
       </div>
     </div>
   `;
@@ -384,16 +362,6 @@ function attachCardEventListeners() {
       const id = btn.dataset.id;
       const prescription = allPrescriptions.find(p => p._id === id);
       if (prescription) viewPrescriptionDetails(prescription);
-    });
-  });
-  
-  // Status buttons
-  document.querySelectorAll('.status-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentStatusId = btn.dataset.id;
-      document.getElementById('statusPrescriptionId').textContent = btn.dataset.prescriptionId;
-      document.getElementById('statusSelect').value = btn.dataset.status;
-      statusModal.classList.remove('hidden');
     });
   });
 }
@@ -432,6 +400,8 @@ function openPrescriptionModal() {
   document.getElementById('modalTitle').textContent = 'Add New Prescription';
   prescriptionForm.reset();
   document.getElementById('prescriptionMongoId').value = '';
+  const prescriptionIdInput = document.getElementById('prescription_id');
+  if (prescriptionIdInput) prescriptionIdInput.value = 'Auto-generated';
   document.getElementById('doctor_id').value = '';
   document.getElementById('customer_id').value = '';
   document.getElementById('doctor_search').value = '';
@@ -449,6 +419,8 @@ function openPrescriptionModal() {
 function closePrescriptionModal() {
   prescriptionModal.classList.add('hidden');
   prescriptionForm.reset();
+  const prescriptionIdInput = document.getElementById('prescription_id');
+  if (prescriptionIdInput) prescriptionIdInput.value = 'Auto-generated';
   document.getElementById('doctor_id').value = '';
   document.getElementById('customer_id').value = '';
   document.getElementById('doctor_search').value = '';
@@ -523,34 +495,29 @@ async function viewPrescriptionDetails(prescription) {
   const customer = allCustomers.find(c => c.customer_id === prescription.customer_id);
   const doctor = allDoctors.find(d => d.doctor_id === prescription.doctor_id);
   const issueDate = prescription.issue_date ? formatDate(prescription.issue_date) : 'N/A';
-  const status = prescription.status || 'incomplete';
-  const statusText = status === 'complete' ? 'Complete' : 'Not Complete';
   
-  // Load prescription items
-  let itemsHtml = '<p class="text-gray-500">Loading items...</p>';
-  try {
-    const response = await fetch(`${PRESCRIPTION_API}/${prescription._id}/items`);
-    if (response.ok) {
-      const items = await response.json();
-      if (items.length > 0) {
-        itemsHtml = items.map(item => {
-          const medicine = allMedicines.find(m => m.medicine_id === item.medicine_id);
-          return `
-            <div class="bg-gray-50 p-3 rounded-lg mb-2">
-              <div class="flex justify-between">
-                <span class="font-medium">${medicine ? escapeHtml(medicine.name) : item.medicine_id}</span>
-                <span class="text-sm text-gray-600">Qty: ${item.quantity}</span>
-              </div>
-              <p class="text-sm text-gray-600 mt-1">Dosage: ${escapeHtml(item.dosage)}</p>
-            </div>
-          `;
-        }).join('');
-      } else {
-        itemsHtml = '<p class="text-gray-500">No items found</p>';
-      }
-    }
-  } catch (error) {
-    itemsHtml = '<p class="text-red-500">Error loading items</p>';
+  // Use items already loaded with the prescription (no extra fetch)
+  const items = Array.isArray(prescription.items) ? prescription.items : [];
+  let itemsHtml = '<p class="text-gray-500">No items found</p>';
+
+  if (items.length > 0) {
+    itemsHtml = items.map(item => {
+      const medicine =
+        item.medicine ||
+        allMedicines.find(m => m.medicine_id === item.medicine_id);
+      const medName = medicine
+        ? escapeHtml(medicine.name || medicine.medicine_name || '')
+        : item.medicine_id;
+      return `
+        <div class="bg-gray-50 p-3 rounded-lg mb-2">
+          <div class="flex justify-between">
+            <span class="font-medium">${medName}</span>
+            <span class="text-sm text-gray-600">Qty: ${item.quantity}</span>
+          </div>
+          <p class="text-sm text-gray-600 mt-1">Dosage: ${escapeHtml(item.dosage || '')}</p>
+        </div>
+      `;
+    }).join('');
   }
   
   const detailsHtml = `
@@ -561,10 +528,6 @@ async function viewPrescriptionDetails(prescription) {
           <div class="flex justify-between">
             <span class="text-gray-600">Issue Date:</span>
             <span class="font-medium" style="color: #ad1457;">${issueDate}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Status:</span>
-            <span class="font-medium ${status === 'complete' ? 'status-complete' : 'status-incomplete'} px-3 py-1 rounded-full text-xs">${statusText}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Customer:</span>
@@ -597,37 +560,6 @@ async function viewPrescriptionDetails(prescription) {
 // Close View Modal
 function closeViewModalFunc() {
   viewModal.classList.add('hidden');
-}
-
-// Handle Status Update
-async function handleStatusUpdate() {
-  const status = document.getElementById('statusSelect').value;
-  
-  try {
-    const response = await fetch(`${PRESCRIPTION_API}/${currentStatusId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update status');
-    }
-    
-    closeStatusModalFunc();
-    await loadPrescriptions();
-    showSuccess('Status updated successfully');
-  } catch (error) {
-    console.error('Error updating status:', error);
-    alert('Error: ' + error.message);
-  }
-}
-
-// Close Status Modal
-function closeStatusModalFunc() {
-  statusModal.classList.add('hidden');
-  currentStatusId = null;
 }
 
 // Handle Form Submit
@@ -729,14 +661,22 @@ async function handleFormSubmit(e) {
     return;
   }
   
+  const prescriptionIdInput = document.getElementById('prescription_id');
+  const parsedPrescriptionId = prescriptionIdInput
+    ? parseInt(prescriptionIdInput.value, 10)
+    : NaN;
+
   const prescriptionData = {
-    prescription_id: parseInt(document.getElementById('prescription_id').value),
     customer_id: parseInt(customerId),
     doctor_id: parseInt(doctorId),
     issue_date: document.getElementById('issue_date').value,
     notes: document.getElementById('notes').value || '',
     items: items,
   };
+
+  if (!Number.isNaN(parsedPrescriptionId)) {
+    prescriptionData.prescription_id = parsedPrescriptionId;
+  }
   
   try {
     const response = await fetch(PRESCRIPTION_API, {

@@ -27,7 +27,6 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     if (
-      !prescription_id ||
       !doctor_id ||
       !customer_id ||
       !issue_date ||
@@ -37,9 +36,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Auto-generate prescription_id if not supplied (simple max+1 fallback)
+    let finalPrescriptionId = prescription_id;
+    if (!finalPrescriptionId) {
+      const latest = await Prescription.findOne()
+        .sort({ prescription_id: -1 })
+        .lean();
+      finalPrescriptionId = (latest?.prescription_id || 0) + 1;
+    }
+
     // header
     const prescription = await Prescription.create({
-      prescription_id,
+      prescription_id: finalPrescriptionId,
       doctor_id,
       customer_id,
       issue_date,
@@ -48,7 +56,7 @@ router.post("/", async (req, res) => {
 
     // items
     const itemsToInsert = items.map((i) => ({
-      prescription_id,
+      prescription_id: finalPrescriptionId,
       medicine_id: i.medicine_id,
       // ให้ dosage ว่างได้ (จะไปโชว์เป็น "-" ฝั่ง UI)
       dosage: i.dosage || "",
@@ -59,7 +67,7 @@ router.post("/", async (req, res) => {
     // populate ข้อมูลไว้ตอบกลับสวย ๆ (หมอ, ลูกค้า, รายการยา)
     const doctor = await Doctor.findOne({ doctor_id });
     const customer = await Customer.findOne({ customer_id });
-    const itemDetails = await PrescriptionItem.find({ prescription_id });
+    const itemDetails = await PrescriptionItem.find({ prescription_id: finalPrescriptionId });
     const medicines = await Medicine.find({
       medicine_id: { $in: itemDetails.map((it) => it.medicine_id) },
     });
@@ -88,21 +96,27 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const { patientName } = req.query;
-    let customerFilter = {};
+    const { patientName, customer_id, doctor_id, issue_date } = req.query;
 
+    let customerFilter = {};
     if (patientName) {
       customerFilter.full_name = { $regex: patientName, $options: "i" };
     }
 
-    const customers = await Customer.find(customerFilter).select(
-      "customer_id full_name"
-    );
+    const customers = await Customer.find(customerFilter).select("customer_id full_name");
     const customerIds = customers.map((c) => c.customer_id);
 
-    const prescriptionFilter = patientName
-      ? { customer_id: { $in: customerIds } }
-      : {};
+    const prescriptionFilter = {};
+    if (patientName) prescriptionFilter.customer_id = { $in: customerIds };
+    if (customer_id) prescriptionFilter.customer_id = Number(customer_id);
+    if (doctor_id) prescriptionFilter.doctor_id = Number(doctor_id);
+    if (issue_date) {
+      const start = new Date(issue_date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(issue_date);
+      end.setHours(23, 59, 59, 999);
+      prescriptionFilter.issue_date = { $gte: start, $lte: end };
+    }
 
     const prescriptions = await Prescription.find(prescriptionFilter).sort({
       issue_date: -1,
@@ -146,8 +160,6 @@ router.get("/", async (req, res) => {
 
 /**
  * GET /api/prescriptions/customer/:customerId/latest-items
- * เอาไว้ให้หน้า Sales ใช้ดึง "ใบสั่งยาล่าสุดของลูกค้าคนนี้"
- * พร้อมรายการยา + dosage + quantity
  */
 router.get("/customer/:customerId/latest-items", async (req, res) => {
   try {
