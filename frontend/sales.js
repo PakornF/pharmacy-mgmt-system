@@ -166,7 +166,6 @@ function buildPrescriptionSection(prescription) {
         <td class="py-1 px-2 text-left">${medName || "-"}</td>
         <td class="py-1 px-2 text-left">${item.dosage || '-'}</td>
         <td class="py-1 px-2 text-center">${item.quantity} ${displayUnit}</td>
-        <td class="py-1 px-2 text-right">${lineTotal.toFixed(2)}</td>
         <td class="py-1 px-2 text-center">
           <button
             class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600"
@@ -178,6 +177,7 @@ function buildPrescriptionSection(prescription) {
             data-quantity="${item.quantity}"
             data-price="${price}"
             data-stock="${stockVal}"
+            data-prescription-id="${prescription.prescription_id}"
           >
             Add
           </button>
@@ -199,7 +199,6 @@ function buildPrescriptionSection(prescription) {
               <th class="py-1 px-2 text-left w-2/5">Name</th>
               <th class="py-1 px-2 text-left w-1/5">Dosage</th>
               <th class="py-1 px-2 text-center w-1/5">Qty/Unit</th>
-              <th class="py-1 px-2 text-right w-1/5">Total</th>
               <th class="py-1 px-2 text-center w-1/5">Add</th>
             </tr>
           </thead>
@@ -495,6 +494,10 @@ function addToBill(med) {
     existing.quantity += 1;
     existing.lineTotal = existing.quantity * existing.price;
   } else {
+    const prescribedLimit = Number.isFinite(med.prescriptionQty ?? med.prescription_quantity ?? med.prescribedQuantity)
+      ? Number(med.prescriptionQty ?? med.prescription_quantity ?? med.prescribedQuantity)
+      : Infinity;
+
     billItems.push({
       medicineId: id,
       name,
@@ -504,6 +507,8 @@ function addToBill(med) {
       dosage,
       lineTotal: requestedQty * price,
       fromPrescription: !!med.prescription_id,
+      prescriptionQty: prescribedLimit,
+      prescriptionIds: med.prescription_id ? [med.prescription_id] : [],
     });
   }
   renderBill();
@@ -522,21 +527,44 @@ function addToBillFromPrescription(med) {
       ? medDetails.price
       : med.priceUnit || 0;
 
-  // Check if item already exists in bill
-  const existing = billItems.find((it) => it.medicineId === id);
-  if (existing) {
-    // If already exists, don't add or increase - just return
-    return;
-  }
-
   // Use quantity from prescription, or default to 1
   const requestedQty = (med.quantity && med.quantity > 0) ? med.quantity : 1;
   const stock = med.stock && med.stock > 0 ? med.stock : getStockFor(id);
-  const qtyToUse = Math.min(requestedQty, stock > 0 ? stock : requestedQty);
-
-  if (requestedQty > stock) {
-    alert(`Cannot add item: Not enough stock for ${name}. Available = ${stock}, Requested = ${requestedQty}`);
+  if (stock <= 0) {
+    alert(`Cannot add item: ${name} is out of stock.`);
     return;
+  }
+  const medQtyAllowance = (med.quantity && med.quantity > 0) ? med.quantity : Infinity;
+  const medPrescId = med.prescription_id || null;
+
+  // If item already exists in bill, expand its allowance and optionally bump quantity
+  const existing = billItems.find((it) => it.medicineId === id);
+  if (existing) {
+    const prevCap = Number.isFinite(existing.prescriptionQty) ? existing.prescriptionQty : Infinity;
+    const addCap = Number.isFinite(medQtyAllowance) ? medQtyAllowance : Infinity;
+    const newCap = (prevCap === Infinity || addCap === Infinity) ? Infinity : prevCap + addCap;
+    existing.prescriptionQty = newCap;
+
+    // Track prescription IDs involved
+    existing.prescriptionIds = existing.prescriptionIds || [];
+    if (medPrescId && !existing.prescriptionIds.includes(medPrescId)) {
+      existing.prescriptionIds.push(medPrescId);
+    }
+
+    // Set quantity to min(current + new allowance chunk, cap, stock)
+    const desiredQty = existing.quantity + (Number.isFinite(addCap) ? addCap : 0);
+    const cappedQty = Math.min(
+      newCap === Infinity ? desiredQty : Math.min(desiredQty, newCap),
+      stock
+    );
+    if (cappedQty <= existing.quantity) {
+      alert(`Cannot add more ${name}. Limit reached (Stock: ${stock}, Prescription total: ${newCap === Infinity ? '∞' : newCap}).`);
+    } else {
+      existing.quantity = cappedQty;
+      existing.lineTotal = existing.quantity * existing.price;
+    }
+    renderBill();
+    return true;
   }
 
   // Add new item to bill
@@ -544,14 +572,17 @@ function addToBillFromPrescription(med) {
     medicineId: id,
     name,
     price,
-    quantity: qtyToUse,
+    quantity: Math.min(requestedQty, stock),
     unit, 
     dosage,
-    lineTotal: qtyToUse * price,
+    lineTotal: Math.min(requestedQty, stock) * price,
     fromPrescription: true,
+    prescriptionQty: medQtyAllowance,
+    prescriptionIds: medPrescId ? [medPrescId] : [],
   });
   
   renderBill();
+  return true;
 }
 
 function removeFromBillById(id) {
@@ -724,9 +755,10 @@ function loadAllPrescriptionsForCustomer(customerId) {
       const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
       const issueDate = latest.issue_date ? new Date(latest.issue_date).toLocaleDateString() : '';
       
-      latestPrescriptionMeta.textContent = `Prescription #${latest.prescription_id} • Dr. ${doctorName} • Issue Date: ${issueDate}`;
+      latestPrescriptionMeta.textContent = "";
+      latestPrescriptionMeta.classList.add("hidden");
       latestPrescriptionTag.textContent = "Latest"; 
-      latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
+      latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-pink-700";
       latestPrescriptionBox.classList.remove("hidden");
 
       if (prescriptionResults) {
@@ -776,6 +808,7 @@ function searchPrescriptionsByFilters() {
       issue_date: issueDate || undefined,
     })
       .then((prescriptions) => {
+        // Only keep prescriptions that haven't been sold yet
         const matches = (prescriptions || []).filter((p) => {
           const pid = Number(p.customer_id);
           const did = Number(p.doctor_id);
@@ -789,7 +822,8 @@ function searchPrescriptionsByFilters() {
               ? docName.includes(doctorTerm)
               : true;
           const dateMatch = issueDate ? issue === issueDate : true;
-          return customerMatch && doctorMatch && dateMatch;
+          const notSold = p.is_sale !== true;
+          return customerMatch && doctorMatch && dateMatch && notSold;
         });
 
         if (!matches || matches.length === 0) {
@@ -828,9 +862,10 @@ function searchPrescriptionsByFilters() {
         const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
         const issueDateDisplay = match.issue_date ? new Date(match.issue_date).toLocaleDateString() : (issueDate || "N/A");
         
-        latestPrescriptionMeta.textContent = `Prescription #${match.prescription_id} • Dr. ${doctorName} • Issue Date: ${issueDateDisplay}`;
-        latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "FOUND"; 
-        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700";
+        latestPrescriptionMeta.textContent = "";
+        latestPrescriptionMeta.classList.add("hidden");
+        latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "MATCHED"; 
+        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
         latestPrescriptionBox.classList.remove("hidden");
 
         if (prescriptionResults) {
@@ -973,9 +1008,19 @@ async function submitSale() {
       }
   }
 
+  const prescriptionIds = Array.from(
+    new Set(
+      billItems
+        .filter((it) => it.fromPrescription && Array.isArray(it.prescriptionIds))
+        .flatMap((it) => it.prescriptionIds)
+        .filter(Boolean)
+    )
+  );
+
   const payload = {
     customer_id: selectedCustomer.customer_id,
-    prescription_id: selectedPrescriptionId || null,
+    prescription_id: selectedPrescriptionId || prescriptionIds[0] || null,
+    prescription_ids: prescriptionIds,
     items: billItems.map((item) => ({
       medicine_id: item.medicineId,
       quantity: item.quantity,
@@ -1053,8 +1098,14 @@ if (prescriptionResults) {
       quantity: Number(btn.dataset.quantity) || 1,
       price: Number(btn.dataset.price) || 0,
       stock: Number(btn.dataset.stock) || 0,
+      prescription_id: btn.dataset.prescriptionId || null,
     };
-    addToBillFromPrescription(med);
+    const added = addToBillFromPrescription(med);
+    if (added) {
+      btn.disabled = true;
+      btn.textContent = "Added";
+      btn.classList.add("opacity-60", "cursor-not-allowed");
+    }
   });
 }
 
@@ -1071,7 +1122,9 @@ billItemsTbody.addEventListener("input", (e) => {
 
   const item = billItems[idx];
   const stock = getStockFor(item.medicineId);
-  if (val > stock) val = stock;
+  const prescriptionCap = Number.isFinite(item.prescriptionQty) ? item.prescriptionQty : Infinity;
+  const maxAllowed = Math.min(stock, prescriptionCap);
+  if (val > maxAllowed) val = maxAllowed;
 
   item.quantity = val;
   item.lineTotal = item.quantity * item.price;
@@ -1108,10 +1161,17 @@ billItemsTbody.addEventListener("blur", (e) => {
 
   const item = billItems[idx];
   const stock = getStockFor(item.medicineId); 
+  const prescriptionCap = Number.isFinite(item.prescriptionQty) ? item.prescriptionQty : Infinity;
+  const maxAllowed = Math.min(stock, prescriptionCap);
 
-  if (val > stock) {
-    alert(`Cannot set quantity: Not enough stock for ${item.name}. Max = ${stock}`);
-    val = stock;
+  if (val > maxAllowed) {
+    const reasons = [];
+    if (val > stock) reasons.push(`Not enough stock. Max available = ${stock}`);
+    if (val > prescriptionCap && prescriptionCap !== Infinity) {
+      reasons.push(`Exceeds prescription allowance. Max allowed = ${prescriptionCap}`);
+    }
+    alert(reasons.join("\n"));
+    val = maxAllowed;
   }
 
   item.quantity = val;

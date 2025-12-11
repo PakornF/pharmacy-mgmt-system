@@ -5,7 +5,8 @@ const PrescriptionSchema = new mongoose.Schema({
   customer_id: { type: Number, required: true },
   doctor_id: { type: Number, required: true },
   issue_date: { type: Date, required: true },
-  notes: { type: String }
+  notes: { type: String },
+  is_sale: { type: Boolean, default: false }
 });
 
 export default mongoose.model("Prescription", PrescriptionSchema);

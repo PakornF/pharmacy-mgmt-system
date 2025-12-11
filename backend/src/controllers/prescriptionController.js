@@ -12,6 +12,7 @@ export async function createPrescription(req, res) {
       customer_id,
       issue_date,
       notes,
+      is_sale = false,
       items,
     } = req.body;
 
@@ -32,6 +33,7 @@ export async function createPrescription(req, res) {
       customer_id,
       issue_date,
       notes: notes || "",
+      is_sale: Boolean(is_sale),
     });
 
     // 2) สร้าง prescription items
