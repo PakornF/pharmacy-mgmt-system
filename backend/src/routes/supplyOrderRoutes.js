@@ -207,4 +207,23 @@ router.patch("/:order_id/status", async (req, res) => {
   }
 });
 
+// Delete supply order (if not delivered)
+router.delete("/:order_id", async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const order = await SupplyOrder.findOne({ order_id: Number(order_id) });
+    if (!order) return res.status(404).json({ message: "Not found" });
+    if ((order.status || "").toUpperCase() === "DELIVERED") {
+      return res.status(400).json({ message: "Cannot delete delivered order" });
+    }
+
+    await SupplyOrderItem.deleteMany({ order_id: Number(order_id) });
+    await SupplyOrder.deleteOne({ order_id: Number(order_id) });
+    res.json({ message: "Supply order deleted" });
+  } catch (err) {
+    console.error("Error deleting supply order:", err);
+    res.status(500).json({ message: "Failed to delete order" });
+  }
+});
+
 export default router;

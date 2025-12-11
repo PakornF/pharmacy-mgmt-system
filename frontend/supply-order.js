@@ -567,7 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
-  orderTableBody.addEventListener("click", (e) => {
+  orderTableBody.addEventListener("click", async (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
     const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
@@ -582,7 +582,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = deleteBtn.dataset.deleteOrder;
       const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
-      alert("Delete is not implemented yet.");
+      const ok = confirm(`Delete order ${id}?`);
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`http://localhost:8000/supply-orders/${id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data && data.message ? `: ${data.message}` : "";
+          throw new Error(`Failed to delete order${detail}`);
+        }
+        alert(`Order ${id} deleted.`);
+        if (String(orderIdInput.value) === String(id)) {
+          resetOrderForm();
+        }
+        await loadSupplyOrders();
+      } catch (err) {
+        console.error("Delete order error:", err);
+        alert(err.message || "Failed to delete order.");
+      }
       return;
     }
 
