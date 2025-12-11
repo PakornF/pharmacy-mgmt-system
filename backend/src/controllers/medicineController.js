@@ -97,6 +97,7 @@ export const createMedicine = async (req, res) => {
       brand: req.body.brand,
       type: req.body.type,
       price: req.body.price,
+      cost: req.body.cost,
       quantity: req.body.quantity,
       supplier_id: req.body.supplier_id,
     });
@@ -123,6 +124,7 @@ export const updateMedicine = async (req, res) => {
       brand: req.body.brand,
       type: req.body.type,
       price: req.body.price,
+      cost: req.body.cost,
       quantity: req.body.quantity,
       supplier_id: req.body.supplier_id,
     };

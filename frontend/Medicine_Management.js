@@ -258,6 +258,10 @@ function createMedicineCard(med) {
           )} THB</span>
         </div>
         <div class="flex justify-between">
+          <span class="text-gray-600">Cost:</span>
+          <span class="font-medium" style="color: #ad1457;">${med.cost ? med.cost.toFixed(2) : '-'} ${med.cost ? 'THB' : ''}</span>
+        </div>
+        <div class="flex justify-between">
           <span class="text-gray-600">Quantity:</span>
           <span class="font-bold text-lg" style="color: #f06292;">${
             med.quantity
@@ -434,6 +438,7 @@ async function openMedicineModal(medicine = null) {
     typeSelect.value = medicine.type || "";
 
     document.getElementById("price").value = medicine.price;
+    document.getElementById("cost").value = medicine.cost || "";
     document.getElementById("quantity").value = medicine.quantity;
 
     // Supplier: show name, read-only, cannot change
@@ -528,12 +533,14 @@ async function handleFormSubmit(e) {
     return;
   }
 
+  const costValue = document.getElementById("cost").value.trim();
   const medicineData = {
     medicine_id: medId,
     name: document.getElementById("name").value.trim(),
     brand: document.getElementById("brand").value.trim(),
     type: typeVal,
     price: parseFloat(document.getElementById("price").value),
+    cost: costValue ? parseFloat(costValue) : undefined,
     quantity: parseInt(document.getElementById("quantity").value, 10),
     supplier_id: parsedSupplierId,
   };
