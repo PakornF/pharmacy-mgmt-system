@@ -191,9 +191,8 @@
               <tr class="border-b bg-white">
                 <th class="py-2 px-2 text-left w-1/4">Name</th>
                 <th class="py-2 px-2 text-left w-1/4">Supplier</th>
-                <th class="py-2 px-2 text-right w-1/6">Unit Price</th>
-                <th class="py-2 px-2 text-right w-1/6">Stock</th>
-                <th class="py-2 px-2 text-right w-1/6">Expiry / Pack Info</th>
+                <th class="py-2 px-2 text-right w-1/4">Unit Price</th>
+                <th class="py-2 px-2 text-right w-1/4">Stock</th>
               </tr>
             </thead>
             <tbody id="stockTableBody" class="divide-y"></tbody>
@@ -254,13 +253,14 @@
           <!-- Volume -->
           <div id="receiveVolumeGroup" class="hidden">
             <label class="block text-sm font-medium mb-1"
-              >Volume / amount (optional)</label
+              >Volume / amount <span>*</span></label
             >
             <input
               type="text"
               id="receiveVolumeInput"
               class="w-full border rounded-xl px-3 py-2 text-sm"
               placeholder="e.g. 60 ml, 15 g"
+              required
             />
           </div>
         </div>
