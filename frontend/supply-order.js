@@ -93,39 +93,25 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderStockTable() {
     if (medicines.length === 0) {
       stockTableBody.innerHTML =
-        `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
+        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
 
     stockTableBody.innerHTML = medicines
       .map((m) => {
         const supplierName = findSupplierName(m.supplier_id);
-        const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
-
         const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
         const stockUnitLabel = m.displayUnit || m.unit || "";
-
-        let extra = "";
-        if (m.unitsPerPack) extra += `${m.unitsPerPack} per box`;
-        if (m.packageSize) extra += (extra ? " · " : "") + `${m.packageSize}`;
-        if (m.packageVolume) extra += (extra ? " · " : "") + m.packageVolume;
 
         return `
           <tr>
             <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
             <td class="py-2 px-2 text-left w-1/4">${supplierName}</td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.price.toFixed(2)}${priceUnitLabel}
             </td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.quantity} ${stockUnitLabel}
-            </td>
-            <td class="py-2 px-2 text-right w-1/6 text-sm">
-              ${expiryText}${
-          extra
-            ? "<br/><span class='text-xs text-gray-500'>" + extra + "</span>"
-            : ""
-        }
             </td>
           </tr>
         `;
@@ -290,20 +276,25 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
-      // units per box (always show so user can confirm/adjust)
-      receiveUnitsPerBoxGroup.classList.remove("hidden");
-      receiveUnitsPerBoxInput.value =
-        item.units_per_pack != null
-          ? String(item.units_per_pack)
-          : item.unitsPerPack != null
-          ? String(item.unitsPerPack)
-          : "";
+      // units per box - only show when unit is "box"
+      if (needsUnitsPerBox) {
+        receiveUnitsPerBoxGroup.classList.remove("hidden");
+        receiveUnitsPerBoxInput.value =
+          item.units_per_pack != null
+            ? String(item.units_per_pack)
+            : item.unitsPerPack != null
+            ? String(item.unitsPerPack)
+            : "";
+      } else {
+        receiveUnitsPerBoxGroup.classList.add("hidden");
+        receiveUnitsPerBoxInput.value = "";
+      }
 
-      // bottle / tube → size + volume
+      // bottle / tube → volume (required, no size field)
       if (needsSizeAndVolume) {
-        receiveSizeGroup.classList.remove("hidden");
+        receiveSizeGroup.classList.add("hidden"); // Always hide size field
         receiveVolumeGroup.classList.remove("hidden");
-        receiveSizeSelect.value = item.size || "";
+        receiveSizeSelect.value = "";
         receiveVolumeInput.value = item.volume || "";
       } else {
         receiveSizeGroup.classList.add("hidden");
@@ -355,13 +346,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let size = null;
     let volume = null;
-    if (!receiveSizeGroup.classList.contains("hidden")) {
-      size = receiveSizeSelect.value;
-      if (!size) {
-        alert("Please select size (small / large).");
+    if (!receiveVolumeGroup.classList.contains("hidden")) {
+      volume = receiveVolumeInput.value.trim();
+      if (!volume) {
+        alert("Please enter volume / amount.");
         return;
       }
-      volume = receiveVolumeInput.value.trim(); // อนุโลมให้ว่างได้
     }
 
     const payload = { expiryDate: exp, unitsPerBox, size, volume };
@@ -389,17 +379,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-    const isBottleOrTube =
-      unitLower.startsWith("bottle") || unitLower.startsWith("tube");
+      const isBox = unitLower.startsWith("box"); // "box" or "box(es)"
+      const isBottleOrTube =
+        unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-    const needsSizeAndVolume = isBottleOrTube;
+      // units per box - only needed for box units
+      const needsUnitsPerBox = isBox;
+      // bottle / tube → size + volume
+      const needsSizeAndVolume = isBottleOrTube;
 
-    const info = await openReceiveModal({
-      med,
-      item: it,
-      needsUnitsPerBox: true,
-      needsSizeAndVolume,
-    });
+      const info = await openReceiveModal({
+        med,
+        item: it,
+        needsUnitsPerBox,
+        needsSizeAndVolume,
+      });
 
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
@@ -408,11 +402,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { expiryDate, unitsPerBox } = info;
 
+      // For box units, use the entered unitsPerBox; for others, use 1 as default
       itemPayloads.push({
         order_item_id: it.order_item_id,
         medicine_id: it.medicine_id || it.medicineId,
         ordered_quantity: it.ordered_quantity || it.quantity,
-        units_per_pack: unitsPerBox ?? it.units_per_pack ?? 1,
+        units_per_pack: needsUnitsPerBox ? (unitsPerBox ?? it.units_per_pack ?? 1) : (it.units_per_pack ?? 1),
         expiry_date: expiryDate,
       });
     }
