@@ -75,6 +75,7 @@ router.post("/", async (req, res) => {
       ordered_quantity: i.ordered_quantity,
       cost_per_unit: i.cost_per_unit,
       expiry_date: i.expiry_date,
+      units_per_pack: i.units_per_pack || 1, // Default to 1 if not provided
     }));
     await SupplyOrderItem.insertMany(itemsToInsert);
 
@@ -122,6 +123,7 @@ router.put("/:order_id", async (req, res) => {
         ordered_quantity: i.ordered_quantity,
         cost_per_unit: i.cost_per_unit,
         expiry_date: i.expiry_date,
+        units_per_pack: i.units_per_pack || 1, // Default to 1 if not provided
       }));
       await SupplyOrderItem.insertMany(itemsToInsert);
     }

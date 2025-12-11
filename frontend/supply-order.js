@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let suppliers = []; // { supplier_id, name, ... }
   let medicines = []; // { id, name, supplier_id, price, quantity, unit, ... }
 
-  let mockSupplyOrders = [];
+  let supplyOrders = [];
 
   // ---------------------------
   // DOM elements
@@ -222,13 +222,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render order list (left table)
   // ---------------------------
   function renderOrderList() {
-    if (mockSupplyOrders.length === 0) {
+    if (supplyOrders.length === 0) {
       orderTableBody.innerHTML =
         `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No supply orders yet.</td></tr>`;
       return;
     }
 
-    orderTableBody.innerHTML = mockSupplyOrders
+    orderTableBody.innerHTML = supplyOrders
       .map((o) => {
         const supplierName = findSupplierName(o.supplierId);
         const statusBadge =
@@ -483,7 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadOrderIntoForm(orderId) {
-    const o = mockSupplyOrders.find((ord) => String(ord.id) === String(orderId));
+    const o = supplyOrders.find((ord) => String(ord.id) === String(orderId));
     if (!o) return;
 
     orderIdInput.value = o.id;
@@ -588,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
-  orderTableBody.addEventListener("click", (e) => {
+  orderTableBody.addEventListener("click", async (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
     const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
@@ -601,10 +601,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (deleteBtn) {
       const id = deleteBtn.dataset.deleteOrder;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.id) === String(id));
       if (!o) return;
       if (!confirm(`Delete order ${o.id}?`)) return;
-      mockSupplyOrders = mockSupplyOrders.filter(
+      
+      // Note: Backend doesn't have DELETE endpoint yet, so just remove from local state
+      // TODO: Add DELETE endpoint to backend
+      supplyOrders = supplyOrders.filter(
         (ord) => String(ord.id) !== String(id)
       );
       renderOrderList();
@@ -613,7 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (markBtn) {
       const id = markBtn.dataset.markReceived;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.id) === String(id));
       if (!o) return;
       handleMarkAsReceived(o);
       return;
@@ -626,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Submit order (create / update)
-  orderForm.addEventListener("submit", (e) => {
+  orderForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const supplierId = orderSupplierSelect.value;
@@ -643,36 +646,142 @@ document.addEventListener("DOMContentLoaded", () => {
     const existingId = orderIdInput.value || null;
     if (existingId) {
       // update
-      const o = mockSupplyOrders.find(
+      const o = supplyOrders.find(
         (ord) => String(ord.id) === String(existingId)
       );
       if (!o) return;
 
-      if (o.status === "received") {
+      if (o.status === "received" || o.status === "DELIVERED") {
         alert("Received order cannot be edited.");
         return;
       }
 
-      o.supplierId = supplierId;
-      o.items = currentOrderItems.map((it) => ({ ...it }));
-      alert(`Order ${o.id} updated.`);
+      // Update via API
+      try {
+        const items = currentOrderItems.map((it) => {
+          const med = findMedicine(it.medicineId);
+          return {
+            medicine_id: it.medicineId,
+            ordered_quantity: it.quantity,
+            cost_per_unit: med ? med.price : 0,
+            units_per_pack: it.unitsPerPack || 1, // Default to 1, will be updated when received
+          };
+        });
+
+        const res = await fetch(`http://localhost:8000/supply-orders/${existingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            supplier_id: Number(supplierId),
+            items: items,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Failed to update order");
+        
+        // Reload orders from server
+        await fetchSupplyOrders();
+        alert(`Order ${existingId} updated.`);
+      } catch (err) {
+        console.error("Error updating order:", err);
+        alert("Failed to update order.");
+      }
     } else {
       // create new
-      const newId = mockSupplyOrders.length + 1;
-      const now = new Date().toISOString();
-      mockSupplyOrders.push({
-        id: newId,
-        supplierId,
-        status: "pending",
-        createdAt: now,
-        items: currentOrderItems.map((it) => ({ ...it })),
-      });
-      alert(`Order ${newId} created.`);
+      try {
+        // Get next order ID (find max and add 1, or use timestamp)
+        const maxId = supplyOrders.length > 0 
+          ? Math.max(...supplyOrders.map(o => Number(o.id) || 0))
+          : 0;
+        const newId = maxId + 1;
+
+        const items = currentOrderItems.map((it) => {
+          const med = findMedicine(it.medicineId);
+          return {
+            order_item_id: Date.now() + Math.random(), // temporary ID
+            medicine_id: it.medicineId,
+            ordered_quantity: it.quantity,
+            cost_per_unit: med ? med.price : 0,
+            units_per_pack: it.unitsPerPack || 1, // Default to 1, will be updated when received
+          };
+        });
+
+        const res = await fetch("http://localhost:8000/supply-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id: newId,
+            supplier_id: Number(supplierId),
+            order_date: new Date().toISOString(),
+            status: "PENDING",
+            items: items,
+          }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to create order");
+        }
+
+        // Reload orders from server
+        await fetchSupplyOrders();
+        alert(`Order ${newId} created.`);
+      } catch (err) {
+        console.error("Error creating order:", err);
+        alert(`Failed to create order: ${err.message}`);
+      }
     }
 
     resetOrderForm();
     renderOrderList();
   });
+
+  // ---------------------------
+  // Fetch supply orders from API
+  // ---------------------------
+  async function fetchSupplyOrders() {
+    try {
+      const res = await fetch("http://localhost:8000/supply-orders");
+      if (!res.ok) throw new Error("Failed to load supply orders");
+      const data = await res.json();
+      
+      // Transform backend format to frontend format
+      supplyOrders = data.map((order) => {
+        // Map status: PENDING/DELIVERED -> pending/received
+        let status = order.status?.toLowerCase();
+        if (status === "delivered") status = "received";
+        
+        // Transform items
+        const items = (order.items || []).map((item) => {
+          // Backend returns item with nested medicine object
+          const med = item.medicine || findMedicine(item.medicine_id);
+          return {
+            medicineId: item.medicine_id,
+            quantity: item.ordered_quantity,
+            unit: med?.unit || "",
+            expiryDate: item.expiry_date ? new Date(item.expiry_date).toISOString().slice(0, 10) : null,
+            unitsPerPack: item.units_per_pack,
+            size: item.size,
+            volume: item.volume,
+          };
+        });
+
+        return {
+          id: order.order_id,
+          supplierId: order.supplier_id,
+          status: status,
+          createdAt: order.order_date,
+          items: items,
+        };
+      });
+      
+      renderOrderList();
+    } catch (err) {
+      console.error("Failed to load supply orders:", err);
+      supplyOrders = [];
+      renderOrderList();
+    }
+  }
 
   // ---------------------------
   // Init
@@ -703,10 +812,12 @@ document.addEventListener("DOMContentLoaded", () => {
         supplier_id: m.supplier_id,
       }));
 
+      // Fetch supply orders
+      await fetchSupplyOrders();
+
       renderSupplierSelect();
       renderMedicineSelect();
       renderOrderItems();
-      renderOrderList();
       renderStockTable();
     } catch (err) {
       console.error("Failed to load suppliers/medicines:", err);

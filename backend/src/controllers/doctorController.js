@@ -117,3 +117,4 @@ export const deleteDoctor = async (req, res) => {
       .json({ message: "Error deleting doctor", error: error.message });
   }
 };
+
