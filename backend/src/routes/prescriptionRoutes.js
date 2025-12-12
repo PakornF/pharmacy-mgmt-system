@@ -24,6 +24,7 @@ router.post("/", async (req, res) => {
       issue_date,
       notes,
       items,
+      is_sale = false,
     } = req.body;
 
     if (
@@ -52,6 +53,7 @@ router.post("/", async (req, res) => {
       customer_id,
       issue_date,
       notes,
+      is_sale: Boolean(is_sale),
     });
 
     // items
