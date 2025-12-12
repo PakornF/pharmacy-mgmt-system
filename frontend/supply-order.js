@@ -2,66 +2,12 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
-  // Mock data
+  // Data stores (fetched from API)
   // ---------------------------
-  let mockSuppliers = [
-    {
-      id: "sup1",
-      name: "Health Pharma Co., Ltd.",
-    },
-    {
-      id: "sup2",
-      name: "Premium Med Supply",
-    },
-  ];
+  let suppliers = []; // { supplier_id, name, ... }
+  let medicines = []; // { id, name, supplier_id, price, quantity, unit, ... }
 
-  let mockMedicines = [
-    {
-      id: "med1",
-      name: "Paracetamol 500mg",
-      brand: "Tylenol",
-      price: 5,
-      quantity: 100,
-      unit: "", // base unit = เม็ด
-      supplierId: "sup1",
-      // extra summary fields (จากการรับของ)
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null, // small / large
-      packageVolume: null, // text เช่น "60 ml"
-      displayUnit: null, // หน่วยที่โชว์ใน stock (ตามที่รับของ)
-    },
-    {
-      id: "med2",
-      name: "Amoxicillin 250mg",
-      brand: "Amoxi",
-      price: 12,
-      quantity: 50,
-      unit: "",
-      supplierId: "sup1",
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null,
-      packageVolume: null,
-      displayUnit: null,
-    },
-    {
-      id: "med3",
-      name: "Cough Syrup",
-      brand: "FluCare",
-      price: 30,
-      quantity: 30,
-      unit: "", // base unit = ขวด
-      supplierId: "sup2",
-      expiryDate: null,
-      unitsPerPack: null,
-      packageSize: null,
-      packageVolume: null,
-      displayUnit: null,
-    },
-  ];
-
-  let mockSupplyOrders = [];
+  let supplyOrders = [];
 
   // ---------------------------
   // DOM elements
@@ -88,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const stockTableBody = document.getElementById("stockTableBody");
 
-  // --- modal สำหรับ Mark as received ---
+  // --- modal for Mark as received ---
   const receiveBackdrop = document.getElementById("receiveModalBackdrop");
   const receiveTitle = document.getElementById("receiveModalTitle");
   const receiveSubtitle = document.getElementById("receiveModalSubtitle");
@@ -101,33 +47,60 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const receiveSizeGroup = document.getElementById("receiveSizeGroup");
   const receiveSizeSelect = document.getElementById("receiveSizeSelect");
-  const receiveVolumeGroup = document.getElementById("receiveVolumeGroup");
-  const receiveVolumeInput = document.getElementById("receiveVolumeInput");
   const receiveCancelBtn = document.getElementById("receiveCancelBtn");
   const receiveOkBtn = document.getElementById("receiveOkBtn");
 
-  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
+  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size? }
 
-  // ใช้สำหรับ resolve promise ของ modal
+  // for resolve promise of modal
   let receiveResolve = null;
 
   // ---------------------------
   // Helpers
   // ---------------------------
   function findSupplierName(id) {
-    const s = mockSuppliers.find((sup) => sup.id === id);
+    const s = suppliers.find(
+      (sup) => String(sup.supplier_id) === String(id)
+    );
     return s ? s.name : "-";
   }
 
   function findMedicine(id) {
-    return mockMedicines.find((m) => m.id === id);
+    return medicines.find((m) => String(m.id) === String(id));
+  }
+
+  function unitLabel(u) {
+    const lower = (u || "").toLowerCase();
+    if (lower === "box") return "Box(es)";
+    if (lower === "bottle") return "Bottle(s)";
+    if (lower === "tube") return "Tube(s)";
+    return u || "Unit";
+  }
+
+  function unitOptionsForType(type, fallbackUnit) {
+    const t = (type || "").toLowerCase();
+    if (["tablet", "capsule"].includes(t)) return ["box"];
+    if (["bottle", "spray", "syrup"].includes(t)) return ["bottle"];
+    if (["injectable", "cream"].includes(t)) return ["tube"];
+    if (fallbackUnit) return [fallbackUnit];
+    return ["box", "bottle", "tube"];
+  }
+
+  function renderUnitSelectForMedicine(med) {
+    const options = unitOptionsForType(med?.type, med?.unit);
+    const optionsHtml =
+      `<option value="">Select unit...</option>` +
+      options.map((u) => `<option value="${u}">${unitLabel(u)}</option>`).join("");
+    itemUnitSelect.innerHTML = optionsHtml;
+    // Preselect the first option to reduce clicks
+    itemUnitSelect.value = options[0] || "";
   }
 
   function formatDateTime(d) {
     return new Date(d).toLocaleString();
   }
 
-  // format date (YYYY-MM-DD) -> DD/MM/YYYY ให้ดูง่ายหน่อย
+  // format date (YYYY-MM-DD) -> DD/MM/YYYY
   function prettyDate(iso) {
     if (!iso) return "-";
     const [y, m, d] = iso.split("-");
@@ -151,45 +124,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return `${qty}`;
   }
+
   // ---------------------------
   // Render stock table
   // ---------------------------
   function renderStockTable() {
-    if (mockMedicines.length === 0) {
+    if (medicines.length === 0) {
       stockTableBody.innerHTML =
-        `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
+        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
 
-    stockTableBody.innerHTML = mockMedicines
+    stockTableBody.innerHTML = medicines
       .map((m) => {
-        const supplierName = findSupplierName(m.supplierId);
-        const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
-
+        const supplierName = findSupplierName(m.supplier_id);
         const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
         const stockUnitLabel = m.displayUnit || m.unit || "";
-
-        let extra = "";
-        if (m.unitsPerPack) extra += `${m.unitsPerPack} per box`;
-        if (m.packageSize) extra += (extra ? " · " : "") + `${m.packageSize}`;
-        if (m.packageVolume) extra += (extra ? " · " : "") + m.packageVolume;
 
         return `
           <tr>
             <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
             <td class="py-2 px-2 text-left w-1/4">${supplierName}</td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.price.toFixed(2)}${priceUnitLabel}
             </td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.quantity} ${stockUnitLabel}
-            </td>
-            <td class="py-2 px-2 text-right w-1/6 text-sm">
-              ${expiryText}${
-          extra
-            ? "<br/><span class='text-xs text-gray-500'>" + extra + "</span>"
-            : ""
-        }
             </td>
           </tr>
         `;
@@ -203,8 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderSupplierSelect() {
     orderSupplierSelect.innerHTML =
       `<option value="">Select supplier...</option>` +
-      mockSuppliers
-        .map((s) => `<option value="${s.id}">${s.name}</option>`)
+      suppliers
+        .map((s) => `<option value="${s.supplier_id}">${s.name}</option>`)
         .join("");
   }
 
@@ -213,19 +173,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!supId) {
       itemMedicineSelect.innerHTML =
         `<option value="">Select supplier first...</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
-    const meds = mockMedicines.filter((m) => m.supplierId === supId);
+    const meds = medicines.filter(
+      (m) => String(m.supplier_id) === String(supId)
+    );
     if (meds.length === 0) {
       itemMedicineSelect.innerHTML =
         `<option value="">No medicines for this supplier</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
     itemMedicineSelect.innerHTML =
       `<option value="">Select medicine...</option>` +
       meds.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
+
+    // Reset unit select when changing supplier
+    itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
   }
 
   // ---------------------------
@@ -245,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
-        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -261,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
             <td class="py-1 px-2 text-right w-1/6">
-              ${stock} ${stockUnitLabel}
+              ${formatStockForOrderItem(med)}
             </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
@@ -284,44 +250,44 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render order list (left table)
   // ---------------------------
   function renderOrderList() {
-    if (mockSupplyOrders.length === 0) {
+    if (supplyOrders.length === 0) {
       orderTableBody.innerHTML =
         `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No supply orders yet.</td></tr>`;
       return;
     }
 
-    orderTableBody.innerHTML = mockSupplyOrders
+    orderTableBody.innerHTML = supplyOrders
       .map((o) => {
-        const supplierName = findSupplierName(o.supplierId);
+        const supplierName = findSupplierName(o.supplier_id);
         const statusBadge =
-          o.status === "received"
+          (o.status || "").toUpperCase() === "DELIVERED"
             ? `<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">received</span>`
             : `<span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">pending</span>`;
 
         return `
           <tr class="hover:bg-pink-50">
-            <td class="py-2 px-2 text-left w-1/5">${o.id}</td>
+            <td class="py-2 px-2 text-left w-1/5">${o.order_id}</td>
             <td class="py-2 px-2 text-left w-1/5">${supplierName}</td>
             <td class="py-2 px-2 text-left w-1/5">${statusBadge}</td>
             <td class="py-2 px-2 text-left w-1/5">${formatDateTime(
-              o.createdAt
+              o.order_date
             )}</td>
             <td class="py-2 px-2 text-right w-1/5 space-x-2">
               <button
                 class="text-xs text-blue-600 hover:underline"
-                data-edit-order="${o.id}"
+                data-edit-order="${o.order_id}"
               >
                 Edit
               </button>
               <button
                 class="text-xs text-pink-600 hover:underline"
-                data-mark-received="${o.id}"
+                data-mark-received="${o.order_id}"
               >
                 Mark as received
               </button>
               <button
                 class="text-xs text-red-600 hover:underline"
-                data-delete-order="${o.id}"
+                data-delete-order="${o.order_id}"
               >
                 Delete
               </button>
@@ -341,26 +307,27 @@ document.addEventListener("DOMContentLoaded", () => {
   
       receiveTitle.textContent = `Receive: ${med.name}`;
       receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
-
-      // set min date = วันนี้
+  
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
-
-      // units per box - only show when unit is "box"
+  
       if (needsUnitsPerBox) {
         receiveUnitsPerBoxGroup.classList.remove("hidden");
         receiveUnitsPerBoxInput.value =
-          item.unitsPerPack != null ? String(item.unitsPerPack) : "";
+          item.units_per_pack != null
+            ? String(item.units_per_pack)
+            : item.unitsPerPack != null
+            ? String(item.unitsPerPack)
+            : "";
       } else {
         receiveUnitsPerBoxGroup.classList.add("hidden");
         receiveUnitsPerBoxInput.value = "";
       }
-
-      // bottle / tube → no additional fields needed
+  
+      // เราไม่ใช้ size/volume แล้ว → ซ่อน size ไว้เสมอ
       receiveSizeGroup.classList.add("hidden");
       receiveSizeSelect.value = "";
-
-      // show modal
+  
       receiveBackdrop.classList.remove("hidden");
     });
   }
@@ -371,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   receiveCancelBtn.addEventListener("click", () => {
     if (receiveResolve) {
-      receiveResolve(null); // ยกเลิก
+      receiveResolve(null);
       receiveResolve = null;
     }
     closeReceiveModal();
@@ -401,50 +368,38 @@ document.addEventListener("DOMContentLoaded", () => {
       unitsPerBox = val;
     }
 
-    let size = null;
-    let volume = null;
-    if (!receiveSizeGroup.classList.contains("hidden")) {
-      size = receiveSizeSelect.value;
-      if (!size) {
-        alert("Please select size (small / large).");
-        return;
-      }
-      volume = receiveVolumeInput.value.trim(); // อนุโลมให้ว่างได้
-    }
-
-    const payload = { expiryDate: exp, unitsPerBox, size, volume };
+    const payload = { expiryDate: exp, unitsPerBox, size: null, volume: null };
     receiveResolve(payload);
     receiveResolve = null;
     closeReceiveModal();
   });
 
   // ---------------------------
-  // Mark as received helper
-  // ---------------------------
+  // Mark as received helper (calls backend to update stock)
   async function handleMarkAsReceived(order) {
-    if (order.status === "received") {
+    if ((order.status || "").toUpperCase() === "DELIVERED") {
       alert("This order is already marked as received.");
       return;
     }
 
-    // วนทีละ item แล้วเปิด modal ให้กรอกข้อมูล
+    const itemPayloads = [];
+
+    // Collect receiving info per item
     for (let i = 0; i < order.items.length; i++) {
       const it = order.items[i];
-      const med = findMedicine(it.medicineId);
+      const med = findMedicine(it.medicine_id || it.medicineId);
       if (!med) continue;
 
-      // ใช้ unit ที่สั่งใน order เป็นหลัก
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-      const isBox = unitLower.startsWith("box"); // "box" หรือ "box(es)"
+      const isBox = unitLower.startsWith("box"); // "box" or "box(es)"
       const isBottleOrTube =
         unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-      // กล่อง → ถาม units per box
+      // units per box - only needed for box units; bottle/tube need only expiry
       const needsUnitsPerBox = isBox;
-      // ขวด / หลอด → ถาม size + volume
-      const needsSizeAndVolume = isBottleOrTube;
+      const needsSizeAndVolume = false;
 
       const info = await openReceiveModal({
         med,
@@ -452,63 +407,42 @@ document.addEventListener("DOMContentLoaded", () => {
         needsUnitsPerBox,
       });
 
-      // ถ้ากด Cancel → ยกเลิกทั้ง order
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
         return;
       }
 
-      const { expiryDate, unitsPerBox, size, volume } = info;
+      const { expiryDate, unitsPerBox } = info;
 
-      // --- อัปเดต stock ---
-      let added = 0;
-      if (needsUnitsPerBox && unitsPerBox) {
-        // กล่องยา → แปลงเป็นจำนวนหน่วยทั้งหมด (เช่น เม็ด / แคปซูล)
-        added = it.quantity * unitsPerBox;
-      } else {
-        // ขวด/หลอด หรือสั่งเป็นหน่วย base อยู่แล้ว
-        added = it.quantity;
-      }
-      med.quantity += added;
-
-      // --- เก็บข้อมูลลง item & medicine ---
-      it.expiryDate = expiryDate;
-      if (unitsPerBox != null) it.unitsPerPack = unitsPerBox;
-      if (size) it.size = size;
-      if (volume) it.volume = volume;
-
-      // summary ที่ level medicine
-      if (expiryDate) {
-        // เก็บเป็นวันหมดอายุที่ใกล้หมดสุด
-        if (!med.expiryDate || expiryDate < med.expiryDate) {
-          med.expiryDate = expiryDate;
-        }
-      }
-      if (unitsPerBox != null) med.unitsPerPack = unitsPerBox;
-      if (size) med.packageSize = size;
-      if (volume) med.packageVolume = volume;
-
-      // ตั้งหน่วยแสดงผลใน stock ให้ตรงกับ unit ที่ใช้ตอนรับของ
-      if (isBox) {
-        med.displayUnit = "box(es)";
-      } else if (isBottleOrTube) {
-        // ถ้ามี size → เช่น "small bottle"
-        med.displayUnit = size ? `${size} ${orderUnitRaw}` : orderUnitRaw;
-      } else {
-        med.displayUnit = orderUnitRaw || med.unit;
-      }
+      // For box units, use the entered unitsPerBox; for others, use 1 as default
+      itemPayloads.push({
+        order_item_id: it.order_item_id,
+        medicine_id: it.medicine_id || it.medicineId,
+        ordered_quantity: it.ordered_quantity || it.quantity,
+        units_per_pack: needsUnitsPerBox ? (unitsPerBox ?? it.units_per_pack ?? 1) : (it.units_per_pack ?? 1),
+        expiry_date: expiryDate,
+      });
     }
 
-    order.status = "received";
+    try {
+      const res = await fetch(`http://localhost:8000/supply-orders/${order.order_id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DELIVERED", items: itemPayloads }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = data && data.message ? `: ${data.message}` : "";
+        throw new Error(`Failed to mark as received${detail}`);
+      }
 
-    alert(`Order ${order.id} marked as received and stock updated.`);
-
-    if (orderIdInput.value === String(order.id)) {
-      orderStatusDisplay.value = order.status;
+      await loadSupplyOrders();
+      await refreshMedicines();
+      alert(`Order ${order.order_id} marked as received.`);
+    } catch (err) {
+      console.error("Mark received error:", err);
+      alert(err.message || "Failed to mark order as received.");
     }
-
-    renderOrderList();
-    renderStockTable();
   }
 
   // ---------------------------
@@ -529,15 +463,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadOrderIntoForm(orderId) {
-    const o = mockSupplyOrders.find((ord) => String(ord.id) === String(orderId));
+    const o = supplyOrders.find((ord) => String(ord.order_id) === String(orderId));
     if (!o) return;
 
-    orderIdInput.value = o.id;
-    orderSupplierSelect.value = o.supplierId;
+    orderIdInput.value = o.order_id;
+    orderSupplierSelect.value = o.supplier_id;
     orderStatusDisplay.value = o.status;
-    orderDateDisplay.value = formatDateTime(o.createdAt);
-    currentOrderItems = o.items.map((it) => ({ ...it }));
-    orderFormTitle.textContent = `Edit Order ${o.id}`;
+    orderDateDisplay.value = formatDateTime(o.order_date);
+    currentOrderItems = o.items.map((it) => ({
+      medicineId: it.medicine_id || it.medicineId,
+      quantity: it.ordered_quantity || it.quantity,
+      unit: it.unit || "",
+    }));
+    orderFormTitle.textContent = `Edit Order ${o.order_id}`;
     renderMedicineSelect();
     renderOrderItems();
   }
@@ -558,11 +496,19 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOrderItems();
   });
 
+  // Change medicine → update unit options based on type
+  itemMedicineSelect.addEventListener("change", () => {
+    const medId = itemMedicineSelect.value;
+    const med = findMedicine(medId);
+    renderUnitSelectForMedicine(med);
+  });
+
   // Add item to current order
   addItemBtn.addEventListener("click", () => {
     const medId = itemMedicineSelect.value;
     const qtyVal = Number(itemQtyInput.value);
     let unitVal = itemUnitSelect.value;
+    const unitsPerPackVal = 1;
 
     if (!orderSupplierSelect.value) {
       alert("Please select supplier first.");
@@ -600,6 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
         medicineId: medId,
         quantity: qtyVal,
         unit: unitVal,
+        units_per_pack: unitsPerPackVal,
       });
     }
 
@@ -634,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
-  orderTableBody.addEventListener("click", (e) => {
+  orderTableBody.addEventListener("click", async (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
     const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
@@ -647,19 +594,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (deleteBtn) {
       const id = deleteBtn.dataset.deleteOrder;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
-      if (!confirm(`Delete order ${o.id}?`)) return;
-      mockSupplyOrders = mockSupplyOrders.filter(
-        (ord) => String(ord.id) !== String(id)
-      );
-      renderOrderList();
+      const ok = confirm(`Delete order ${id}?`);
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`http://localhost:8000/supply-orders/${id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data && data.message ? `: ${data.message}` : "";
+          throw new Error(`Failed to delete order${detail}`);
+        }
+        alert(`Order ${id} deleted.`);
+        if (String(orderIdInput.value) === String(id)) {
+          resetOrderForm();
+        }
+        await loadSupplyOrders();
+      } catch (err) {
+        console.error("Delete order error:", err);
+        alert(err.message || "Failed to delete order.");
+      }
       return;
     }
 
     if (markBtn) {
       const id = markBtn.dataset.markReceived;
-      const o = mockSupplyOrders.find((ord) => String(ord.id) === String(id));
+      const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
       handleMarkAsReceived(o);
       return;
@@ -672,7 +635,43 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Submit order (create / update)
-  orderForm.addEventListener("submit", (e) => {
+  function nextOrderId() {
+    const maxId = supplyOrders.reduce(
+      (max, o) => Math.max(max, Number(o.order_id) || 0),
+      0
+    );
+    return maxId + 1;
+  }
+
+  function buildOrderPayload(orderId, supplierId) {
+    const items = currentOrderItems.map((it, idx) => {
+      const med = findMedicine(it.medicineId);
+      return {
+        order_item_id: Date.now() + idx,
+        medicine_id: med ? med.medicine_id || med.id : it.medicineId,
+        ordered_quantity: it.quantity,
+        cost_per_unit: med ? med.price : 0,
+        units_per_pack: it.units_per_pack || 1,
+        unit: it.unit || med?.unit || "",
+      };
+    });
+
+    const totalCost = items.reduce(
+      (sum, i) => sum + Number(i.ordered_quantity || 0) * Number(i.cost_per_unit || 0),
+      0
+    );
+
+    return {
+      order_id: orderId,
+      supplier_id: Number(supplierId),
+      order_date: new Date().toISOString(),
+      status: "PENDING",
+      total_cost: totalCost,
+      items,
+    };
+  }
+
+  orderForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const supplierId = orderSupplierSelect.value;
@@ -686,38 +685,33 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const existingId = orderIdInput.value || null;
-    if (existingId) {
-      // update
-      const o = mockSupplyOrders.find(
-        (ord) => String(ord.id) === String(existingId)
-      );
-      if (!o) return;
+    const existingId = orderIdInput.value ? Number(orderIdInput.value) : null;
+    const orderId = existingId || nextOrderId();
+    const payload = buildOrderPayload(orderId, supplierId);
 
-      if (o.status === "received") {
-        alert("Received order cannot be edited.");
-        return;
-      }
+    try {
+      const url = existingId
+        ? `http://localhost:8000/supply-orders/${orderId}`
+        : "http://localhost:8000/supply-orders";
+      const method = existingId ? "PUT" : "POST";
 
-      o.supplierId = supplierId;
-      o.items = currentOrderItems.map((it) => ({ ...it }));
-      alert(`Order ${o.id} updated.`);
-    } else {
-      // create new
-      const newId = mockSupplyOrders.length + 1;
-      const now = new Date().toISOString();
-      mockSupplyOrders.push({
-        id: newId,
-        supplierId,
-        status: "pending",
-        createdAt: now,
-        items: currentOrderItems.map((it) => ({ ...it })),
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      alert(`Order ${newId} created.`);
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = data && data.message ? `: ${data.message}` : "";
+        throw new Error(`Failed to save order${detail}`);
+      }
+      alert(existingId ? "Order updated." : "Order created.");
+      await loadSupplyOrders();
+      resetOrderForm();
+    } catch (err) {
+      console.error("Save order error:", err);
+      alert(err.message || "Failed to save order.");
     }
-
-    resetOrderForm();
-    renderOrderList();
   });
 
   // ---------------------------
