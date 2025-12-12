@@ -137,46 +137,119 @@ async function fetchPrescriptionsFromServer(params = {}) {
   return res.json();
 }
 
+function decoratePrescriptionItem(item) {
+  const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
+  const medName =
+    item.medicine_name ||
+    (medDetails && (medDetails.name || medDetails.medicine_name)) ||
+    "";
+  const price =
+    typeof item.price === "number"
+      ? item.price
+      : typeof (medDetails && medDetails.price) === "number"
+        ? medDetails.price
+        : item.priceUnit || 0;
+  const stockVal =
+    typeof item.stock === "number"
+      ? item.stock
+      : typeof (medDetails && medDetails.quantity) === "number"
+        ? medDetails.quantity
+        : 0;
+  const unitVal = item.unit || (medDetails && medDetails.unit) || "";
+
+  return {
+    ...item,
+    medicine_name: medName,
+    price,
+    stock: stockVal,
+    unit: unitVal,
+  };
+}
+
+function isPrescriptionFullyInBill(prescription) {
+  const items = prescription.items || [];
+  if (items.length === 0) return false;
+  return items.every((item) => {
+    const billItem = billItems.find(
+      (it) => String(it.medicineId) === String(item.medicine_id)
+    );
+    const requiredQty = Number(item.quantity) || 0;
+    return billItem && billItem.quantity >= requiredQty;
+  });
+}
+
+function isPrescriptionPresentInBill(prescriptionId) {
+  return billItems.some(
+    (it) =>
+      Array.isArray(it.prescriptionIds) &&
+      it.prescriptionIds.some((pid) => String(pid) === String(prescriptionId))
+  );
+}
+
 function buildPrescriptionSection(prescription) {
   const doctor = allDoctors.find((d) => d.doctor_id === prescription.doctor_id);
   const doctorName = doctor ? doctor.doctor_full_name : `Doctor ID: ${prescription.doctor_id}`;
   const issue = prescription.issue_date ? new Date(prescription.issue_date).toLocaleDateString() : "N/A";
-  const items = prescription.items || [];
+  const items = (prescription.items || []).map(decoratePrescriptionItem);
 
-  const itemsList = items.map((item) => {
-    const displayUnit = normalizeUnit(item.unit);
-    const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
-    const medName = item.medicine_name
-      || (medDetails && (medDetails.name || medDetails.medicine_name))
-      || "";
-    return `
-      <div class="px-3 py-2 border-b border-pink-100 text-[11px]">
-        <div class="flex justify-between items-center">
-          <div class="flex-1">
-            <div class="font-medium">${medName || "-"}</div>
-            <div class="text-gray-600 text-[10px] mt-0.5">
-              ${item.medicine_id || "-"} • ${item.dosage || '-'} • ${item.quantity} ${displayUnit}
-            </div>
-          </div>
+  const itemBlocks = items
+    .map((item) => {
+      const displayUnit = normalizeUnit(item.unit);
+      const meta = [
+        item.medicine_id || "-",
+        item.dosage || "-",
+        `${item.quantity || 0} ${displayUnit}`,
+      ].join(" • ");
+      return `
+        <div class="px-3 py-2 border-b last:border-b-0 border-pink-50">
+          <div class="text-sm font-semibold text-gray-800">${item.medicine_name || "-"}</div>
+          <div class="text-[11px] text-gray-600">${meta}</div>
         </div>
-      </div>
-    `;
-  }).join("");
+      `;
+    })
+    .join("");
+
+  const alreadyAdded = isPrescriptionFullyInBill(prescription);
+  const inBill = isPrescriptionPresentInBill(prescription.prescription_id);
+  const buttonLabel = alreadyAdded ? "Added" : "Add All";
+  const buttonDisabled = alreadyAdded ? "disabled" : "";
+  const buttonStateClasses = alreadyAdded ? "opacity-60 cursor-not-allowed" : "";
+  const removeDisabled = inBill ? "" : "disabled";
+  const removeStateClasses = inBill ? "" : "opacity-60 cursor-not-allowed";
+  const paddleLabel = alreadyAdded ? "Added" : inBill ? "Partial" : "Not added";
+  const paddleClasses = alreadyAdded
+    ? "bg-green-100 text-green-700"
+    : inBill
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-gray-100 text-gray-500";
 
   return `
     <div class="border border-pink-100 rounded-xl bg-white/60">
-      <div class="border-b px-3 py-2 text-xs text-pink-700">
-        Prescription #${prescription.prescription_id} • ${doctorName} • Issue Date: ${issue}
+      <div class="flex items-center justify-between border-b px-3 py-2 text-xs text-pink-700 gap-2">
+        <div class="flex items-center gap-2">
+          Prescription #${prescription.prescription_id} • ${doctorName} • Issue Date: ${issue}
+          <span class="text-[10px] px-2 py-1 rounded-full ${paddleClasses}" data-prescription-paddle="${prescription.prescription_id}">
+            ${paddleLabel}
+          </span>
+        </div>
       </div>
-      <div class="max-h-40 overflow-y-auto">
-        ${itemsList}
+      <div class="max-h-40 overflow-y-auto divide-y divide-transparent">
+        ${itemBlocks}
       </div>
-      <div class="border-t px-3 py-2 flex justify-end">
+      <div class="flex justify-end gap-2 px-3 py-2 border-t border-pink-100">
         <button
-          class="text-[10px] px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600"
-          data-add-all-prescription="${prescription.prescription_id}"
+          class="text-[10px] px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 ${buttonStateClasses}"
+          data-add-prescription="${prescription.prescription_id}"
+          ${buttonDisabled}
         >
-          Add All
+          ${buttonLabel}
+        </button>
+        <button
+          class="text-[10px] px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 ${removeStateClasses}"
+          data-remove-prescription="${prescription.prescription_id}"
+          ${removeDisabled}
+        >
+          X
         </button>
       </div>
     </div>
@@ -264,19 +337,19 @@ async function fetchSales() {
         const filteredSales = enrichedSales.filter(Boolean);
 
         if (filteredSales.length === 0) {
-      salesHistoryTbody.innerHTML =
+          salesHistoryTbody.innerHTML =
             `<tr><td colspan="6" class="py-1 text-gray-400 text-center">None</td></tr>`;
-      return;
-    }
+          return;
+        }
 
         salesHistoryTbody.innerHTML = filteredSales
-      .map((s) => {
-        const detail = (s.items || [])
-          .map((it) => {
-            const dosageText =
-              it.dosage && it.dosage.trim() !== ""
-                ? it.dosage.trim()
-                : "-";
+          .map((s) => {
+            const detail = (s.items || [])
+              .map((it) => {
+                const dosageText =
+                  it.dosage && it.dosage.trim() !== ""
+                    ? it.dosage.trim()
+                    : "-";
                 const name =
                   it.medicine_name ||
                   (it.medicine && (it.medicine.name || it.medicine.medicine_name)) ||
@@ -284,37 +357,37 @@ async function fetchSales() {
                   "Unknown";
                 const medId = it.medicine_id ? String(it.medicine_id) : "N/A";
                 return `[${medId}] ${name} x${it.quantity} (Dosage: ${dosageText})`;
+              })
+              .join(", ");
+
+            const cid = s.customer_id ?? "-";
+            const customer =
+              allCustomers.find((c) => c.customer_id === cid) || null;
+            const cname = customer ? customer.full_name : "-";
+            
+            const total =
+              typeof s.total_price === "number" ? s.total_price : 0;
+            const date = s.sale_datetime
+              ? new Date(s.sale_datetime).toLocaleString('en-GB', { 
+                    day: '2-digit', month: '2-digit', year: 'numeric', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                    hour12: false 
+                })
+              : "-";
+
+            return `
+              <tr class="border-b">
+                <td class="py-2 px-2 text-left w-1/6">${date}</td>
+                <td class="py-2 px-2 text-left w-1/6">[${cid}] ${cname}</td>
+                <td class="py-2 px-2 text-right w-1/6">${total.toFixed(
+                  2
+                )}</td>
+                <td class="py-1 px-2 text-center w-1/6">${(s.items || []).length}</td>
+                <td class="py-2 px-2 text-left w-2/6">${detail}</td>
+              </tr>
+            `;
           })
-          .join(", ");
-
-        const cid = s.customer_id ?? "-";
-        const customer =
-          allCustomers.find((c) => c.customer_id === cid) || null;
-        const cname = customer ? customer.full_name : "-";
-        
-        const total =
-          typeof s.total_price === "number" ? s.total_price : 0;
-        const date = s.sale_datetime
-          ? new Date(s.sale_datetime).toLocaleString('en-GB', { 
-                day: '2-digit', month: '2-digit', year: 'numeric', 
-                hour: '2-digit', minute: '2-digit', second: '2-digit', 
-                hour12: false 
-            })
-          : "-";
-
-        return `
-          <tr class="border-b">
-            <td class="py-2 px-2 text-left w-1/6">${date}</td>
-            <td class="py-2 px-2 text-left w-1/6">[${cid}] ${cname}</td>
-            <td class="py-2 px-2 text-right w-1/6">${total.toFixed(
-              2
-            )}</td>
-            <td class="py-1 px-2 text-center w-1/6">${(s.items || []).length}</td>
-            <td class="py-2 px-2 text-left w-2/6">${detail}</td>
-          </tr>
-        `;
-      })
-      .join("");
+          .join("");
       } catch (err) {
         console.error("Error fetching sales:", err);
         salesHistoryTbody.innerHTML =
@@ -386,18 +459,8 @@ function renderBill() {
       `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
     grandTotalEl.textContent = "0.00";
     updateSelectedSummary();
-    // Hide clear all button when no items
-    const clearAllBtn = document.getElementById("clearAllItemsBtn");
-    if (clearAllBtn) {
-      clearAllBtn.classList.add("hidden");
-    }
+    syncPrescriptionAddButtons();
     return;
-  }
-
-  // Show clear all button when there are items
-  const clearAllBtn = document.getElementById("clearAllItemsBtn");
-  if (clearAllBtn) {
-    clearAllBtn.classList.remove("hidden");
   }
 
   billItemsTbody.innerHTML = billItems
@@ -415,9 +478,7 @@ function renderBill() {
           }
         </td>
         <td class="py-1 text-right">${item.price.toFixed(2)}</td>
-        <td class="py-1 text-center">
-          <span class="text-sm">${item.quantity || 0}</span>
-        </td>
+        <td class="py-1 text-center">${item.quantity || 0}</td>
         <td class="py-1 text-center">${displayUnit}</td>
         <td class="py-1 text-right">${item.lineTotal.toFixed(2)}</td>
       </tr>
@@ -429,6 +490,7 @@ function renderBill() {
   const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
   grandTotalEl.textContent = total.toFixed(2);
   updateSelectedSummary();
+  syncPrescriptionAddButtons();
 }
 
 function addToBill(med) {
@@ -553,10 +615,128 @@ function addToBillFromPrescription(med) {
   return true;
 }
 
+function addPrescriptionToBill(prescriptionId) {
+  const target = latestPrescriptionList.find(
+    (p) => String(p.prescription_id) === String(prescriptionId)
+  );
+  if (!target) {
+    alert("Prescription not found.");
+    return;
+  }
+
+  const items = (target.items || []).map((item) =>
+    decoratePrescriptionItem({
+      ...item,
+      prescription_id: target.prescription_id,
+    })
+  );
+
+  let addedAny = false;
+  items.forEach((item) => {
+    const added = addToBillFromPrescription(item);
+    if (added) {
+      addedAny = true;
+    }
+  });
+
+  if (addedAny && prescriptionResults) {
+    const btn = prescriptionResults.querySelector(
+      `button[data-add-prescription="${prescriptionId}"]`
+    );
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Added";
+      btn.classList.add("opacity-60", "cursor-not-allowed");
+    }
+  }
+  syncPrescriptionAddButtons();
+}
+
+function syncPrescriptionAddButtons() {
+  if (!prescriptionResults) return;
+  prescriptionResults.querySelectorAll("button[data-add-prescription]").forEach((btn) => {
+    const pid = btn.dataset.addPrescription;
+    const pres = latestPrescriptionList.find(
+      (p) => String(p.prescription_id) === String(pid)
+    );
+    const fullyAdded = pres ? isPrescriptionFullyInBill(pres) : false;
+    btn.disabled = fullyAdded;
+    btn.textContent = fullyAdded ? "Added" : "Add All";
+    btn.classList.toggle("opacity-60", fullyAdded);
+    btn.classList.toggle("cursor-not-allowed", fullyAdded);
+  });
+
+  prescriptionResults.querySelectorAll("button[data-remove-prescription]").forEach((btn) => {
+    const pid = btn.dataset.removePrescription;
+    const inBill = isPrescriptionPresentInBill(pid);
+    btn.disabled = !inBill;
+    btn.classList.toggle("opacity-60", !inBill);
+    btn.classList.toggle("cursor-not-allowed", !inBill);
+  });
+
+  // Update paddle text/state
+  prescriptionResults.querySelectorAll("[data-prescription-paddle]").forEach((paddle) => {
+    const pid = paddle.dataset.prescriptionPaddle;
+    const pres = latestPrescriptionList.find((p) => String(p.prescription_id) === String(pid));
+    const fullyAdded = pres ? isPrescriptionFullyInBill(pres) : false;
+    const partially = pres ? isPrescriptionPresentInBill(pid) && !fullyAdded : false;
+    let label = "Not added";
+    let classes = "bg-gray-100 text-gray-500";
+    if (fullyAdded) {
+      label = "Added";
+      classes = "bg-green-100 text-green-700";
+    } else if (partially) {
+      label = "Partial";
+      classes = "bg-yellow-100 text-yellow-700";
+    }
+    paddle.textContent = label;
+    paddle.className = `text-[10px] px-2 py-1 rounded-full ${classes}`;
+  });
+}
+
 function removeFromBillById(id) {
   const idx = billItems.findIndex((it) => it.medicineId === id);
   if (idx !== -1) {
     billItems.splice(idx, 1);
+    renderBill();
+  }
+}
+
+function removePrescriptionFromBill(prescriptionId) {
+  const pidStr = String(prescriptionId);
+  let changed = false;
+
+  billItems = billItems
+    .map((item) => {
+      if (
+        !Array.isArray(item.prescriptionIds) ||
+        !item.prescriptionIds.some((pid) => String(pid) === pidStr)
+      ) {
+        return item;
+      }
+
+      const remainingIds = item.prescriptionIds.filter(
+        (pid) => String(pid) !== pidStr
+      );
+
+      // If no prescription remains, drop the item entirely
+      if (remainingIds.length === 0) {
+        changed = true;
+        return null;
+      }
+
+      // If other prescriptions remain, keep item but clear caps to avoid under-counting
+      changed = true;
+      return {
+        ...item,
+        prescriptionIds: remainingIds,
+        prescriptionQty: Infinity,
+        fromPrescription: true,
+      };
+    })
+    .filter(Boolean);
+
+  if (changed) {
     renderBill();
   }
 }
@@ -570,7 +750,7 @@ function handleCustomerSearch() {
 
   selectedCustomer = null;
   if (selectedCustomerInfo) {
-  selectedCustomerInfo.textContent = "No customer selected.";
+    selectedCustomerInfo.textContent = "No customer selected.";
   }
   customerErrorEl.classList.add("hidden");
 
@@ -642,12 +822,12 @@ function handleCustomerSearch() {
 
       customerSearchInput.value = name;
       if (selectedCustomerInfo) {
-      selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
+        selectedCustomerInfo.textContent = `Selected: [${id}] ${name}` + (contact ? ` (${contact})` : "");
       }
       customerErrorEl.classList.add("hidden");
 
       customerDropdown.classList.add('hidden');
-      
+
       // No auto-search; wait for Find button
     };
   });
@@ -698,36 +878,38 @@ function loadAllPrescriptionsForCustomer(customerId) {
           prescriptionResults.innerHTML = `<div class="text-sm text-gray-500">No prescriptions found for this customer.</div>`;
         }
         renderSearchResults(getSearchTerm());
-    return;
-  }
+        return;
+      }
 
       // Use latest by issue_date as "current" for adds
       const latest = matches
         .slice()
         .sort((a, b) => new Date(b.issue_date || 0) - new Date(a.issue_date || 0))[0];
-  
-    latestPrescription = latest;
+
+      latestPrescription = latest;
       selectedPrescriptionId = latest.prescription_id;
       latestPrescriptionItems = (latest.items || []).map(item => {
-        const fullMed = allMedicines.find(m => m.medicine_id === item.medicine_id);
+          const fullMed = allMedicines.find(m => m.medicine_id === item.medicine_id);
           const stock = fullMed ? fullMed.quantity : item.stock || 0;
-        return {
-            ...item,
-            stock: stock, 
-            unit: item.unit, 
-            prescription_item_id: item.prescription_item_id || Math.random() 
-        };
-    });
+          return {
+              ...item,
+              stock: stock, 
+              unit: item.unit, 
+              prescription_item_id: item.prescription_item_id || Math.random() 
+          };
+      });
 
-    const doctor = allDoctors.find(d => d.doctor_id === latest.doctor_id);
-    const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
+      const doctor = allDoctors.find(d => d.doctor_id === latest.doctor_id);
+      const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
       const issueDate = latest.issue_date ? new Date(latest.issue_date).toLocaleDateString() : '';
-    
+      
       latestPrescriptionMeta.textContent = "";
       latestPrescriptionMeta.classList.add("hidden");
-    latestPrescriptionTag.textContent = "Latest"; 
-      latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-pink-700";
-    latestPrescriptionBox.classList.remove("hidden");
+      if (latestPrescriptionTag) {
+        latestPrescriptionTag.textContent = "Latest"; 
+        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-pink-700";
+      }
+      latestPrescriptionBox.classList.remove("hidden");
 
       if (prescriptionResults) {
         prescriptionResults.innerHTML = matches
@@ -799,8 +981,8 @@ function searchPrescriptionsByFilters() {
             prescriptionResults.innerHTML = `<div class="text-sm text-gray-500">No prescriptions found for this customer.</div>`;
           }
           renderSearchResults(getSearchTerm());
-        return;
-    }
+          return;
+        }
 
         // Keep list for rendering
         latestPrescriptionList = matches;
@@ -814,27 +996,29 @@ function searchPrescriptionsByFilters() {
         selectedPrescriptionId = match.prescription_id;
         latestPrescriptionItems = (match.items || []).map((item) => {
           const fullMed = allMedicines.find((m) => m.medicine_id === item.medicine_id);
-        const stock = fullMed ? fullMed.quantity : 0;
+          const stock = fullMed ? fullMed.quantity : 0;
           const medName = item.medicine_name || (item.medicine && item.medicine.name) || "";
           const unit = item.unit || (item.medicine && item.medicine.unit) || "";
-        return {
+          return {
             ...item,
             medicine_name: medName,
             unit: unit,
             stock: stock,
             prescription_item_id: item.prescription_item_id || Math.random(),
-        };
-    });
-    
+          };
+        });
+        
         const doctor = allDoctors.find((d) => d.doctor_id === match.doctor_id);
-    const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
+        const doctorName = doctor ? doctor.doctor_full_name : 'Unknown Doctor';
         const issueDateDisplay = match.issue_date ? new Date(match.issue_date).toLocaleDateString() : (issueDate || "N/A");
         
         latestPrescriptionMeta.textContent = "";
         latestPrescriptionMeta.classList.add("hidden");
-        latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "MATCHED"; 
-        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
-    latestPrescriptionBox.classList.remove("hidden");
+        if (latestPrescriptionTag) {
+          latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "MATCHED"; 
+          latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
+        }
+        latestPrescriptionBox.classList.remove("hidden");
 
         if (prescriptionResults) {
           prescriptionResults.innerHTML = matches
@@ -865,7 +1049,7 @@ function handleDoctorSearch() {
   selectedDoctor = null;
   doctorIdHiddenInput.value = '';
   if (selectedDoctorInfo) {
-  selectedDoctorInfo.textContent = "No doctor selected.";
+    selectedDoctorInfo.textContent = "No doctor selected.";
   }
   doctorLicenseEl.textContent = "";
 
@@ -928,7 +1112,7 @@ function handleDoctorSearch() {
       doctorLicenseEl.textContent = `License: ${license}`;
 
       if (selectedDoctorInfo) {
-      selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
+        selectedDoctorInfo.textContent = `Selected: [${id}] ${name} (${license})`;
       }
 
       doctorDropdown.classList.add('hidden');
@@ -990,8 +1174,8 @@ async function submitSale() {
     prescription_id: selectedPrescriptionId || prescriptionIds[0] || null,
     prescription_ids: prescriptionIds,
     items: billItems.map((item) => ({
-        medicine_id: item.medicineId,
-        quantity: item.quantity,
+      medicine_id: item.medicineId,
+      quantity: item.quantity,
       dosage: item.dosage || "",
     })),
   };
@@ -1021,7 +1205,7 @@ async function submitSale() {
   selectedCustomer = null;
   customerSearchInput.value = "";
   if (selectedCustomerInfo) {
-  selectedCustomerInfo.textContent = "No customer selected.";
+    selectedCustomerInfo.textContent = "No customer selected.";
   }
   customerErrorEl.classList.add("hidden");
   
@@ -1029,7 +1213,7 @@ async function submitSale() {
   doctorSearchInput.value = "";
   doctorIdHiddenInput.value = "";
   if (selectedDoctorInfo) {
-  selectedDoctorInfo.textContent = "No doctor selected.";
+    selectedDoctorInfo.textContent = "No doctor selected.";
   }
   doctorLicenseEl.textContent = "";
   doctorErrorEl.classList.add("hidden");
@@ -1050,74 +1234,25 @@ async function submitSale() {
 }
 
 // ----------------------------------------------------
-// 10. EVENT LISTENERS
+// 10. EVENT LISTENERS (Unchanged)
 // ----------------------------------------------------
-// Add all items from prescription
+// Add prescription (all medicines) into bill
 
 if (prescriptionResults) {
   prescriptionResults.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-add-all-prescription]");
-  if (!btn) return;
-  
-    const prescriptionId = Number(btn.dataset.addAllPrescription);
-    if (!prescriptionId) return;
-    
-    // Find the prescription from latestPrescriptionList
-    const prescription = latestPrescriptionList.find(p => p.prescription_id === prescriptionId);
-    if (!prescription || !prescription.items || prescription.items.length === 0) return;
-    
-    // Add all items from this prescription
-    let addedCount = 0;
-    prescription.items.forEach((item) => {
-      const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
-      const medName = item.medicine_name
-        || (medDetails && (medDetails.name || medDetails.medicine_name))
-        || "";
-      const price = typeof item.price === "number"
-        ? item.price
-        : typeof (medDetails && medDetails.price) === "number"
-          ? medDetails.price
-          : item.priceUnit || 0;
-      const stockVal = typeof item.stock === "number"
-        ? item.stock
-        : typeof (medDetails && medDetails.quantity) === "number"
-          ? medDetails.quantity
-          : 0;
-      
-      const med = {
-        medicine_id: item.medicine_id,
-        medicine_name: medName,
-        unit: item.unit || "",
-        dosage: item.dosage || "",
-        quantity: item.quantity || 1,
-        price: price,
-        stock: stockVal,
-        prescription_id: prescriptionId,
-      };
-      
-      if (addToBillFromPrescription(med)) {
-        addedCount++;
-      }
-    });
-    
-    if (addedCount > 0) {
-      btn.disabled = true;
-      btn.textContent = "Added";
-      btn.classList.add("opacity-60", "cursor-not-allowed");
+    const btn = e.target.closest("button[data-add-prescription]");
+    const removeBtn = e.target.closest("button[data-remove-prescription]");
+    if (btn) {
+      const prescId = btn.dataset.addPrescription;
+      addPrescriptionToBill(prescId);
+      return;
+    }
+    if (removeBtn) {
+      const prescId = removeBtn.dataset.removePrescription;
+      removePrescriptionFromBill(prescId);
+      return;
     }
   });
-}
-
-// Clear all items from bill
-const clearAllItemsBtn = document.getElementById("clearAllItemsBtn");
-if (clearAllItemsBtn) {
-  clearAllItemsBtn.addEventListener("click", () => {
-    if (billItems.length === 0) return;
-    if (confirm("ต้องการลบรายการทั้งหมดออกจาก bill ใช่หรือไม่?")) {
-      billItems = [];
-  renderBill();
-    }
-});
 }
 
 // Customer search input event
@@ -1199,7 +1334,7 @@ function initializeDatePicker() {
     
     renderBill();
     if (selectedCustomerInfo) {
-    selectedCustomerInfo.textContent = "No customer selected.";
+      selectedCustomerInfo.textContent = "No customer selected.";
     }
     latestPrescriptionBox.classList.add("hidden");
     renderSearchResults(getSearchTerm());
