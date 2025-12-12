@@ -137,75 +137,120 @@ async function fetchPrescriptionsFromServer(params = {}) {
   return res.json();
 }
 
-function buildPrescriptionSection(prescription) {
-  const doctor = allDoctors.find((d) => d.doctor_id === prescription.doctor_id);
-  const doctorName = doctor ? doctor.doctor_full_name : `Doctor ID: ${prescription.doctor_id}`;
-  const issue = prescription.issue_date ? new Date(prescription.issue_date).toLocaleDateString() : "N/A";
-  const items = prescription.items || [];
-
-  const rows = items.map((item) => {
-    const displayUnit = normalizeUnit(item.unit);
-    const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
-    const medName = item.medicine_name
-      || (medDetails && (medDetails.name || medDetails.medicine_name))
-      || "";
-    const price = typeof item.price === "number"
+function decoratePrescriptionItem(item) {
+  const medDetails = allMedicines.find((m) => m.medicine_id === item.medicine_id);
+  const medName =
+    item.medicine_name ||
+    (medDetails && (medDetails.name || medDetails.medicine_name)) ||
+    "";
+  const price =
+    typeof item.price === "number"
       ? item.price
       : typeof (medDetails && medDetails.price) === "number"
         ? medDetails.price
         : item.priceUnit || 0;
-    const stockVal = typeof item.stock === "number"
+  const stockVal =
+    typeof item.stock === "number"
       ? item.stock
       : typeof (medDetails && medDetails.quantity) === "number"
         ? medDetails.quantity
         : 0;
-    const lineTotal = price * item.quantity;
-    return `
-      <tr>
-        <td class="py-1 px-2 text-left">${item.medicine_id || "-"}</td>
-        <td class="py-1 px-2 text-left">${medName || "-"}</td>
-        <td class="py-1 px-2 text-left">${item.dosage || '-'}</td>
-        <td class="py-1 px-2 text-center">${item.quantity} ${displayUnit}</td>
-        <td class="py-1 px-2 text-center">
-          <button
-            class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600"
-            data-add-medicine="true"
-            data-medicine-id="${item.medicine_id}"
-            data-medicine-name="${escapeHtml(medName || item.medicine_name || item.medicine_id)}"
-            data-unit="${escapeHtml(item.unit || '')}"
-            data-dosage="${escapeHtml(item.dosage || '')}"
-            data-quantity="${item.quantity}"
-            data-price="${price}"
-            data-stock="${stockVal}"
-            data-prescription-id="${prescription.prescription_id}"
-          >
-            Add
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join("");
+  const unitVal = item.unit || (medDetails && medDetails.unit) || "";
+
+  return {
+    ...item,
+    medicine_name: medName,
+    price,
+    stock: stockVal,
+    unit: unitVal,
+  };
+}
+
+function isPrescriptionFullyInBill(prescription) {
+  const items = prescription.items || [];
+  if (items.length === 0) return false;
+  return items.every((item) => {
+    const billItem = billItems.find(
+      (it) => String(it.medicineId) === String(item.medicine_id)
+    );
+    const requiredQty = Number(item.quantity) || 0;
+    return billItem && billItem.quantity >= requiredQty;
+  });
+}
+
+function isPrescriptionPresentInBill(prescriptionId) {
+  return billItems.some(
+    (it) =>
+      Array.isArray(it.prescriptionIds) &&
+      it.prescriptionIds.some((pid) => String(pid) === String(prescriptionId))
+  );
+}
+
+function buildPrescriptionSection(prescription) {
+  const doctor = allDoctors.find((d) => d.doctor_id === prescription.doctor_id);
+  const doctorName = doctor ? doctor.doctor_full_name : `Doctor ID: ${prescription.doctor_id}`;
+  const issue = prescription.issue_date ? new Date(prescription.issue_date).toLocaleDateString() : "N/A";
+  const items = (prescription.items || []).map(decoratePrescriptionItem);
+
+  const itemBlocks = items
+    .map((item) => {
+      const displayUnit = normalizeUnit(item.unit);
+      const meta = [
+        item.medicine_id || "-",
+        item.dosage || "-",
+        `${item.quantity || 0} ${displayUnit}`,
+      ].join(" • ");
+      return `
+        <div class="px-3 py-2 border-b last:border-b-0 border-pink-50">
+          <div class="text-sm font-semibold text-gray-800">${item.medicine_name || "-"}</div>
+          <div class="text-[11px] text-gray-600">${meta}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  const alreadyAdded = isPrescriptionFullyInBill(prescription);
+  const inBill = isPrescriptionPresentInBill(prescription.prescription_id);
+  const buttonLabel = alreadyAdded ? "Added" : "Add All";
+  const buttonDisabled = alreadyAdded ? "disabled" : "";
+  const buttonStateClasses = alreadyAdded ? "opacity-60 cursor-not-allowed" : "";
+  const removeDisabled = inBill ? "" : "disabled";
+  const removeStateClasses = inBill ? "" : "opacity-60 cursor-not-allowed";
+  const paddleLabel = alreadyAdded ? "Added" : inBill ? "Partial" : "Not added";
+  const paddleClasses = alreadyAdded
+    ? "bg-green-100 text-green-700"
+    : inBill
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-gray-100 text-gray-500";
 
   return `
     <div class="border border-pink-100 rounded-xl bg-white/60">
-      <div class="border-b px-3 py-2 text-xs text-pink-700">
-        Prescription #${prescription.prescription_id} • ${doctorName} • Issue Date: ${issue}
+      <div class="flex items-center justify-between border-b px-3 py-2 text-xs text-pink-700 gap-2">
+        <div class="flex items-center gap-2">
+          Prescription #${prescription.prescription_id} • ${doctorName} • Issue Date: ${issue}
+          <span class="text-[10px] px-2 py-1 rounded-full ${paddleClasses}" data-prescription-paddle="${prescription.prescription_id}">
+            ${paddleLabel}
+          </span>
+        </div>
       </div>
-      <div class="max-h-40 overflow-y-auto">
-        <table class="w-full text-[11px]">
-          <thead>
-            <tr class="border-b bg-white">
-              <th class="py-1 px-2 text-left w-1/5">Med ID</th>
-              <th class="py-1 px-2 text-left w-2/5">Name</th>
-              <th class="py-1 px-2 text-left w-1/5">Dosage</th>
-              <th class="py-1 px-2 text-center w-1/5">Qty/Unit</th>
-              <th class="py-1 px-2 text-center w-1/5">Add</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
+      <div class="max-h-40 overflow-y-auto divide-y divide-transparent">
+        ${itemBlocks}
+      </div>
+      <div class="flex justify-end gap-2 px-3 py-2 border-t border-pink-100">
+        <button
+          class="text-[10px] px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 ${buttonStateClasses}"
+          data-add-prescription="${prescription.prescription_id}"
+          ${buttonDisabled}
+        >
+          ${buttonLabel}
+        </button>
+        <button
+          class="text-[10px] px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 ${removeStateClasses}"
+          data-remove-prescription="${prescription.prescription_id}"
+          ${removeDisabled}
+        >
+          X
+        </button>
       </div>
     </div>
   `;
@@ -409,11 +454,12 @@ function renderSearchResults(keyword) {
 
 function renderBill() {
   if (billItems.length === 0) {
-    // Colspan is 7 (Name, Dosage, Price, Qty, Unit, Total, X)
+    // Colspan is 6 (Name, Dosage, Price, Qty, Unit, Total)
     billItemsTbody.innerHTML =
-      `<tr><td colspan="7" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
+      `<tr><td colspan="6" class="py-1 text-gray-400 text-center">No items in bill.</td></tr>`; 
     grandTotalEl.textContent = "0.00";
     updateSelectedSummary();
+    syncPrescriptionAddButtons();
     return;
   }
 
@@ -432,26 +478,9 @@ function renderBill() {
           }
         </td>
         <td class="py-1 text-right">${item.price.toFixed(2)}</td>
-        <td class="py-1 text-center">
-          <input
-            type="number"
-            min="0"
-            value="${item.quantity || 0}"
-            data-idx="${idx}"
-            class="w-16 border rounded px-1 py-0.5 text-center text-sm qty-input"
-            placeholder="0"
-          />
-        </td>
+        <td class="py-1 text-center">${item.quantity || 0}</td>
         <td class="py-1 text-center">${displayUnit}</td>
         <td class="py-1 text-right">${item.lineTotal.toFixed(2)}</td>
-        <td class="py-1 text-center">
-          <button
-            class="text-xs text-red-500"
-            data-remove="${idx}"
-          >
-            ✕
-          </button>
-        </td>
       </tr>
     `;
       }
@@ -461,6 +490,7 @@ function renderBill() {
   const total = billItems.reduce((sum, it) => sum + it.lineTotal, 0);
   grandTotalEl.textContent = total.toFixed(2);
   updateSelectedSummary();
+  syncPrescriptionAddButtons();
 }
 
 function addToBill(med) {
@@ -585,10 +615,128 @@ function addToBillFromPrescription(med) {
   return true;
 }
 
+function addPrescriptionToBill(prescriptionId) {
+  const target = latestPrescriptionList.find(
+    (p) => String(p.prescription_id) === String(prescriptionId)
+  );
+  if (!target) {
+    alert("Prescription not found.");
+    return;
+  }
+
+  const items = (target.items || []).map((item) =>
+    decoratePrescriptionItem({
+      ...item,
+      prescription_id: target.prescription_id,
+    })
+  );
+
+  let addedAny = false;
+  items.forEach((item) => {
+    const added = addToBillFromPrescription(item);
+    if (added) {
+      addedAny = true;
+    }
+  });
+
+  if (addedAny && prescriptionResults) {
+    const btn = prescriptionResults.querySelector(
+      `button[data-add-prescription="${prescriptionId}"]`
+    );
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Added";
+      btn.classList.add("opacity-60", "cursor-not-allowed");
+    }
+  }
+  syncPrescriptionAddButtons();
+}
+
+function syncPrescriptionAddButtons() {
+  if (!prescriptionResults) return;
+  prescriptionResults.querySelectorAll("button[data-add-prescription]").forEach((btn) => {
+    const pid = btn.dataset.addPrescription;
+    const pres = latestPrescriptionList.find(
+      (p) => String(p.prescription_id) === String(pid)
+    );
+    const fullyAdded = pres ? isPrescriptionFullyInBill(pres) : false;
+    btn.disabled = fullyAdded;
+    btn.textContent = fullyAdded ? "Added" : "Add All";
+    btn.classList.toggle("opacity-60", fullyAdded);
+    btn.classList.toggle("cursor-not-allowed", fullyAdded);
+  });
+
+  prescriptionResults.querySelectorAll("button[data-remove-prescription]").forEach((btn) => {
+    const pid = btn.dataset.removePrescription;
+    const inBill = isPrescriptionPresentInBill(pid);
+    btn.disabled = !inBill;
+    btn.classList.toggle("opacity-60", !inBill);
+    btn.classList.toggle("cursor-not-allowed", !inBill);
+  });
+
+  // Update paddle text/state
+  prescriptionResults.querySelectorAll("[data-prescription-paddle]").forEach((paddle) => {
+    const pid = paddle.dataset.prescriptionPaddle;
+    const pres = latestPrescriptionList.find((p) => String(p.prescription_id) === String(pid));
+    const fullyAdded = pres ? isPrescriptionFullyInBill(pres) : false;
+    const partially = pres ? isPrescriptionPresentInBill(pid) && !fullyAdded : false;
+    let label = "Not added";
+    let classes = "bg-gray-100 text-gray-500";
+    if (fullyAdded) {
+      label = "Added";
+      classes = "bg-green-100 text-green-700";
+    } else if (partially) {
+      label = "Partial";
+      classes = "bg-yellow-100 text-yellow-700";
+    }
+    paddle.textContent = label;
+    paddle.className = `text-[10px] px-2 py-1 rounded-full ${classes}`;
+  });
+}
+
 function removeFromBillById(id) {
   const idx = billItems.findIndex((it) => it.medicineId === id);
   if (idx !== -1) {
     billItems.splice(idx, 1);
+    renderBill();
+  }
+}
+
+function removePrescriptionFromBill(prescriptionId) {
+  const pidStr = String(prescriptionId);
+  let changed = false;
+
+  billItems = billItems
+    .map((item) => {
+      if (
+        !Array.isArray(item.prescriptionIds) ||
+        !item.prescriptionIds.some((pid) => String(pid) === pidStr)
+      ) {
+        return item;
+      }
+
+      const remainingIds = item.prescriptionIds.filter(
+        (pid) => String(pid) !== pidStr
+      );
+
+      // If no prescription remains, drop the item entirely
+      if (remainingIds.length === 0) {
+        changed = true;
+        return null;
+      }
+
+      // If other prescriptions remain, keep item but clear caps to avoid under-counting
+      changed = true;
+      return {
+        ...item,
+        prescriptionIds: remainingIds,
+        prescriptionQty: Infinity,
+        fromPrescription: true,
+      };
+    })
+    .filter(Boolean);
+
+  if (changed) {
     renderBill();
   }
 }
@@ -757,8 +905,10 @@ function loadAllPrescriptionsForCustomer(customerId) {
       
       latestPrescriptionMeta.textContent = "";
       latestPrescriptionMeta.classList.add("hidden");
-      latestPrescriptionTag.textContent = "Latest"; 
-      latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-pink-700";
+      if (latestPrescriptionTag) {
+        latestPrescriptionTag.textContent = "Latest"; 
+        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-green-100 text-pink-700";
+      }
       latestPrescriptionBox.classList.remove("hidden");
 
       if (prescriptionResults) {
@@ -864,8 +1014,10 @@ function searchPrescriptionsByFilters() {
         
         latestPrescriptionMeta.textContent = "";
         latestPrescriptionMeta.classList.add("hidden");
-        latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "MATCHED"; 
-        latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
+        if (latestPrescriptionTag) {
+          latestPrescriptionTag.textContent = (doctorId || issueDate) ? "FILTERED" : "MATCHED"; 
+          latestPrescriptionTag.className = "text-[10px] px-2 py-1 rounded-full bg-pink-100 text-pink-700";
+        }
         latestPrescriptionBox.classList.remove("hidden");
 
         if (prescriptionResults) {
@@ -1084,136 +1236,24 @@ async function submitSale() {
 // ----------------------------------------------------
 // 10. EVENT LISTENERS (Unchanged)
 // ----------------------------------------------------
-// Add item from prescription list (only add, don't increase quantity if exists)
-
-function enablePrescriptionButtonsByMedicineId(medicineId) {
-  if (!prescriptionResults) return;
-  const selector = `button[data-add-medicine][data-medicine-id="${medicineId}"]`;
-  prescriptionResults.querySelectorAll(selector).forEach((btn) => {
-    btn.disabled = false;
-    btn.textContent = "Add";
-    btn.classList.remove("opacity-60", "cursor-not-allowed");
-  });
-}
+// Add prescription (all medicines) into bill
 
 if (prescriptionResults) {
   prescriptionResults.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-add-medicine]");
-    if (!btn) return;
-    
-    const med = {
-      medicine_id: btn.dataset.medicineId, // keep as string to match DB id format
-      medicine_name: btn.dataset.medicineName,
-      unit: btn.dataset.unit || "",
-      dosage: btn.dataset.dosage || "",
-      quantity: Number(btn.dataset.quantity) || 1,
-      price: Number(btn.dataset.price) || 0,
-      stock: Number(btn.dataset.stock) || 0,
-      prescription_id: btn.dataset.prescriptionId || null,
-    };
-    const added = addToBillFromPrescription(med);
-    if (added) {
-      btn.disabled = true;
-      btn.textContent = "Added";
-      btn.classList.add("opacity-60", "cursor-not-allowed");
+    const btn = e.target.closest("button[data-add-prescription]");
+    const removeBtn = e.target.closest("button[data-remove-prescription]");
+    if (btn) {
+      const prescId = btn.dataset.addPrescription;
+      addPrescriptionToBill(prescId);
+      return;
+    }
+    if (removeBtn) {
+      const prescId = removeBtn.dataset.removePrescription;
+      removePrescriptionFromBill(prescId);
+      return;
     }
   });
 }
-
-// Change quantity in bill (Stock Check Implemented Here)
-// Allow free typing, validate on blur or Enter
-billItemsTbody.addEventListener("input", (e) => {
-  if (!e.target.classList.contains("qty-input")) return;
-  
-  const idx = Number(e.target.dataset.idx);
-  if (idx < 0 || idx >= billItems.length) return;
-
-  let val = Number(e.target.value);
-  if (isNaN(val) || val < 0) val = 0;
-
-  const item = billItems[idx];
-  const stock = getStockFor(item.medicineId);
-  const prescriptionCap = Number.isFinite(item.prescriptionQty) ? item.prescriptionQty : Infinity;
-  const maxAllowed = Math.min(stock, prescriptionCap);
-  if (val > maxAllowed) val = maxAllowed;
-
-  item.quantity = val;
-  item.lineTotal = item.quantity * item.price;
-  e.target.value = val.toString();
-
-  // Re-render to update line totals and grand total
-  renderBill();
-});
-
-billItemsTbody.addEventListener("blur", (e) => {
-  if (!e.target.classList.contains("qty-input")) return;
-  
-  const idx = Number(e.target.dataset.idx);
-  if (idx < 0 || idx >= billItems.length) return;
-
-  let raw = e.target.value.trim();
-  
-  // If empty, set to 0
-  if (raw === "" || raw === null || raw === undefined) {
-    const item = billItems[idx];
-    item.quantity = 0;
-    item.lineTotal = 0;
-    // Force update the input value immediately to show 0
-    e.target.value = "0";
-    renderBill();
-    return;
-  }
-
-  let val = Number(raw);
-  if (isNaN(val) || val < 0) {
-    val = 0;
-    e.target.value = "0";
-  }
-
-  const item = billItems[idx];
-  const stock = getStockFor(item.medicineId); 
-  const prescriptionCap = Number.isFinite(item.prescriptionQty) ? item.prescriptionQty : Infinity;
-  const maxAllowed = Math.min(stock, prescriptionCap);
-
-  if (val > maxAllowed) {
-    const reasons = [];
-    if (val > stock) reasons.push(`Not enough stock. Max available = ${stock}`);
-    if (val > prescriptionCap && prescriptionCap !== Infinity) {
-      reasons.push(`Exceeds prescription allowance. Max allowed = ${prescriptionCap}`);
-    }
-    alert(reasons.join("\n"));
-    val = maxAllowed;
-  }
-
-  item.quantity = val;
-  item.lineTotal = item.quantity * item.price;
-  e.target.value = val.toString();
-
-  renderBill();
-});
-
-billItemsTbody.addEventListener("keydown", (e) => {
-  if (!e.target.classList.contains("qty-input")) return;
-  
-  // Validate on Enter key
-  if (e.key === "Enter") {
-    e.preventDefault();
-    e.target.blur(); // Trigger blur event which will validate
-  }
-});
-
-// Remove item from bill
-billItemsTbody.addEventListener("click", (e) => {
-  const btn = e.target.closest("button[data-remove]");
-  if (!btn) return;
-  const idx = Number(btn.getAttribute("data-remove"));
-  const removed = billItems[idx];
-  billItems.splice(idx, 1);
-  renderBill();
-  if (removed && removed.medicineId) {
-    enablePrescriptionButtonsByMedicineId(removed.medicineId);
-  }
-});
 
 // Customer search input event
 customerSearchInput.addEventListener("input", handleCustomerSearch);
