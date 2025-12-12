@@ -93,25 +93,39 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderStockTable() {
     if (medicines.length === 0) {
       stockTableBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
+        `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
 
     stockTableBody.innerHTML = medicines
       .map((m) => {
         const supplierName = findSupplierName(m.supplier_id);
+        const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
+
         const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
         const stockUnitLabel = m.displayUnit || m.unit || "";
+
+        let extra = "";
+        if (m.unitsPerPack) extra += `${m.unitsPerPack} per box`;
+        if (m.packageSize) extra += (extra ? " · " : "") + `${m.packageSize}`;
+        if (m.packageVolume) extra += (extra ? " · " : "") + m.packageVolume;
 
         return `
           <tr>
             <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
             <td class="py-2 px-2 text-left w-1/4">${supplierName}</td>
-            <td class="py-2 px-2 text-right w-1/4">
+            <td class="py-2 px-2 text-right w-1/6">
               ${m.price.toFixed(2)}${priceUnitLabel}
             </td>
-            <td class="py-2 px-2 text-right w-1/4">
+            <td class="py-2 px-2 text-right w-1/6">
               ${m.quantity} ${stockUnitLabel}
+            </td>
+            <td class="py-2 px-2 text-right w-1/6 text-sm">
+              ${expiryText}${
+          extra
+            ? "<br/><span class='text-xs text-gray-500'>" + extra + "</span>"
+            : ""
+        }
             </td>
           </tr>
         `;
@@ -276,25 +290,20 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
-      // units per box - only show when unit is "box"
-      if (needsUnitsPerBox) {
-        receiveUnitsPerBoxGroup.classList.remove("hidden");
-        receiveUnitsPerBoxInput.value =
-          item.units_per_pack != null
-            ? String(item.units_per_pack)
-            : item.unitsPerPack != null
-            ? String(item.unitsPerPack)
-            : "";
-      } else {
-        receiveUnitsPerBoxGroup.classList.add("hidden");
-        receiveUnitsPerBoxInput.value = "";
-      }
+      // units per box (always show so user can confirm/adjust)
+      receiveUnitsPerBoxGroup.classList.remove("hidden");
+      receiveUnitsPerBoxInput.value =
+        item.units_per_pack != null
+          ? String(item.units_per_pack)
+          : item.unitsPerPack != null
+          ? String(item.unitsPerPack)
+          : "";
 
-      // bottle / tube → volume (required, no size field)
+      // bottle / tube → size + volume
       if (needsSizeAndVolume) {
-        receiveSizeGroup.classList.add("hidden"); // Always hide size field
+        receiveSizeGroup.classList.remove("hidden");
         receiveVolumeGroup.classList.remove("hidden");
-        receiveSizeSelect.value = "";
+        receiveSizeSelect.value = item.size || "";
         receiveVolumeInput.value = item.volume || "";
       } else {
         receiveSizeGroup.classList.add("hidden");
@@ -346,12 +355,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let size = null;
     let volume = null;
-    if (!receiveVolumeGroup.classList.contains("hidden")) {
-      volume = receiveVolumeInput.value.trim();
-      if (!volume) {
-        alert("Please enter volume / amount.");
+    if (!receiveSizeGroup.classList.contains("hidden")) {
+      size = receiveSizeSelect.value;
+      if (!size) {
+        alert("Please select size (small / large).");
         return;
       }
+      volume = receiveVolumeInput.value.trim(); // อนุโลมให้ว่างได้
     }
 
     const payload = { expiryDate: exp, unitsPerBox, size, volume };
@@ -379,21 +389,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-      const isBox = unitLower.startsWith("box"); // "box" or "box(es)"
-      const isBottleOrTube =
-        unitLower.startsWith("bottle") || unitLower.startsWith("tube");
+    const isBottleOrTube =
+      unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-      // units per box - only needed for box units
-      const needsUnitsPerBox = isBox;
-      // bottle / tube → size + volume
-      const needsSizeAndVolume = isBottleOrTube;
+    const needsSizeAndVolume = isBottleOrTube;
 
-      const info = await openReceiveModal({
-        med,
-        item: it,
-        needsUnitsPerBox,
-        needsSizeAndVolume,
-      });
+    const info = await openReceiveModal({
+      med,
+      item: it,
+      needsUnitsPerBox: true,
+      needsSizeAndVolume,
+    });
 
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
@@ -402,12 +408,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { expiryDate, unitsPerBox } = info;
 
-      // For box units, use the entered unitsPerBox; for others, use 1 as default
       itemPayloads.push({
         order_item_id: it.order_item_id,
         medicine_id: it.medicine_id || it.medicineId,
         ordered_quantity: it.ordered_quantity || it.quantity,
-        units_per_pack: needsUnitsPerBox ? (unitsPerBox ?? it.units_per_pack ?? 1) : (it.units_per_pack ?? 1),
+        units_per_pack: unitsPerBox ?? it.units_per_pack ?? 1,
         expiry_date: expiryDate,
       });
     }
@@ -562,7 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
-  orderTableBody.addEventListener("click", async (e) => {
+  orderTableBody.addEventListener("click", (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
     const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
@@ -577,27 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = deleteBtn.dataset.deleteOrder;
       const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
-      const ok = confirm(`Delete order ${id}?`);
-      if (!ok) return;
-
-      try {
-        const res = await fetch(`http://localhost:8000/supply-orders/${id}`, {
-          method: "DELETE",
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const detail = data && data.message ? `: ${data.message}` : "";
-          throw new Error(`Failed to delete order${detail}`);
-        }
-        alert(`Order ${id} deleted.`);
-        if (String(orderIdInput.value) === String(id)) {
-          resetOrderForm();
-        }
-        await loadSupplyOrders();
-      } catch (err) {
-        console.error("Delete order error:", err);
-        alert(err.message || "Failed to delete order.");
-      }
+      alert("Delete is not implemented yet.");
       return;
     }
 
