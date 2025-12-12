@@ -1,6 +1,6 @@
 import Medicine from "../models/medicine.js";
 import Sale from "../models/sale.js";
-// import Prescription from "../models/Prescription.js"; // when you create it
+import Prescription from "../models/prescription.js";
 
 export const getDashboardSummary = async (req, res) => {
   try {
@@ -60,13 +60,8 @@ export const getDashboardSummary = async (req, res) => {
     const todaySalesTotal = todaySales[0]?.totalRevenue || 0;
     const todaySalesCount = todaySales[0]?.count || 0;
 
-    // 6) Awaited prescriptions (requires Prescription model)
-    // const awaitedCount = await Prescription.countDocuments({
-    //   status: "awaiting",
-    // });
-
-    // TEMP placeholder:
-    const awaitedCount = 0;
+    // 6) Awaited prescriptions: those not yet used in a sale
+    const awaitedCount = await Prescription.countDocuments({ is_sale: { $ne: true } });
 
     res.json({
       totalMedicineItems,
