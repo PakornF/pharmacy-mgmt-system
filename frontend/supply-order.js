@@ -116,13 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!med) return "-";
     const qty = Number(med.quantity ?? 0);
     const typeRaw = med.type || med.medicine_type || "";
-    const type = typeRaw.toLowerCase();
-    const isPill =
-      type.includes("capsule") ||
-      type.includes("tablet") ||
-      type.includes("pill");
+    const typeLower = typeRaw.toLowerCase();
+    const isPill = typeLower.includes("capsule") || typeLower.includes("tablet");
     if (isPill) {
-      const label = typeRaw || med.unit || "pcs";
+      const label = typeRaw || "tablets";
       return `${qty} ${label}`;
     }
     return `${qty}`;
@@ -792,6 +789,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
+        type: m.type || m.medicine_type || "",
         supplier_id: m.supplier_id,
       }));
 
