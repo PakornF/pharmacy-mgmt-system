@@ -140,20 +140,17 @@
         <input type="hidden" id="medicineMongoId" />
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Medicine ID (auto, read-only) -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Medicine ID *</label>
             <input 
-              type="text"
+              type="text" 
               id="medicine_id" 
               required
-              readonly
-              class="w-full px-4 py-2 border-2 rounded-lg bg-gray-100 text-gray-700 focus:outline-none"
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
               style="border-color: #f8bbd0;"
             />
           </div>
           
-          <!-- Medicine Name -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Medicine Name *</label>
             <input 
@@ -165,7 +162,6 @@
             />
           </div>
           
-          <!-- Brand -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Brand *</label>
             <input 
@@ -177,23 +173,17 @@
             />
           </div>
           
-          <!-- Type: dropdown Capsule / Bottle / Tube -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Type *</label>
-            <select
-              id="type"
+            <input 
+              type="text" 
+              id="type" 
               required
-              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400 bg-white"
+              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
               style="border-color: #f8bbd0;"
-            >
-              <option value="">Select type...</option>
-              <option value="Capsule">Capsule</option>
-              <option value="Bottle">Bottle</option>
-              <option value="Tube">Tube</option>
-            </select>
+            />
           </div>
           
-          <!-- Price -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Price (THB) *</label>
             <input 
@@ -207,20 +197,6 @@
             />
           </div>
           
-          <!-- Cost -->
-          <div>
-            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Cost (THB)</label>
-            <input 
-              type="number" 
-              id="cost" 
-              step="0.01"
-              min="0"
-              class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
-              style="border-color: #f8bbd0;"
-            />
-          </div>
-          
-          <!-- Quantity -->
           <div>
             <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Quantity *</label>
             <input 
@@ -233,31 +209,15 @@
             />
           </div>
           
-          <!-- Supplier (search by name or ID) -->
-          <div class="md:col-span-2 relative">
-            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Supplier *</label>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium mb-2" style="color: #ad1457;">Supplier ID *</label>
             <input 
-              type="text"
-              id="supplierInput"
-              autocomplete="off"
-              placeholder="Search supplier by name or ID..."
+              type="number" 
+              id="supplier_id" 
+              required
               class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:border-pink-400"
               style="border-color: #f8bbd0;"
-              required
             />
-            <!-- hidden numeric supplier_id to send to backend -->
-            <input type="hidden" id="supplier_id" />
-            
-            <!-- dropdown -->
-            <div 
-              id="supplier_dropdown"
-              class="hidden absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto text-sm z-10"
-              style="border-color: #f8bbd0;"
-            ></div>
-
-            <p id="supplierError" class="text-xs text-red-500 mt-1 hidden">
-              Please select a supplier from the list.
-            </p>
           </div>
         </div>
         
@@ -315,3 +275,4 @@
   <script src="Medicine_Management.js"></script>
 </body>
 </html>
+

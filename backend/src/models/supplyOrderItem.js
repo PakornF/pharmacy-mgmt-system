@@ -7,7 +7,6 @@ const SupplyOrderItemSchema = new mongoose.Schema({
   ordered_quantity: { type: Number, required: true },
   cost_per_unit: { type: Number, required: true },
   units_per_pack: { type: Number, required: true },
-  unit: { type: String }, // e.g., box, bottle, tube
   expiry_date: { type: Date }
 });
 

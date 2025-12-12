@@ -26,12 +26,13 @@
         <!-- LEFT: Order list -->
         <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold " id="newOrderBtn">Supply Orders</h2>
-            <!-- <button
+            <h2 class="font-semibold">Supply Orders</h2>
+            <button
               id="newOrderBtn"
+              class="px-3 py-1 text-sm bg-pink-500 text-white rounded-xl"
             >
-              Order
-            </button> -->
+              + New Order
+            </button>
           </div>
 
           <div class="max-h-80 overflow-y-auto">
@@ -182,7 +183,7 @@
       <!-- Current stock -->
       <div class="bg-white/70 backdrop-blur rounded-2xl p-5 shadow">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="font-semibold">Current Medicine Stock</h2>
+          <h2 class="font-semibold">Current Medicine Stock (Mock)</h2>
           <p class="text-xs text-gray-500">Updated when marking order as received</p>
         </div>
         <div class="max-h-64 overflow-y-auto">
@@ -191,8 +192,9 @@
               <tr class="border-b bg-white">
                 <th class="py-2 px-2 text-left w-1/4">Name</th>
                 <th class="py-2 px-2 text-left w-1/4">Supplier</th>
-                <th class="py-2 px-2 text-right w-1/4">Unit Price</th>
-                <th class="py-2 px-2 text-right w-1/4">Stock</th>
+                <th class="py-2 px-2 text-right w-1/6">Unit Price</th>
+                <th class="py-2 px-2 text-right w-1/6">Stock</th>
+                <th class="py-2 px-2 text-right w-1/6">Expiry / Pack Info</th>
               </tr>
             </thead>
             <tbody id="stockTableBody" class="divide-y"></tbody>
@@ -250,6 +252,18 @@
             </select>
           </div>
 
+          <!-- Volume -->
+          <div id="receiveVolumeGroup" class="hidden">
+            <label class="block text-sm font-medium mb-1"
+              >Volume / amount (optional)</label
+            >
+            <input
+              type="text"
+              id="receiveVolumeInput"
+              class="w-full border rounded-xl px-3 py-2 text-sm"
+              placeholder="e.g. 60 ml, 15 g"
+            />
+          </div>
         </div>
 
         <div class="mt-4 flex justify-end gap-2">

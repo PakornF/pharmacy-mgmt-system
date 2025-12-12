@@ -47,15 +47,9 @@ router.get("/", async (req, res) => {
 // Create supply order with items
 router.post("/", async (req, res) => {
   try {
-    let { order_id, supplier_id, order_date, status = "PENDING", total_cost, items } = req.body;
-    if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
+    const { order_id, supplier_id, order_date, status = "PENDING", total_cost, items } = req.body;
+    if (!order_id || !supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    if (!order_id) {
-      const latest = await SupplyOrder.findOne().sort({ order_id: -1 }).lean();
-      const latestId = Number(latest?.order_id) || 0;
-      order_id = latestId + 1;
     }
 
     const supplier = await Supplier.findOne({ supplier_id });
@@ -74,15 +68,12 @@ router.post("/", async (req, res) => {
       total_cost: total_cost ?? computedTotal,
     });
 
-    const nowBase = Date.now();
-    const itemsToInsert = items.map((i, idx) => ({
-      order_item_id: i.order_item_id ?? nowBase + idx,
+    const itemsToInsert = items.map((i) => ({
+      order_item_id: i.order_item_id,
       order_id,
       medicine_id: i.medicine_id,
       ordered_quantity: i.ordered_quantity,
       cost_per_unit: i.cost_per_unit,
-      units_per_pack: i.units_per_pack ?? 1,
-      unit: i.unit,
       expiry_date: i.expiry_date,
     }));
     await SupplyOrderItem.insertMany(itemsToInsert);
@@ -124,15 +115,12 @@ router.put("/:order_id", async (req, res) => {
 
     if (items) {
       await SupplyOrderItem.deleteMany({ order_id: Number(order_id) });
-      const nowBase = Date.now();
-      const itemsToInsert = items.map((i, idx) => ({
-        order_item_id: i.order_item_id ?? nowBase + idx,
+      const itemsToInsert = items.map((i) => ({
+        order_item_id: i.order_item_id,
         order_id: Number(order_id),
         medicine_id: i.medicine_id,
         ordered_quantity: i.ordered_quantity,
         cost_per_unit: i.cost_per_unit,
-        units_per_pack: i.units_per_pack ?? 1,
-        unit: i.unit,
         expiry_date: i.expiry_date,
       }));
       await SupplyOrderItem.insertMany(itemsToInsert);
@@ -145,12 +133,12 @@ router.put("/:order_id", async (req, res) => {
     res.status(400).json({ message: "Invalid data" });
   }
 });
-// Test
+
 // Mark delivered/pending and update medicine quantities when delivered
 router.patch("/:order_id/status", async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { status, items: itemUpdates = [] } = req.body;
+    const { status } = req.body;
     if (!status || !["PENDING", "DELIVERED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
@@ -163,39 +151,12 @@ router.patch("/:order_id/status", async (req, res) => {
     await order.save();
 
     if (status === "DELIVERED" && !wasDelivered) {
-      // Map incoming updates by order_item_id or medicine_id for quick lookup
-      const updatesByKey = new Map();
-      if (Array.isArray(itemUpdates)) {
-        for (const u of itemUpdates) {
-          if (u?.order_item_id != null) updatesByKey.set(String(u.order_item_id), u);
-          else if (u?.medicine_id) updatesByKey.set(`med:${u.medicine_id}`, u);
-        }
-      }
-
-      // Update item metadata and increment medicine stock
       const items = await SupplyOrderItem.find({ order_id: Number(order_id) });
       for (const item of items) {
-      const update =
-        updatesByKey.get(String(item.order_item_id)) ||
-        updatesByKey.get(`med:${item.medicine_id}`);
-
-      if (update) {
-        if (update.units_per_pack != null) item.units_per_pack = Number(update.units_per_pack) || 1;
-        if (update.expiry_date) item.expiry_date = update.expiry_date;
-        if (update.ordered_quantity != null) item.ordered_quantity = Number(update.ordered_quantity);
-        if (update.unit) item.unit = update.unit;
-        await item.save();
-      }
-
-        const qtyToAdd =
-          Number(item.ordered_quantity || 0) * Number(item.units_per_pack || 1);
-
-        if (qtyToAdd > 0) {
-          await Medicine.updateOne(
-            { medicine_id: item.medicine_id },
-            { $inc: { quantity: qtyToAdd } }
-          );
-        }
+        await Medicine.updateOne(
+          { medicine_id: item.medicine_id },
+          { $inc: { quantity: item.ordered_quantity } }
+        );
       }
     }
 
@@ -204,25 +165,6 @@ router.patch("/:order_id/status", async (req, res) => {
   } catch (err) {
     console.error("Error updating order status:", err);
     res.status(400).json({ message: "Invalid data" });
-  }
-});
-
-// Delete supply order (if not delivered)
-router.delete("/:order_id", async (req, res) => {
-  try {
-    const { order_id } = req.params;
-    const order = await SupplyOrder.findOne({ order_id: Number(order_id) });
-    if (!order) return res.status(404).json({ message: "Not found" });
-    if ((order.status || "").toUpperCase() === "DELIVERED") {
-      return res.status(400).json({ message: "Cannot delete delivered order" });
-    }
-
-    await SupplyOrderItem.deleteMany({ order_id: Number(order_id) });
-    await SupplyOrder.deleteOne({ order_id: Number(order_id) });
-    res.json({ message: "Supply order deleted" });
-  } catch (err) {
-    console.error("Error deleting supply order:", err);
-    res.status(500).json({ message: "Failed to delete order" });
   }
 });
 
