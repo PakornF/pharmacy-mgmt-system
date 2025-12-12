@@ -298,7 +298,6 @@ function closeStockModalFunc() {
 }
 
 // Close Delete Modal
->>>>>>> f5c1edb (Refactor medicineController and frontend forms to improve validation and data handling. Removed unnecessary fields, updated sorting logic, and enhanced error responses. Updated frontend to reflect changes in API and improve user experience with clearer input requirements.)
 function closeDeleteModal() {
   deleteModal.classList.add('hidden');
   currentDeleteId = null;
@@ -416,7 +415,6 @@ async function handleDelete() {
   }
 }
 
-<<<<<<< HEAD
 // Event listeners setup
 function setupEventListeners() {
   // Search
