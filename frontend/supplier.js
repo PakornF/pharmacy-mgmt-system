@@ -168,7 +168,7 @@ function showSupplierInformation(supplier, medicines = []) {
 // -----------------------------
 // Render Medicines of Supplier (by supplier_id)
 // -----------------------------
-async function renderSupplierMedicinesByBusinessId(supplierBusinessId) {
+async function renderSupplierMedicinesByBusinessId(supplierMongoId) {
   const supplierMedicinesBody = document.getElementById(
     "supplierMedicinesBody"
   );
@@ -176,7 +176,7 @@ async function renderSupplierMedicinesByBusinessId(supplierBusinessId) {
 
   try {
     const response = await fetch(
-      `http://localhost:8000/medicines?supplier_id=${supplierBusinessId}`
+      `http://localhost:8000/suppliers/${supplierMongoId}/medicines`
     );
 
     if (!response.ok) {
@@ -316,7 +316,7 @@ supplierTableBody.addEventListener("click", async (event) => {
 
     // ใช้ supplier_id (เลขธุรกิจ) ไปดึงยา
     const medicines = await renderSupplierMedicinesByBusinessId(
-      supplier.supplier_id
+      supplier._id
     );
 
     // แสดงข้อมูล supplier + รายชื่อยา
