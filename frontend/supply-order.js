@@ -47,12 +47,10 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const receiveSizeGroup = document.getElementById("receiveSizeGroup");
   const receiveSizeSelect = document.getElementById("receiveSizeSelect");
-  const receiveVolumeGroup = document.getElementById("receiveVolumeGroup");
-  const receiveVolumeInput = document.getElementById("receiveVolumeInput");
   const receiveCancelBtn = document.getElementById("receiveCancelBtn");
   const receiveOkBtn = document.getElementById("receiveOkBtn");
 
-  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
+  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size? }
 
   // for resolve promise of modal
   let receiveResolve = null;
@@ -290,18 +288,9 @@ document.addEventListener("DOMContentLoaded", () => {
         receiveUnitsPerBoxInput.value = "";
       }
 
-      // bottle / tube → volume (required, no size field)
-      if (needsSizeAndVolume) {
-        receiveSizeGroup.classList.add("hidden"); // Always hide size field
-        receiveVolumeGroup.classList.remove("hidden");
-        receiveSizeSelect.value = "";
-        receiveVolumeInput.value = item.volume || "";
-      } else {
-        receiveSizeGroup.classList.add("hidden");
-        receiveVolumeGroup.classList.add("hidden");
-        receiveSizeSelect.value = "";
-        receiveVolumeInput.value = "";
-      }
+      // bottle / tube → no additional fields needed
+      receiveSizeGroup.classList.add("hidden");
+      receiveSizeSelect.value = "";
 
       // show modal
       receiveBackdrop.classList.remove("hidden");
@@ -344,17 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
       unitsPerBox = val;
     }
 
-    let size = null;
-    let volume = null;
-    if (!receiveVolumeGroup.classList.contains("hidden")) {
-      volume = receiveVolumeInput.value.trim();
-      if (!volume) {
-        alert("Please enter volume / amount.");
-        return;
-      }
-    }
-
-    const payload = { expiryDate: exp, unitsPerBox, size, volume };
+    const payload = { expiryDate: exp, unitsPerBox };
     receiveResolve(payload);
     receiveResolve = null;
     closeReceiveModal();
@@ -385,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // units per box - only needed for box units
       const needsUnitsPerBox = isBox;
-      // bottle / tube → size + volume
+      // bottle / tube → no additional fields needed
       const needsSizeAndVolume = isBottleOrTube;
 
       const info = await openReceiveModal({
