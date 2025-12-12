@@ -47,12 +47,10 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const receiveSizeGroup = document.getElementById("receiveSizeGroup");
   const receiveSizeSelect = document.getElementById("receiveSizeSelect");
-  const receiveVolumeGroup = document.getElementById("receiveVolumeGroup");
-  const receiveVolumeInput = document.getElementById("receiveVolumeInput");
   const receiveCancelBtn = document.getElementById("receiveCancelBtn");
   const receiveOkBtn = document.getElementById("receiveOkBtn");
 
-  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
+  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size? }
 
   // for resolve promise of modal
   let receiveResolve = null;
@@ -71,6 +69,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return medicines.find((m) => String(m.id) === String(id));
   }
 
+  function unitLabel(u) {
+    const lower = (u || "").toLowerCase();
+    if (lower === "box") return "Box(es)";
+    if (lower === "bottle") return "Bottle(s)";
+    if (lower === "tube") return "Tube(s)";
+    return u || "Unit";
+  }
+
+  function unitOptionsForType(type, fallbackUnit) {
+    const t = (type || "").toLowerCase();
+    if (["tablet", "capsule"].includes(t)) return ["box"];
+    if (["bottle", "spray", "syrup"].includes(t)) return ["bottle"];
+    if (["injectable", "cream"].includes(t)) return ["tube"];
+    if (fallbackUnit) return [fallbackUnit];
+    return ["box", "bottle", "tube"];
+  }
+
+  function renderUnitSelectForMedicine(med) {
+    const options = unitOptionsForType(med?.type, med?.unit);
+    const optionsHtml =
+      `<option value="">Select unit...</option>` +
+      options.map((u) => `<option value="${u}">${unitLabel(u)}</option>`).join("");
+    itemUnitSelect.innerHTML = optionsHtml;
+    // Preselect the first option to reduce clicks
+    itemUnitSelect.value = options[0] || "";
+  }
+
   function formatDateTime(d) {
     return new Date(d).toLocaleString();
   }
@@ -87,45 +112,47 @@ document.addEventListener("DOMContentLoaded", () => {
     return new Date().toISOString().slice(0, 10);
   }
 
+  function formatStockForOrderItem(med) {
+    if (!med) return "-";
+    const qty = Number(med.quantity ?? 0);
+    const typeRaw = med.type || med.medicine_type || "";
+    const type = typeRaw.toLowerCase();
+    const isPill =
+      type.includes("capsule") ||
+      type.includes("tablet") ||
+      type.includes("pill");
+    if (isPill) {
+      const label = typeRaw || med.unit || "pcs";
+      return `${qty} ${label}`;
+    }
+    return `${qty}`;
+  }
+
   // ---------------------------
   // Render stock table
   // ---------------------------
   function renderStockTable() {
     if (medicines.length === 0) {
       stockTableBody.innerHTML =
-        `<tr><td colspan="5" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
+        `<tr><td colspan="4" class="py-2 px-2 text-center text-gray-400 text-sm">No medicines.</td></tr>`;
       return;
     }
 
     stockTableBody.innerHTML = medicines
       .map((m) => {
         const supplierName = findSupplierName(m.supplier_id);
-        const expiryText = m.expiryDate ? prettyDate(m.expiryDate) : "-";
-
         const priceUnitLabel = m.unit ? ` / ${m.unit}` : "";
         const stockUnitLabel = m.displayUnit || m.unit || "";
-
-        let extra = "";
-        if (m.unitsPerPack) extra += `${m.unitsPerPack} per box`;
-        if (m.packageSize) extra += (extra ? " · " : "") + `${m.packageSize}`;
-        if (m.packageVolume) extra += (extra ? " · " : "") + m.packageVolume;
 
         return `
           <tr>
             <td class="py-2 px-2 text-left w-1/4">${m.name}</td>
             <td class="py-2 px-2 text-left w-1/4">${supplierName}</td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.price.toFixed(2)}${priceUnitLabel}
             </td>
-            <td class="py-2 px-2 text-right w-1/6">
+            <td class="py-2 px-2 text-right w-1/4">
               ${m.quantity} ${stockUnitLabel}
-            </td>
-            <td class="py-2 px-2 text-right w-1/6 text-sm">
-              ${expiryText}${
-          extra
-            ? "<br/><span class='text-xs text-gray-500'>" + extra + "</span>"
-            : ""
-        }
             </td>
           </tr>
         `;
@@ -149,6 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!supId) {
       itemMedicineSelect.innerHTML =
         `<option value="">Select supplier first...</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
@@ -158,12 +186,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (meds.length === 0) {
       itemMedicineSelect.innerHTML =
         `<option value="">No medicines for this supplier</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
     itemMedicineSelect.innerHTML =
       `<option value="">Select medicine...</option>` +
       meds.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
+
+    // Reset unit select when changing supplier
+    itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
   }
 
   // ---------------------------
@@ -183,7 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
-        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -199,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
             <td class="py-1 px-2 text-right w-1/6">
-              ${stock} ${stockUnitLabel}
+              ${formatStockForOrderItem(med)}
             </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
@@ -286,31 +317,29 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveTitle.textContent = `Receive: ${med.name}`;
       receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
 
-      // set min date = วันนี้
+      // set min date = today
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
-      // units per box (always show so user can confirm/adjust)
-      receiveUnitsPerBoxGroup.classList.remove("hidden");
-      receiveUnitsPerBoxInput.value =
-        item.units_per_pack != null
-          ? String(item.units_per_pack)
-          : item.unitsPerPack != null
-          ? String(item.unitsPerPack)
-          : "";
-
-      // bottle / tube → size + volume
-      if (needsSizeAndVolume) {
-        receiveSizeGroup.classList.remove("hidden");
-        receiveVolumeGroup.classList.remove("hidden");
-        receiveSizeSelect.value = item.size || "";
-        receiveVolumeInput.value = item.volume || "";
+      // units per box - only show when unit is "box"
+      if (needsUnitsPerBox) {
+        receiveUnitsPerBoxGroup.classList.remove("hidden");
+        receiveUnitsPerBoxInput.value =
+          item.units_per_pack != null
+            ? String(item.units_per_pack)
+            : item.unitsPerPack != null
+            ? String(item.unitsPerPack)
+            : "";
       } else {
-        receiveSizeGroup.classList.add("hidden");
-        receiveVolumeGroup.classList.add("hidden");
-        receiveSizeSelect.value = "";
-        receiveVolumeInput.value = "";
+        receiveUnitsPerBoxGroup.classList.add("hidden");
+        receiveUnitsPerBoxInput.value = "";
       }
+
+      // bottle / tube → we only need expiry; keep size/volume hidden
+      receiveSizeGroup.classList.add("hidden");
+      receiveVolumeGroup.classList.add("hidden");
+      receiveSizeSelect.value = "";
+      receiveVolumeInput.value = "";
 
       // show modal
       receiveBackdrop.classList.remove("hidden");
@@ -323,7 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   receiveCancelBtn.addEventListener("click", () => {
     if (receiveResolve) {
-      receiveResolve(null); // ยกเลิก
+      receiveResolve(null);
       receiveResolve = null;
     }
     closeReceiveModal();
@@ -353,18 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
       unitsPerBox = val;
     }
 
-    let size = null;
-    let volume = null;
-    if (!receiveSizeGroup.classList.contains("hidden")) {
-      size = receiveSizeSelect.value;
-      if (!size) {
-        alert("Please select size (small / large).");
-        return;
-      }
-      volume = receiveVolumeInput.value.trim(); // อนุโลมให้ว่างได้
-    }
-
-    const payload = { expiryDate: exp, unitsPerBox, size, volume };
+    const payload = { expiryDate: exp, unitsPerBox, size: null, volume: null };
     receiveResolve(payload);
     receiveResolve = null;
     closeReceiveModal();
@@ -389,17 +407,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const orderUnitRaw = it.unit || med.unit || "";
       const unitLower = orderUnitRaw.toLowerCase();
 
-    const isBottleOrTube =
-      unitLower.startsWith("bottle") || unitLower.startsWith("tube");
+      const isBox = unitLower.startsWith("box"); // "box" or "box(es)"
+      const isBottleOrTube =
+        unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-    const needsSizeAndVolume = isBottleOrTube;
+      // units per box - only needed for box units; bottle/tube need only expiry
+      const needsUnitsPerBox = isBox;
+      const needsSizeAndVolume = false;
 
-    const info = await openReceiveModal({
-      med,
-      item: it,
-      needsUnitsPerBox: true,
-      needsSizeAndVolume,
-    });
+      const info = await openReceiveModal({
+        med,
+        item: it,
+        needsUnitsPerBox,
+        needsSizeAndVolume,
+      });
 
       if (!info) {
         alert("Receive process cancelled. No stock updated.");
@@ -408,11 +429,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { expiryDate, unitsPerBox } = info;
 
+      // For box units, use the entered unitsPerBox; for others, use 1 as default
       itemPayloads.push({
         order_item_id: it.order_item_id,
         medicine_id: it.medicine_id || it.medicineId,
         ordered_quantity: it.ordered_quantity || it.quantity,
-        units_per_pack: unitsPerBox ?? it.units_per_pack ?? 1,
+        units_per_pack: needsUnitsPerBox ? (unitsPerBox ?? it.units_per_pack ?? 1) : (it.units_per_pack ?? 1),
         expiry_date: expiryDate,
       });
     }
@@ -487,6 +509,13 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMedicineSelect();
     currentOrderItems = [];
     renderOrderItems();
+  });
+
+  // Change medicine → update unit options based on type
+  itemMedicineSelect.addEventListener("change", () => {
+    const medId = itemMedicineSelect.value;
+    const med = findMedicine(medId);
+    renderUnitSelectForMedicine(med);
   });
 
   // Add item to current order
@@ -567,7 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // คลิกปุ่มในตารางด้านซ้าย (Edit / Mark as received / Delete)
-  orderTableBody.addEventListener("click", (e) => {
+  orderTableBody.addEventListener("click", async (e) => {
     const editBtn = e.target.closest("button[data-edit-order]");
     const markBtn = e.target.closest("button[data-mark-received]");
     const deleteBtn = e.target.closest("button[data-delete-order]");
@@ -582,7 +611,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = deleteBtn.dataset.deleteOrder;
       const o = supplyOrders.find((ord) => String(ord.order_id) === String(id));
       if (!o) return;
-      alert("Delete is not implemented yet.");
+      const ok = confirm(`Delete order ${id}?`);
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`http://localhost:8000/supply-orders/${id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data && data.message ? `: ${data.message}` : "";
+          throw new Error(`Failed to delete order${detail}`);
+        }
+        alert(`Order ${id} deleted.`);
+        if (String(orderIdInput.value) === String(id)) {
+          resetOrderForm();
+        }
+        await loadSupplyOrders();
+      } catch (err) {
+        console.error("Delete order error:", err);
+        alert(err.message || "Failed to delete order.");
+      }
       return;
     }
 
@@ -721,6 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
+        type: m.type || m.medicine_type || "",
         supplier_id: m.supplier_id,
       }));
       renderMedicineSelect();

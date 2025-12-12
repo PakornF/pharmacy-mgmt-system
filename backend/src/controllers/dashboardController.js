@@ -60,8 +60,27 @@ export const getDashboardSummary = async (req, res) => {
     const todaySalesTotal = todaySales[0]?.totalRevenue || 0;
     const todaySalesCount = todaySales[0]?.count || 0;
 
-    // 6) Awaited prescriptions: those not yet used in a sale
-    const awaitedCount = await Prescription.countDocuments({ is_sale: { $ne: true } });
+    // 6) Awaited prescriptions: not marked sold and not linked to any sale
+    const awaitedAgg = await Prescription.aggregate([
+      {
+        $lookup: {
+          from: "sales",
+          localField: "prescription_id",
+          foreignField: "prescription_id",
+          as: "sales",
+        },
+      },
+      {
+        $match: {
+          $and: [
+            { $or: [{ is_sale: { $exists: false } }, { is_sale: { $ne: true } }] },
+            { $expr: { $eq: [{ $size: "$sales" }, 0] } },
+          ],
+        },
+      },
+      { $count: "count" },
+    ]);
+    const awaitedCount = awaitedAgg[0]?.count ?? 0;
 
     res.json({
       totalMedicineItems,
