@@ -304,24 +304,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   // Modal: รับของทีละ item
   // ---------------------------
-  function openReceiveModal({
-    med,
-    item,
-    needsUnitsPerBox,
-    needsSizeAndVolume,
-  }) {
+  function openReceiveModal({ med, item, needsUnitsPerBox }) {
     return new Promise((resolve) => {
       receiveResolve = resolve;
-
-      // set texts
+  
       receiveTitle.textContent = `Receive: ${med.name}`;
       receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
-
-      // set min date = today
+  
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
-
-      // units per box - only show when unit is "box"
+  
       if (needsUnitsPerBox) {
         receiveUnitsPerBoxGroup.classList.remove("hidden");
         receiveUnitsPerBoxInput.value =
@@ -334,14 +326,11 @@ document.addEventListener("DOMContentLoaded", () => {
         receiveUnitsPerBoxGroup.classList.add("hidden");
         receiveUnitsPerBoxInput.value = "";
       }
-
-      // bottle / tube → we only need expiry; keep size/volume hidden
+  
+      // เราไม่ใช้ size/volume แล้ว → ซ่อน size ไว้เสมอ
       receiveSizeGroup.classList.add("hidden");
-      receiveVolumeGroup.classList.add("hidden");
       receiveSizeSelect.value = "";
-      receiveVolumeInput.value = "";
-
-      // show modal
+  
       receiveBackdrop.classList.remove("hidden");
     });
   }
@@ -419,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
         med,
         item: it,
         needsUnitsPerBox,
-        needsSizeAndVolume,
       });
 
       if (!info) {
