@@ -69,6 +69,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return medicines.find((m) => String(m.id) === String(id));
   }
 
+  function unitLabel(u) {
+    const lower = (u || "").toLowerCase();
+    if (lower === "box") return "Box(es)";
+    if (lower === "bottle") return "Bottle(s)";
+    if (lower === "tube") return "Tube(s)";
+    return u || "Unit";
+  }
+
+  function unitOptionsForType(type, fallbackUnit) {
+    const t = (type || "").toLowerCase();
+    if (["tablet", "capsule"].includes(t)) return ["box"];
+    if (["bottle", "spray", "syrup"].includes(t)) return ["bottle"];
+    if (["injectable", "cream"].includes(t)) return ["tube"];
+    if (fallbackUnit) return [fallbackUnit];
+    return ["box", "bottle", "tube"];
+  }
+
+  function renderUnitSelectForMedicine(med) {
+    const options = unitOptionsForType(med?.type, med?.unit);
+    const optionsHtml =
+      `<option value="">Select unit...</option>` +
+      options.map((u) => `<option value="${u}">${unitLabel(u)}</option>`).join("");
+    itemUnitSelect.innerHTML = optionsHtml;
+    // Preselect the first option to reduce clicks
+    itemUnitSelect.value = options[0] || "";
+  }
+
   function formatDateTime(d) {
     return new Date(d).toLocaleString();
   }
@@ -83,6 +110,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function todayISO() {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  function formatStockForOrderItem(med) {
+    if (!med) return "-";
+    const qty = Number(med.quantity ?? 0);
+    const typeRaw = med.type || med.medicine_type || "";
+    const type = typeRaw.toLowerCase();
+    const isPill =
+      type.includes("capsule") ||
+      type.includes("tablet") ||
+      type.includes("pill");
+    if (isPill) {
+      const label = typeRaw || med.unit || "pcs";
+      return `${qty} ${label}`;
+    }
+    return `${qty}`;
   }
 
   // ---------------------------
@@ -133,6 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!supId) {
       itemMedicineSelect.innerHTML =
         `<option value="">Select supplier first...</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
@@ -142,12 +186,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (meds.length === 0) {
       itemMedicineSelect.innerHTML =
         `<option value="">No medicines for this supplier</option>`;
+      itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
       return;
     }
 
     itemMedicineSelect.innerHTML =
       `<option value="">Select medicine...</option>` +
       meds.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
+
+    // Reset unit select when changing supplier
+    itemUnitSelect.innerHTML = `<option value="">Select unit...</option>`;
   }
 
   // ---------------------------
@@ -167,7 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
-        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -183,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
             <td class="py-1 px-2 text-right w-1/6">
-              ${stock} ${stockUnitLabel}
+              ${formatStockForOrderItem(med)}
             </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
@@ -288,9 +335,11 @@ document.addEventListener("DOMContentLoaded", () => {
         receiveUnitsPerBoxInput.value = "";
       }
 
-      // bottle / tube → no additional fields needed
+      // bottle / tube → we only need expiry; keep size/volume hidden
       receiveSizeGroup.classList.add("hidden");
+      receiveVolumeGroup.classList.add("hidden");
       receiveSizeSelect.value = "";
+      receiveVolumeInput.value = "";
 
       // show modal
       receiveBackdrop.classList.remove("hidden");
@@ -333,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
       unitsPerBox = val;
     }
 
-    const payload = { expiryDate: exp, unitsPerBox };
+    const payload = { expiryDate: exp, unitsPerBox, size: null, volume: null };
     receiveResolve(payload);
     receiveResolve = null;
     closeReceiveModal();
@@ -362,10 +411,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const isBottleOrTube =
         unitLower.startsWith("bottle") || unitLower.startsWith("tube");
 
-      // units per box - only needed for box units
+      // units per box - only needed for box units; bottle/tube need only expiry
       const needsUnitsPerBox = isBox;
-      // bottle / tube → no additional fields needed
-      const needsSizeAndVolume = isBottleOrTube;
+      const needsSizeAndVolume = false;
 
       const info = await openReceiveModal({
         med,
@@ -461,6 +509,13 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMedicineSelect();
     currentOrderItems = [];
     renderOrderItems();
+  });
+
+  // Change medicine → update unit options based on type
+  itemMedicineSelect.addEventListener("change", () => {
+    const medId = itemMedicineSelect.value;
+    const med = findMedicine(medId);
+    renderUnitSelectForMedicine(med);
   });
 
   // Add item to current order
@@ -715,6 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
+        type: m.type || m.medicine_type || "",
         supplier_id: m.supplier_id,
       }));
       renderMedicineSelect();
