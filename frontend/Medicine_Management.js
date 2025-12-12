@@ -10,8 +10,6 @@ let allSuppliers = [];
 
 let currentFilter = "all";
 let currentDeleteId = null;
-let currentStockId = null;
-let currentStockQuantity = 0;
 
 // DOM Elements
 const medicineList = document.getElementById("medicineList");
@@ -23,12 +21,10 @@ const emptyState = document.getElementById("emptyState");
 
 // Modal Elements
 const medicineModal = document.getElementById("medicineModal");
-const stockModal = document.getElementById("stockModal");
 const deleteModal = document.getElementById("deleteModal");
 const medicineForm = document.getElementById("medicineForm");
 const addMedicineBtn = document.getElementById("addMedicineBtn");
 const closeModal = document.getElementById("closeModal");
-const closeStockModal = document.getElementById("closeStockModal");
 const cancelDelete = document.getElementById("cancelDelete");
 
 // Supplier search elements
@@ -283,14 +279,6 @@ function createMedicineCard(med) {
           Edit
         </button>
         <button 
-          class="stock-btn flex-1 px-4 py-2 rounded-lg text-sm font-semibold btn-primary"
-          data-id="${med._id}"
-          data-quantity="${med.quantity}"
-          data-name="${escapeHtml(med.name)}"
-        >
-          Update Stock
-        </button>
-        <button 
           class="delete-btn px-4 py-2 rounded-lg text-sm font-semibold btn-danger"
           data-id="${med._id}"
           data-name="${escapeHtml(med.name)}"
@@ -310,20 +298,6 @@ function attachCardEventListeners() {
       const id = btn.dataset.id;
       const medicine = allMedicines.find((m) => m._id === id);
       if (medicine) openMedicineModal(medicine);
-    });
-  });
-
-  // Stock
-  document.querySelectorAll(".stock-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      currentStockId = btn.dataset.id;
-      currentStockQuantity = parseInt(btn.dataset.quantity);
-      document.getElementById("stockMedicineName").textContent =
-        btn.dataset.name;
-      document.getElementById("currentStock").textContent =
-        currentStockQuantity;
-      document.getElementById("stockChange").value = "";
-      stockModal.classList.remove("hidden");
     });
   });
 
@@ -484,12 +458,6 @@ function closeMedicineModal() {
   supplierError.classList.add("hidden");
 }
 
-// Stock modal
-function closeStockModalFunc() {
-  stockModal.classList.add("hidden");
-  document.getElementById("stockChange").value = "";
-}
-
 // Delete modal
 function closeDeleteModal() {
   deleteModal.classList.add("hidden");
@@ -579,48 +547,6 @@ async function handleFormSubmit(e) {
   }
 }
 
-// Stock update
-async function handleStockUpdate() {
-  const change = parseInt(document.getElementById("stockChange").value, 10);
-
-  if (isNaN(change) || change === 0) {
-    alert("Please enter a valid quantity to add or subtract");
-    return;
-  }
-
-  const newQuantity = currentStockQuantity + change;
-  if (newQuantity < 0) {
-    alert("Stock quantity cannot be negative");
-    return;
-  }
-
-  try {
-    const medicine = allMedicines.find((m) => m._id === currentStockId);
-    if (!medicine) throw new Error("Medicine not found");
-
-    const response = await fetch(`${MEDICINE_API_BASE}/${currentStockId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...medicine,
-        quantity: newQuantity,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || "Failed to update stock");
-    }
-
-    closeStockModalFunc();
-    await loadMedicines();
-    showSuccess("Stock updated successfully");
-  } catch (error) {
-    console.error("Error updating stock:", error);
-    alert("Error: " + error.message);
-  }
-}
-
 // Delete
 async function handleDelete() {
   if (!currentDeleteId) return;
@@ -672,16 +598,10 @@ function setupEventListeners() {
   // Modal buttons
   addMedicineBtn.addEventListener("click", () => openMedicineModal());
   closeModal.addEventListener("click", () => closeMedicineModal());
-  closeStockModal.addEventListener("click", () => closeStockModalFunc());
   cancelDelete.addEventListener("click", () => closeDeleteModal());
 
   // Form submission
   medicineForm.addEventListener("submit", handleFormSubmit);
-
-  // Stock update
-  document
-    .getElementById("updateStockBtn")
-    .addEventListener("click", handleStockUpdate);
 
   // Delete confirmation
   document
@@ -691,9 +611,6 @@ function setupEventListeners() {
   // Close modals on outside click
   medicineModal.addEventListener("click", (e) => {
     if (e.target === medicineModal) closeMedicineModal();
-  });
-  stockModal.addEventListener("click", (e) => {
-    if (e.target === stockModal) closeStockModalFunc();
   });
   deleteModal.addEventListener("click", (e) => {
     if (e.target === deleteModal) closeDeleteModal();
