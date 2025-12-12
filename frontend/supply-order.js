@@ -317,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveTitle.textContent = `Receive: ${med.name}`;
       receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
 
-      // set min date = วันนี้
+      // set min date = today
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
@@ -352,7 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   receiveCancelBtn.addEventListener("click", () => {
     if (receiveResolve) {
-      receiveResolve(null); // ยกเลิก
+      receiveResolve(null);
       receiveResolve = null;
     }
     closeReceiveModal();
