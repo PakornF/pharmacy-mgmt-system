@@ -47,10 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const receiveSizeGroup = document.getElementById("receiveSizeGroup");
   const receiveSizeSelect = document.getElementById("receiveSizeSelect");
+  const receiveVolumeGroup = document.getElementById("receiveVolumeGroup");
+  const receiveVolumeInput = document.getElementById("receiveVolumeInput");
   const receiveCancelBtn = document.getElementById("receiveCancelBtn");
   const receiveOkBtn = document.getElementById("receiveOkBtn");
 
-  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size? }
+  let currentOrderItems = []; // { medicineId, quantity, unit, expiryDate?, unitsPerPack?, size?, volume? }
 
   // for resolve promise of modal
   let receiveResolve = null;
@@ -110,22 +112,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function todayISO() {
     return new Date().toISOString().slice(0, 10);
-  }
-
-  function formatStockForOrderItem(med) {
-    if (!med) return "-";
-    const qty = Number(med.quantity ?? 0);
-    const typeRaw = med.type || med.medicine_type || "";
-    const type = typeRaw.toLowerCase();
-    const isPill =
-      type.includes("capsule") ||
-      type.includes("tablet") ||
-      type.includes("pill");
-    if (isPill) {
-      const label = typeRaw || med.unit || "pcs";
-      return `${qty} ${label}`;
-    }
-    return `${qty}`;
   }
 
   // ---------------------------
@@ -215,6 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
+        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -230,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
             <td class="py-1 px-2 text-right w-1/6">
-              ${formatStockForOrderItem(med)}
+              ${stock} ${stockUnitLabel}
             </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
@@ -317,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
       receiveTitle.textContent = `Receive: ${med.name}`;
       receiveSubtitle.textContent = `Ordered: ${item.quantity} ${item.unit}`;
 
-      // set min date = today
+      // set min date = วันนี้
       receiveExpiryInput.value = item.expiryDate || "";
       receiveExpiryInput.min = todayISO();
 
@@ -352,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   receiveCancelBtn.addEventListener("click", () => {
     if (receiveResolve) {
-      receiveResolve(null);
+      receiveResolve(null); // ยกเลิก
       receiveResolve = null;
     }
     closeReceiveModal();
@@ -770,7 +757,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
-        type: m.type || m.medicine_type || "",
+        type: m.type || "",
         supplier_id: m.supplier_id,
       }));
       renderMedicineSelect();
@@ -804,6 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
+        type: m.type || "",
         supplier_id: m.supplier_id,
       }));
 
