@@ -114,6 +114,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return new Date().toISOString().slice(0, 10);
   }
 
+  function formatStockForOrderItem(med) {
+    if (!med) return "-";
+    const qty = Number(med.quantity ?? 0);
+    const typeRaw = med.type || med.medicine_type || "";
+    const type = typeRaw.toLowerCase();
+    const isPill =
+      type.includes("capsule") ||
+      type.includes("tablet") ||
+      type.includes("pill");
+    if (isPill) {
+      const label = typeRaw || med.unit || "pcs";
+      return `${qty} ${label}`;
+    }
+    return `${qty}`;
+  }
+
   // ---------------------------
   // Render stock table
   // ---------------------------
@@ -201,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((it, index) => {
         const med = findMedicine(it.medicineId);
         const stock = med ? med.quantity : 0;
-        const stockUnitLabel = med ? med.displayUnit || med.unit || "" : "";
         totalQty += it.quantity;
         return `
           <tr>
@@ -217,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="py-1 px-2 text-center w-1/6">${it.unit || "-"}</td>
             <td class="py-1 px-2 text-right w-1/6">
-              ${stock} ${stockUnitLabel}
+              ${formatStockForOrderItem(med)}
             </td>
             <td class="py-1 px-2 text-right w-1/6">
               <button
@@ -757,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
-        type: m.type || "",
+        type: m.type || m.medicine_type || "",
         supplier_id: m.supplier_id,
       }));
       renderMedicineSelect();
@@ -791,7 +806,6 @@ document.addEventListener("DOMContentLoaded", () => {
         price: m.price,
         quantity: m.quantity,
         unit: m.unit || "",
-        type: m.type || "",
         supplier_id: m.supplier_id,
       }));
 

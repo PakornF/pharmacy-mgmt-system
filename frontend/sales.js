@@ -171,7 +171,7 @@ function buildPrescriptionSection(prescription) {
             class="text-[10px] px-2 py-1 rounded-lg bg-pink-500 text-white hover:bg-pink-600"
             data-add-medicine="true"
             data-medicine-id="${item.medicine_id}"
-            data-medicine-name="${escapeHtml(item.medicine_name || item.medicine_id)}"
+            data-medicine-name="${escapeHtml(medName || item.medicine_name || item.medicine_id)}"
             data-unit="${escapeHtml(item.unit || '')}"
             data-dosage="${escapeHtml(item.dosage || '')}"
             data-quantity="${item.quantity}"
@@ -542,7 +542,7 @@ function addToBillFromPrescription(med) {
   if (existing) {
     const prevCap = Number.isFinite(existing.prescriptionQty) ? existing.prescriptionQty : Infinity;
     const addCap = Number.isFinite(medQtyAllowance) ? medQtyAllowance : Infinity;
-    const newCap = (prevCap === Infinity || addCap === Infinity) ? Infinity : prevCap + addCap;
+    const newCap = (prevCap === Infinity || addCap === Infinity) ? Infinity : Math.max(prevCap, addCap);
     existing.prescriptionQty = newCap;
 
     // Track prescription IDs involved
@@ -1085,6 +1085,17 @@ async function submitSale() {
 // 10. EVENT LISTENERS (Unchanged)
 // ----------------------------------------------------
 // Add item from prescription list (only add, don't increase quantity if exists)
+
+function enablePrescriptionButtonsByMedicineId(medicineId) {
+  if (!prescriptionResults) return;
+  const selector = `button[data-add-medicine][data-medicine-id="${medicineId}"]`;
+  prescriptionResults.querySelectorAll(selector).forEach((btn) => {
+    btn.disabled = false;
+    btn.textContent = "Add";
+    btn.classList.remove("opacity-60", "cursor-not-allowed");
+  });
+}
+
 if (prescriptionResults) {
   prescriptionResults.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-add-medicine]");
@@ -1196,8 +1207,12 @@ billItemsTbody.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-remove]");
   if (!btn) return;
   const idx = Number(btn.getAttribute("data-remove"));
+  const removed = billItems[idx];
   billItems.splice(idx, 1);
   renderBill();
+  if (removed && removed.medicineId) {
+    enablePrescriptionButtonsByMedicineId(removed.medicineId);
+  }
 });
 
 // Customer search input event
