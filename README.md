@@ -88,6 +88,7 @@ node src/app.js
 ```
 
 ```md
+```
 ### Testing
 
 Pharmacy-mgmt-system uses the {test_framework} test framework.  
@@ -97,3 +98,4 @@ Using **npm**:
 
 ```bash
 npm test
+```
