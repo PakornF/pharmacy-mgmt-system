@@ -86,13 +86,5 @@ node dev-server.js
 cd backend
 node src/app.js
 ```
-### Testing
-
-Pharmacy-mgmt-system uses the {test_framework} test framework.  
-Run the test suite with:
-
-Using **npm**:
-
-```bash
-npm test
+test
 ```
