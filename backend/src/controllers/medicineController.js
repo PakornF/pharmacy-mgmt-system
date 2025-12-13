@@ -22,11 +22,21 @@ const validateMedicineBody = (body) => {
 // GET /medicines  – get all medicines
 export const getAllMedicines = async (req, res) => {
   try {
-    const meds = await Medicine.find().sort({ name: 1 });
+    // console.log("Query received:", req.query);
+    const filter = {};
+
+    // ถ้ามี query ?supplier_id=... ให้กรองเฉพาะของ supplier นั้น
+    if (req.query.supplier_id) {
+      // แปลงเป็น number ให้ตรงกับใน DB
+      filter.supplier_id = Number(req.query.supplier_id);
+    }
+
+    const meds = await Medicine.find(filter).sort({ medicine_id: 1 });
+
     res.status(200).json(meds);
   } catch (error) {
     console.error("Error fetching medicines:", error);
-    res.status(500).json({
+    res.status(400).json({
       message: "Error fetching medicines",
       error: error.message,
     });
@@ -70,35 +80,29 @@ export const getMedicineByCode = async (req, res) => {
 // POST /medicines – create new medicine
 export const createMedicine = async (req, res) => {
   try {
-    const missing = validateMedicineBody(req.body);
-    if (missing.length > 0) {
-      return res.status(400).json({
-        message: "Missing required fields",
-        missing,
-      });
+    const lastMed = await Medicine.findOne().sort({ createdAt: -1 });
+
+    let newIdNumber = 1;
+
+    if (lastMed && lastMed.medicine_id) {
+      const lastId = lastMed.medicine_id.replace("MED", "");
+      newIdNumber = Number(lastId) + 1;
     }
 
-    const existing = await Medicine.findOne({
-      medicine_id: req.body.medicine_id,
-    });
-    if (existing) {
-      return res.status(409).json({
-        message: "medicine_id already exists",
-      });
-    }
+    const newMedId = "MED" + String(newIdNumber).padStart(3, "0");
 
-    const newMed = new Medicine({
-      medicine_id: req.body.medicine_id,
+    const newMedicine = await Medicine.create({
+      medicine_id: newMedId,
       name: req.body.name,
       brand: req.body.brand,
       type: req.body.type,
       price: req.body.price,
+      cost: req.body.cost,
       quantity: req.body.quantity,
       supplier_id: req.body.supplier_id,
     });
 
-    const saved = await newMed.save();
-    res.status(201).json(saved);
+    res.status(201).json(newMedicine);
   } catch (error) {
     console.error("Error creating medicine:", error);
     res.status(400).json({
@@ -120,6 +124,7 @@ export const updateMedicine = async (req, res) => {
       brand: req.body.brand,
       type: req.body.type,
       price: req.body.price,
+      cost: req.body.cost,
       quantity: req.body.quantity,
       supplier_id: req.body.supplier_id,
     };
