@@ -102,10 +102,14 @@ router.get("/", async (req, res) => {
 
     let customerFilter = {};
     if (patientName) {
-      customerFilter.full_name = { $regex: patientName, $options: "i" };
+      const regex = { $regex: patientName, $options: "i" };
+      customerFilter.$or = [
+        { customer_first_name: regex },
+        { customer_last_name: regex },
+      ];
     }
 
-    const customers = await Customer.find(customerFilter).select("customer_id full_name");
+    const customers = await Customer.find(customerFilter).select("customer_id customer_first_name customer_last_name");
     const customerIds = customers.map((c) => c.customer_id);
 
     const prescriptionFilter = {};

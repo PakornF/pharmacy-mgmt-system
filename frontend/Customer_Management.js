@@ -1,5 +1,6 @@
 // API Base URL
 const API_BASE = (window.API_BASE || 'http://localhost:8000') + '/customers';
+const SALES_API_BASE = (window.API_BASE || 'http://localhost:8000') + '/sales';
 
 // State
 let allCustomers = [];
@@ -23,6 +24,8 @@ const addCustomerBtn = document.getElementById('addCustomerBtn');
 const closeModal = document.getElementById('closeModal');
 const closeHistoryModal = document.getElementById('closeHistoryModal');
 const cancelDelete = document.getElementById('cancelDelete');
+const salesListContainer = document.getElementById('salesList');
+const prescriptionsListContainer = document.getElementById('prescriptionsList');
 
 // Tab Elements
 const salesTab = document.getElementById('salesTab');
@@ -78,6 +81,12 @@ function setupEventListeners() {
   // History tabs
   salesTab.addEventListener('click', () => switchHistoryTab('sales'));
   prescriptionsTab.addEventListener('click', () => switchHistoryTab('prescriptions'));
+  if (salesListContainer) {
+    salesListContainer.addEventListener('click', handleSalesListClick);
+  }
+  if (prescriptionsListContainer) {
+    prescriptionsListContainer.addEventListener('click', handlePrescriptionsListClick);
+  }
   
   // Contact input: restrict to numbers only and max 10 digits
   const contactInput = document.getElementById('contact');
@@ -487,6 +496,11 @@ function formatDateTime(dateTime) {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
+function formatCurrencyTHB(value) {
+  const num = Number(value) || 0;
+  return `${num.toFixed(2)} THB`;
+}
+
 // Create Sale Card
 function createSaleCard(sale) {
   const saleDate = sale.sale_datetime ? formatDateTime(sale.sale_datetime) : 'N/A';
@@ -501,7 +515,83 @@ function createSaleCard(sale) {
         </div>
         <div class="text-right">
           <p class="text-lg font-bold" style="color: #f06292;">${totalPrice} THB</p>
+          <button
+            class="text-xs font-semibold text-rose-500 hover:underline mt-1"
+            data-view-sale="${sale.sale_id}"
+          >
+            View items
+          </button>
         </div>
+      </div>
+      <div class="mt-3 hidden" data-sale-detail="${sale.sale_id}"></div>
+    </div>
+  `;
+}
+
+async function handleSalesListClick(e) {
+  const viewBtn = e.target.closest('[data-view-sale]');
+  if (!viewBtn) return;
+
+  const saleId = viewBtn.dataset.viewSale;
+  const detailSection = salesListContainer.querySelector(`[data-sale-detail="${saleId}"]`);
+  if (!detailSection) return;
+
+  // Toggle visibility; fetch on first open
+  const isHidden = detailSection.classList.contains('hidden');
+  if (!isHidden && detailSection.dataset.loaded === 'true') {
+    detailSection.classList.add('hidden');
+    viewBtn.textContent = 'View items';
+    return;
+  }
+
+  detailSection.classList.remove('hidden');
+  viewBtn.textContent = 'Hide items';
+
+  if (detailSection.dataset.loaded === 'true') {
+    return;
+  }
+
+  detailSection.innerHTML = `<p class="text-sm text-gray-500">Loading items...</p>`;
+
+  try {
+    const response = await fetch(`${SALES_API_BASE}/${saleId}`);
+    if (!response.ok) throw new Error('Failed to load sale detail');
+    const { sale, items } = await response.json();
+
+    detailSection.innerHTML = renderSaleItems(items || [], sale?.total_price);
+    detailSection.dataset.loaded = 'true';
+  } catch (error) {
+    console.error('Error loading sale detail:', error);
+    detailSection.innerHTML = `<p class="text-sm text-red-500">Unable to load items</p>`;
+  }
+}
+
+function renderSaleItems(items, saleTotal) {
+  if (!items || items.length === 0) {
+    return `<div class="text-sm text-gray-500">No items found for this sale.</div>`;
+  }
+
+  const rows = items
+    .map((item) => {
+      const lineTotal = (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
+      return `
+        <div class="flex items-start justify-between py-2 border-t border-gray-100">
+          <div class="text-sm">
+            <div class="font-semibold text-gray-800">${item.medicine_name || item.medicine_id}</div>
+            <div class="text-gray-500">Qty ${item.quantity} × ${formatCurrencyTHB(item.unit_price)}</div>
+          </div>
+          <div class="text-sm font-semibold text-gray-900">${formatCurrencyTHB(lineTotal)}</div>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `
+    <div class="mt-1">
+      ${rows}
+      <div class="flex justify-between pt-2 mt-2 border-t border-gray-200 text-sm font-semibold">
+        <span>Total</span>
+        <span>${formatCurrencyTHB(saleTotal ?? items.reduce((sum, it) => sum + (Number(it.unit_price) || 0) * (Number(it.quantity) || 0), 0))}</span>
       </div>
     </div>
   `;
@@ -537,6 +627,7 @@ async function loadPrescriptionsHistory() {
 function createPrescriptionCard(prescription) {
   const issueDate = prescription.issue_date ? formatDate(prescription.issue_date) : 'N/A';
   const notes = prescription.notes || 'No notes';
+  const items = Array.isArray(prescription.items) ? prescription.items : [];
   
   return `
     <div class="bg-white rounded-lg shadow p-4 border-l-4" style="border-color: #f06292;">
@@ -548,6 +639,62 @@ function createPrescriptionCard(prescription) {
       <div class="mt-2">
         <p class="text-sm text-gray-700"><strong>Notes:</strong> ${escapeHtml(notes)}</p>
       </div>
+      <button
+        class="mt-3 text-xs font-semibold text-rose-500 hover:underline"
+        data-view-prescription="${prescription.prescription_id}"
+      >
+        View items
+      </button>
+      <div class="mt-2 hidden" data-prescription-detail="${prescription.prescription_id}" data-items='${JSON.stringify(items)}'></div>
+    </div>
+  `;
+}
+
+function handlePrescriptionsListClick(e) {
+  const viewBtn = e.target.closest('[data-view-prescription]');
+  if (!viewBtn) return;
+
+  const prescriptionId = viewBtn.dataset.viewPrescription;
+  const detail = prescriptionsListContainer.querySelector(
+    `[data-prescription-detail="${prescriptionId}"]`
+  );
+  if (!detail) return;
+
+  const isHidden = detail.classList.contains('hidden');
+  if (!isHidden) {
+    detail.classList.add('hidden');
+    viewBtn.textContent = 'View items';
+    return;
+  }
+
+  viewBtn.textContent = 'Hide items';
+  detail.classList.remove('hidden');
+
+  const items = JSON.parse(detail.dataset.items || '[]');
+  detail.innerHTML = renderPrescriptionItems(items);
+}
+
+function renderPrescriptionItems(items) {
+  if (!items || items.length === 0) {
+    return `<div class="text-sm text-gray-500">No items for this prescription.</div>`;
+  }
+
+  return `
+    <div class="pt-2 border-t border-gray-100 space-y-2">
+      ${items
+        .map(
+          (it) => `
+            <div class="flex justify-between text-sm">
+              <div>
+                <div class="font-semibold text-gray-800">${escapeHtml(it.medicine_name || it.medicine_id || 'Unknown medicine')}</div>
+                <div class="text-gray-600">
+                  Qty ${it.quantity || '-'}${it.unit ? ' ' + escapeHtml(it.unit) : ''}${it.dosage ? ' • Dosage: ' + escapeHtml(it.dosage) : ''}
+                </div>
+              </div>
+            </div>
+          `
+        )
+        .join('')}
     </div>
   `;
 }

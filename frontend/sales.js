@@ -766,23 +766,12 @@ function handleCustomerSearch() {
     return;
   }
 
-  const onlyDigits = (s) => (s || "").replace(/\D/g, "");
-  const qDigits = onlyDigits(searchTerm);
   const q = searchTerm.toLowerCase();
 
   const filtered = allCustomers.filter((c) => {
     const idStr = String(c.customer_id || "").toLowerCase();
     const nameStr = (c.full_name || "").toLowerCase();
-    const contactStr = (c.contact || "").toLowerCase();
-    const contactDigits = onlyDigits(c.contact);
-
-    return (
-      idStr === q ||
-      idStr.includes(q) ||
-      nameStr.includes(q) ||
-      contactStr.includes(q) ||
-      (qDigits && contactDigits && contactDigits.includes(qDigits))
-    );
+    return idStr.includes(q) || nameStr.includes(q);
   });
 
   if (filtered.length === 0) {

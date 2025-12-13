@@ -272,25 +272,29 @@ document.addEventListener("DOMContentLoaded", () => {
             <td class="py-2 px-2 text-left w-1/5">${formatDateTime(
               o.order_date
             )}</td>
-            <td class="py-2 px-2 text-right w-1/5 space-x-2">
-              <button
-                class="text-xs text-blue-600 hover:underline"
-                data-edit-order="${o.order_id}"
-              >
-                Edit
-              </button>
-              <button
-                class="text-xs text-pink-600 hover:underline"
-                data-mark-received="${o.order_id}"
-              >
-                Mark as received
-              </button>
-              <button
-                class="text-xs text-red-600 hover:underline"
-                data-delete-order="${o.order_id}"
-              >
-                Delete
-              </button>
+            <td class="py-2 px-2 text-right w-1/5">
+              <div class="inline-flex flex-col rounded-xl border border-pink-100 bg-white shadow-sm overflow-hidden text-xs text-left">
+                <div class="inline-flex items-center divide-x divide-pink-100">
+                  <button
+                    class="px-3 py-2 hover:bg-pink-50 text-blue-600"
+                    data-edit-order="${o.order_id}"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    class="px-3 py-2 hover:bg-pink-50 text-red-600"
+                    data-delete-order="${o.order_id}"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <button
+                  class="px-3 py-2 hover:bg-pink-50 text-pink-600 border-t border-pink-50 text-center"
+                  data-mark-received="${o.order_id}"
+                >
+                  Mark as received
+                </button>
+              </div>
             </td>
           </tr>
         `;
