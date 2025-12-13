@@ -86,9 +86,6 @@ node dev-server.js
 cd backend
 node src/app.js
 ```
-
-```md
-```
 ### Testing
 
 Pharmacy-mgmt-system uses the {test_framework} test framework.  
