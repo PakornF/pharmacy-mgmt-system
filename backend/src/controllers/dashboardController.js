@@ -4,7 +4,7 @@ import Prescription from "../models/prescription.js";
 
 export const getDashboardSummary = async (req, res) => {
   try {
-    const LOW_STOCK_THRESHOLD = 10; // adjust as you like
+    const LOW_STOCK_THRESHOLD = 50; 
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -42,11 +42,7 @@ export const getDashboardSummary = async (req, res) => {
     const todaySales = await Sale.aggregate([
       {
         $match: {
-          // Use sale_datetime as the canonical timestamp; createdAt acts as a fallback
-          $or: [
-            { sale_datetime: { $gte: todayStart, $lte: todayEnd } },
-            { createdAt: { $gte: todayStart, $lte: todayEnd } },
-          ],
+          sale_datetime: { $gte: todayStart, $lte: todayEnd },
         },
       },
       {

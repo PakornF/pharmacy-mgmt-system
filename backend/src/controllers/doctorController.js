@@ -59,8 +59,6 @@ export const createDoctor = async (req, res) => {
       doctor_last_name: doctor.doctor_last_name,
       license_no: doctor.license_no,
       username: doctor.username,
-      createdAt: doctor.createdAt,
-      updatedAt: doctor.updatedAt,
     };
 
     res.status(201).json(safeDoctor);

@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
-const MedicineSchema = new mongoose.Schema(
-  {
+const MedicineSchema = new mongoose.Schema({
   medicine_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   brand: { type: String, required: true },
@@ -10,8 +9,6 @@ const MedicineSchema = new mongoose.Schema(
   cost: { type: Number, required: true}, // Cost price (purchase price from supplier)
   quantity: { type: Number, required: true },
   supplier_id: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
+});
 
 export default mongoose.model("Medicine", MedicineSchema);
