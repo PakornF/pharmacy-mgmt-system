@@ -86,5 +86,3 @@ node dev-server.js
 cd backend
 node src/app.js
 ```
-test
-```
