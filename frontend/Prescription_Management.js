@@ -376,26 +376,16 @@ function formatDate(date) {
   return `${day}/${month}/${year}`;
 }
 
-// Initialize Flatpickr Date Picker
+// Initialize Date Field (set to today, no picker needed)
 function initializeDatePicker() {
   const dateInput = document.getElementById('issue_date');
-  if (dateInput && typeof flatpickr !== 'undefined') {
-    if (datePickerInstance) {
-      datePickerInstance.destroy();
-    }
-    
-    datePickerInstance = flatpickr(dateInput, {
-      dateFormat: 'Y-m-d',
-      locale: 'en',
-      maxDate: 'today',
-      allowInput: false,
-      defaultDate: new Date(),
-      clickOpens: false,
-    });
-
-    // Set and lock the input to today
-    dateInput.value = new Date().toISOString().slice(0, 10);
-    dateInput.readOnly = true;
+  if (dateInput) {
+    // Set to today's date in YYYY-MM-DD format
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    dateInput.value = `${year}-${month}-${day}`;
   }
 }
 
