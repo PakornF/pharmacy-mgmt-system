@@ -71,19 +71,29 @@ Using npm:
     ```bash
     npm install
 
-###Usage
-Run project frontend with:
-    ```bash
-    cd frontend
-    node dev-server.js
+### Usage
 
-Run project backend with:
-    ```bash
-    cd backend
-    node src/app.js
+### Run project frontend with:
 
-###Testing
-Pharmacy-mgmt-system uses the {test_framework} test framework. Run the test suite with:
-Using npm:
-    ```bash
-    npm test
+```bash
+cd frontend
+node dev-server.js
+```
+
+### Run project backend with:
+
+```bash
+cd backend
+node src/app.js
+```
+
+```md
+### Testing
+
+Pharmacy-mgmt-system uses the {test_framework} test framework.  
+Run the test suite with:
+
+Using **npm**:
+
+```bash
+npm test
