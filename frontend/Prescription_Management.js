@@ -388,8 +388,14 @@ function initializeDatePicker() {
       dateFormat: 'Y-m-d',
       locale: 'en',
       maxDate: 'today',
-      allowInput: true,
+      allowInput: false,
+      defaultDate: new Date(),
+      clickOpens: false,
     });
+
+    // Set and lock the input to today
+    dateInput.value = new Date().toISOString().slice(0, 10);
+    dateInput.readOnly = true;
   }
 }
 

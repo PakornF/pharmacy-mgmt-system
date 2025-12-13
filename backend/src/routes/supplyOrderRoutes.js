@@ -68,12 +68,14 @@ router.post("/", async (req, res) => {
       total_cost: total_cost ?? computedTotal,
     });
 
-    const itemsToInsert = items.map((i) => ({
-      order_item_id: i.order_item_id,
+    const nowBase = Date.now();
+    const itemsToInsert = items.map((i, idx) => ({
+      order_item_id: i.order_item_id ?? nowBase + idx,
       order_id,
       medicine_id: i.medicine_id,
       ordered_quantity: i.ordered_quantity,
       cost_per_unit: i.cost_per_unit,
+      units_per_pack: i.units_per_pack ?? 1,
       expiry_date: i.expiry_date,
     }));
     await SupplyOrderItem.insertMany(itemsToInsert);
