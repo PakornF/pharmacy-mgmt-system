@@ -105,12 +105,29 @@
               <label class="block text-sm font-medium mb-1">
                 Address <span class="text-red-500">*</span>
               </label>
-              <textarea
-                id="addressInput"
-                rows="2"
-                class="w-full border rounded-xl px-3 py-2 text-sm"
-                required
-              ></textarea>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  id="buildingInput"
+                  type="text"
+                  placeholder="Building / Unit"
+                  class="w-full border rounded-xl px-3 py-2 text-sm"
+                  required
+                />
+                <input
+                  id="streetInput"
+                  type="text"
+                  placeholder="Street"
+                  class="w-full border rounded-xl px-3 py-2 text-sm"
+                  required
+                />
+                <input
+                  id="zipcodeInput"
+                  type="text"
+                  placeholder="Zipcode"
+                  class="w-full border rounded-xl px-3 py-2 text-sm"
+                  required
+                />
+              </div>
             </div>
 
             <div>

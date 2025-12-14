@@ -1,0 +1,46 @@
+[
+  { "prescription_id": 1, "medicine_id": "MED001", "dosage": "1 tablet after meal", "quantity": 10 },
+  { "prescription_id": 1, "medicine_id": "MED002", "dosage": "1 tablet before bed", "quantity": 5 },
+
+  { "prescription_id": 2, "medicine_id": "MED003", "dosage": "1 tablet when pain", "quantity": 8 },
+  { "prescription_id": 2, "medicine_id": "MED004", "dosage": "2 tablets daily", "quantity": 6 },
+
+  { "prescription_id": 3, "medicine_id": "MED005", "dosage": "3 times daily", "quantity": 12 },
+  { "prescription_id": 3, "medicine_id": "MED006", "dosage": "After meals", "quantity": 10 },
+
+  { "prescription_id": 4, "medicine_id": "MED007", "dosage": "Every 6 hours", "quantity": 9 },
+  { "prescription_id": 4, "medicine_id": "MED008", "dosage": "Once daily", "quantity": 5 },
+
+  { "prescription_id": 5, "medicine_id": "MED009", "dosage": "Syrup 10ml", "quantity": 1 },
+  { "prescription_id": 5, "medicine_id": "MED010", "dosage": "Before sleep", "quantity": 7 },
+
+  { "prescription_id": 6, "medicine_id": "MED011", "dosage": "After meal", "quantity": 10 },
+  { "prescription_id": 6, "medicine_id": "MED012", "dosage": "Once daily", "quantity": 5 },
+
+  { "prescription_id": 7, "medicine_id": "MED013", "dosage": "Twice daily", "quantity": 14 },
+  { "prescription_id": 7, "medicine_id": "MED014", "dosage": "Before sleep", "quantity": 6 },
+
+  { "prescription_id": 8, "medicine_id": "MED015", "dosage": "After meal", "quantity": 10 },
+  { "prescription_id": 8, "medicine_id": "MED016", "dosage": "Once daily", "quantity": 5 },
+
+  { "prescription_id": 9, "medicine_id": "MED017", "dosage": "When pain", "quantity": 8 },
+  { "prescription_id": 9, "medicine_id": "MED018", "dosage": "Twice daily", "quantity": 6 },
+
+  { "prescription_id": 10, "medicine_id": "MED019", "dosage": "After meal", "quantity": 10 },
+  { "prescription_id": 10, "medicine_id": "MED020", "dosage": "Before bed", "quantity": 5 },
+
+  { "prescription_id": 11, "medicine_id": "MED021", "dosage": "1 tablet after meal", "quantity": 10 },
+  { "prescription_id": 11, "medicine_id": "MED022", "dosage": "Before sleep", "quantity": 5 },
+
+  { "prescription_id": 12, "medicine_id": "MED023", "dosage": "Twice daily", "quantity": 8 },
+  { "prescription_id": 12, "medicine_id": "MED024", "dosage": "After meal", "quantity": 6 },
+
+  { "prescription_id": 13, "medicine_id": "MED025", "dosage": "Every 6 hours", "quantity": 12 },
+  { "prescription_id": 13, "medicine_id": "MED026", "dosage": "Syrup 10ml daily", "quantity": 1 },
+
+  { "prescription_id": 14, "medicine_id": "MED027", "dosage": "Once daily", "quantity": 7 },
+  { "prescription_id": 14, "medicine_id": "MED028", "dosage": "After meal", "quantity": 5 },
+
+  { "prescription_id": 15, "medicine_id": "MED029", "dosage": "Twice daily", "quantity": 10 },
+  { "prescription_id": 15, "medicine_id": "MED030", "dosage": "After meal", "quantity": 6 }
+]

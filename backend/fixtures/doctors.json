@@ -1,0 +1,23 @@
+[
+  {
+    "doctor_id": 1,
+    "doctor_first_name": "A",
+    "doctor_last_name": "Demo",
+    "license_no": "LIC-2001",
+    "username": "dra"
+  },
+  {
+    "doctor_id": 2,
+    "doctor_first_name": "B",
+    "doctor_last_name": "Demo",
+    "license_no": "LIC-2002",
+    "username": "drb"
+  },
+  {
+    "doctor_id": 3,
+    "doctor_first_name": "C",
+    "doctor_last_name": "Demo",
+    "license_no": "LIC-2003",
+    "username": "drc"
+  }
+]

@@ -1,0 +1,1003 @@
+[
+    {
+      "medicine_id": "MED001",
+      "name": "Amoxicillin",
+      "brand": "GSK",
+      "type": "Capsule",
+      "cost": 11,
+      "price": 16,
+      "quantity": 41,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED002",
+      "name": "Cough Syrup",
+      "brand": "Bayer",
+      "type": "Syrup",
+      "cost": 12,
+      "price": 17,
+      "quantity": 47,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED003",
+      "name": "Cephalexin",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 13,
+      "price": 18,
+      "quantity": 53,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED004",
+      "name": "Naproxen",
+      "brand": "Sanofi",
+      "type": "Tablet",
+      "cost": 14,
+      "price": 19,
+      "quantity": 54,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED005",
+      "name": "Doxycycline",
+      "brand": "Pfizer",
+      "type": "Capsule",
+      "cost": 15,
+      "price": 20,
+      "quantity": 55,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED006",
+      "name": "Paracetamol",
+      "brand": "GSK",
+      "type": "Syrup",
+      "cost": 15.99,
+      "price": 21,
+      "quantity": 56,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED007",
+      "name": "Insulin",
+      "brand": "Bayer",
+      "type": "Injectable",
+      "cost": 17,
+      "price": 22,
+      "quantity": 57,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED008",
+      "name": "Meloxicam",
+      "brand": "Novartis",
+      "type": "Tablet",
+      "cost": 18,
+      "price": 23,
+      "quantity": 58,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED009",
+      "name": "Fluconazole",
+      "brand": "Sanofi",
+      "type": "Capsule",
+      "cost": 19,
+      "price": 24,
+      "quantity": 59,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED010",
+      "name": "Ibuprofen",
+      "brand": "Pfizer",
+      "type": "Syrup",
+      "cost": 20,
+      "price": 25,
+      "quantity": 60,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED011",
+      "name": "Ceftriaxone",
+      "brand": "GSK",
+      "type": "Injectable",
+      "cost": 21,
+      "price": 26,
+      "quantity": 61,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED012",
+      "name": "Celecoxib",
+      "brand": "Bayer",
+      "type": "Tablet",
+      "cost": 22,
+      "price": 27,
+      "quantity": 62,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED013",
+      "name": "Clindamycin",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 23,
+      "price": 28,
+      "quantity": 63,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED014",
+      "name": "Diphenhydramine",
+      "brand": "Sanofi",
+      "type": "Syrup",
+      "cost": 24,
+      "price": 29,
+      "quantity": 64,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED015",
+      "name": "Heparin",
+      "brand": "Pfizer",
+      "type": "Injectable",
+      "cost": 25,
+      "price": 30,
+      "quantity": 65,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED016",
+      "name": "Prednisolone",
+      "brand": "GSK",
+      "type": "Tablet",
+      "cost": 26,
+      "price": 31,
+      "quantity": 66,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED017",
+      "name": "Ciprofloxacin",
+      "brand": "Bayer",
+      "type": "Capsule",
+      "cost": 27,
+      "price": 32,
+      "quantity": 67,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED018",
+      "name": "Cetirizine",
+      "brand": "Novartis",
+      "type": "Syrup",
+      "cost": 28,
+      "price": 33,
+      "quantity": 68,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED019",
+      "name": "Morphine",
+      "brand": "Sanofi",
+      "type": "Injectable",
+      "cost": 29,
+      "price": 34,
+      "quantity": 69,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED020",
+      "name": "Dexamethasone",
+      "brand": "Pfizer",
+      "type": "Tablet",
+      "cost": 10,
+      "price": 35,
+      "quantity": 70,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED021",
+      "name": "Magnesium Hydroxide Suspension",
+      "brand": "GSK",
+      "type": "Bottle",
+      "cost": 11,
+      "price": 36,
+      "quantity": 71,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED022",
+      "name": "Loratadine",
+      "brand": "Bayer",
+      "type": "Syrup",
+      "cost": 12,
+      "price": 37,
+      "quantity": 72,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED023",
+      "name": "Adrenaline",
+      "brand": "Novartis",
+      "type": "Injectable",
+      "cost": 13,
+      "price": 38,
+      "quantity": 73,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED024",
+      "name": "Hydrochlorothiazide",
+      "brand": "Sanofi",
+      "type": "Tablet",
+      "cost": 14,
+      "price": 39,
+      "quantity": 74,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED025",
+      "name": "Oral Rehydration Solution (ORS)",
+      "brand": "Pfizer",
+      "type": "Bottle",
+      "cost": 15,
+      "price": 15,
+      "quantity": 75,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED026",
+      "name": "Antacid",
+      "brand": "GSK",
+      "type": "Syrup",
+      "cost": 16,
+      "price": 16,
+      "quantity": 76,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED027",
+      "name": "Dexamethasone",
+      "brand": "Bayer",
+      "type": "Injectable",
+      "cost": 17,
+      "price": 17,
+      "quantity": 77,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED028",
+      "name": "Furosemide",
+      "brand": "Novartis",
+      "type": "Tablet",
+      "cost": 18,
+      "price": 18,
+      "quantity": 78,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED029",
+      "name": "Multivitamin",
+      "brand": "Sanofi",
+      "type": "Capsule",
+      "cost": 19,
+      "price": 19,
+      "quantity": 79,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED030",
+      "name": "Guaifenesin",
+      "brand": "Pfizer",
+      "type": "Syrup",
+      "cost": 20,
+      "price": 20,
+      "quantity": 80,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED031",
+      "name": "Vitamin B1",
+      "brand": "GSK",
+      "type": "Injectable",
+      "cost": 21,
+      "price": 21,
+      "quantity": 81,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED032",
+      "name": "Spironolactone",
+      "brand": "Bayer",
+      "type": "Tablet",
+      "cost": 22,
+      "price": 22,
+      "quantity": 82,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED033",
+      "name": "Calcium Carbonate",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 23,
+      "price": 23,
+      "quantity": 83,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED034",
+      "name": "Bromhexine",
+      "brand": "Sanofi",
+      "type": "Syrup",
+      "cost": 24,
+      "price": 24,
+      "quantity": 84,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED035",
+      "name": "Hydrocortisone",
+      "brand": "Pfizer",
+      "type": "Injectable",
+      "cost": 25,
+      "price": 25,
+      "quantity": 85,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED036",
+      "name": "Bisoprolol",
+      "brand": "GSK",
+      "type": "Tablet",
+      "cost": 26,
+      "price": 26,
+      "quantity": 86,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED037",
+      "name": "Esomeprazole",
+      "brand": "Bayer",
+      "type": "Capsule",
+      "cost": 27,
+      "price": 27,
+      "quantity": 87,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED038",
+      "name": "Amoxicillin",
+      "brand": "Novartis",
+      "type": "Syrup",
+      "cost": 28,
+      "price": 28,
+      "quantity": 88,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED039",
+      "name": "Metoclopramide",
+      "brand": "Sanofi",
+      "type": "Injectable",
+      "cost": 29,
+      "price": 29,
+      "quantity": 89,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED040",
+      "name": "Propranolol",
+      "brand": "Pfizer",
+      "type": "Tablet",
+      "cost": 10,
+      "price": 30,
+      "quantity": 90,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED041",
+      "name": "Itraconazole",
+      "brand": "GSK",
+      "type": "Capsule",
+      "cost": 11,
+      "price": 31,
+      "quantity": 91,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED042",
+      "name": "Multivitamin",
+      "brand": "Bayer",
+      "type": "Syrup",
+      "cost": 12,
+      "price": 32,
+      "quantity": 92,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED043",
+      "name": "Ondansetron",
+      "brand": "Novartis",
+      "type": "Injectable",
+      "cost": 13,
+      "price": 33,
+      "quantity": 93,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED044",
+      "name": "Enalapril",
+      "brand": "Sanofi",
+      "type": "Tablet",
+      "cost": 14,
+      "price": 34,
+      "quantity": 94,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED045",
+      "name": "Dicloxacillin",
+      "brand": "Pfizer",
+      "type": "Capsule",
+      "cost": 15,
+      "price": 35,
+      "quantity": 95,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED046",
+      "name": "Zinc",
+      "brand": "GSK",
+      "type": "Syrup",
+      "cost": 16,
+      "price": 36,
+      "quantity": 96,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED047",
+      "name": "Diazepam",
+      "brand": "Bayer",
+      "type": "Injectable",
+      "cost": 17,
+      "price": 37,
+      "quantity": 97,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED048",
+      "name": "Captopril",
+      "brand": "Novartis",
+      "type": "Tablet",
+      "cost": 18,
+      "price": 38,
+      "quantity": 98,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED049",
+      "name": "Tetracycline",
+      "brand": "Sanofi",
+      "type": "Capsule",
+      "cost": 19,
+      "price": 39,
+      "quantity": 99,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED050",
+      "name": "Iron",
+      "brand": "Pfizer",
+      "type": "Syrup",
+      "cost": 20,
+      "price": 15,
+      "quantity": 100,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED051",
+      "name": "Ketorolac",
+      "brand": "GSK",
+      "type": "Injectable",
+      "cost": 21,
+      "price": 16,
+      "quantity": 101,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED052",
+      "name": "Valsartan",
+      "brand": "Bayer",
+      "type": "Tablet",
+      "cost": 22,
+      "price": 17,
+      "quantity": 102,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED053",
+      "name": "Amoxiclav",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 23,
+      "price": 18,
+      "quantity": 103,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED054",
+      "name": "Lactulose",
+      "brand": "Sanofi",
+      "type": "Syrup",
+      "cost": 24,
+      "price": 19,
+      "quantity": 104,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED055",
+      "name": "Furosemide",
+      "brand": "Pfizer",
+      "type": "Injectable",
+      "cost": 25,
+      "price": 20,
+      "quantity": 105,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED056",
+      "name": "Pioglitazone",
+      "brand": "GSK",
+      "type": "Tablet",
+      "cost": 26,
+      "price": 21,
+      "quantity": 106,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED057",
+      "name": "Metronidazole",
+      "brand": "Bayer",
+      "type": "Capsule",
+      "cost": 27,
+      "price": 22,
+      "quantity": 107,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED058",
+      "name": "Domperidone",
+      "brand": "Novartis",
+      "type": "Syrup",
+      "cost": 28,
+      "price": 23,
+      "quantity": 108,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED059",
+      "name": "Gentamicin",
+      "brand": "Sanofi",
+      "type": "Injectable",
+      "cost": 29,
+      "price": 24,
+      "quantity": 109,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED060",
+      "name": "Sitagliptin",
+      "brand": "Pfizer",
+      "type": "Tablet",
+      "cost": 10,
+      "price": 25,
+      "quantity": 110,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED061",
+      "name": "Indomethacin",
+      "brand": "GSK",
+      "type": "Capsule",
+      "cost": 11,
+      "price": 26,
+      "quantity": 111,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED062",
+      "name": "Ranitidine",
+      "brand": "Bayer",
+      "type": "Syrup",
+      "cost": 12,
+      "price": 27,
+      "quantity": 112,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED063",
+      "name": "Amikacin",
+      "brand": "Novartis",
+      "type": "Injectable",
+      "cost": 13,
+      "price": 28,
+      "quantity": 113,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED064",
+      "name": "Glibenclamide",
+      "brand": "Sanofi",
+      "type": "Tablet",
+      "cost": 14,
+      "price": 29,
+      "quantity": 114,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED065",
+      "name": "Rifampicin",
+      "brand": "Pfizer",
+      "type": "Capsule",
+      "cost": 15,
+      "price": 30,
+      "quantity": 115,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED066",
+      "name": "Ambroxol",
+      "brand": "GSK",
+      "type": "Syrup",
+      "cost": 16,
+      "price": 31,
+      "quantity": 116,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED067",
+      "name": "Oxytocin",
+      "brand": "Bayer",
+      "type": "Injectable",
+      "cost": 17,
+      "price": 32,
+      "quantity": 117,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED068",
+      "name": "Acetylcysteine",
+      "brand": "Novartis",
+      "type": "Tablet",
+      "cost": 18,
+      "price": 33,
+      "quantity": 118,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED069",
+      "name": "Probiotic",
+      "brand": "Sanofi",
+      "type": "Capsule",
+      "cost": 19,
+      "price": 34,
+      "quantity": 119,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED070",
+      "name": "Chlorpheniramine",
+      "brand": "Pfizer",
+      "type": "Syrup",
+      "cost": 20,
+      "price": 35,
+      "quantity": 120,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED071",
+      "name": "Dopamine",
+      "brand": "GSK",
+      "type": "Injectable",
+      "cost": 21,
+      "price": 36,
+      "quantity": 121,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED072",
+      "name": "Montelukast",
+      "brand": "Bayer",
+      "type": "Tablet",
+      "cost": 22,
+      "price": 37,
+      "quantity": 122,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED073",
+      "name": "Fish Oil",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 23,
+      "price": 38,
+      "quantity": 123,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED074",
+      "name": "Salbutamol",
+      "brand": "Sanofi",
+      "type": "Syrup",
+      "cost": 24,
+      "price": 39,
+      "quantity": 124,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED075",
+      "name": "Lidocaine",
+      "brand": "Pfizer",
+      "type": "Injectable",
+      "cost": 25,
+      "price": 15,
+      "quantity": 125,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED076",
+      "name": "Allopurinol",
+      "brand": "GSK",
+      "type": "Tablet",
+      "cost": 26,
+      "price": 16,
+      "quantity": 126,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED077",
+      "name": "Vitamin E",
+      "brand": "Bayer",
+      "type": "Capsule",
+      "cost": 27,
+      "price": 17,
+      "quantity": 127,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED078",
+      "name": "Dextromethorphan",
+      "brand": "Novartis",
+      "type": "Syrup",
+      "cost": 28,
+      "price": 18,
+      "quantity": 128,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED079",
+      "name": "Vancomycin",
+      "brand": "Sanofi",
+      "type": "Injectable",
+      "cost": 29,
+      "price": 19,
+      "quantity": 129,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED080",
+      "name": "Colchicine",
+      "brand": "Pfizer",
+      "type": "Tablet",
+      "cost": 10,
+      "price": 20,
+      "quantity": 130,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED081",
+      "name": "Gabapentin",
+      "brand": "GSK",
+      "type": "Capsule",
+      "cost": 11,
+      "price": 21,
+      "quantity": 131,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED082",
+      "name": "Calcium",
+      "brand": "Bayer",
+      "type": "Syrup",
+      "cost": 12,
+      "price": 22,
+      "quantity": 132,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED083",
+      "name": "Tramadol",
+      "brand": "Novartis",
+      "type": "Injectable",
+      "cost": 13,
+      "price": 23,
+      "quantity": 133,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED084",
+      "name": "Warfarin",
+      "brand": "Sanofi",
+      "type": "Tablet",
+      "cost": 14,
+      "price": 24,
+      "quantity": 134,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED085",
+      "name": "Pregabalin",
+      "brand": "Pfizer",
+      "type": "Capsule",
+      "cost": 15,
+      "price": 25,
+      "quantity": 135,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED086",
+      "name": "Carbocisteine",
+      "brand": "GSK",
+      "type": "Syrup",
+      "cost": 16,
+      "price": 26,
+      "quantity": 136,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED087",
+      "name": "Magnesium Sulfate",
+      "brand": "Bayer",
+      "type": "Injectable",
+      "cost": 17,
+      "price": 27,
+      "quantity": 137,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED088",
+      "name": "Digoxin",
+      "brand": "Novartis",
+      "type": "Tablet",
+      "cost": 18,
+      "price": 28,
+      "quantity": 138,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED089",
+      "name": "Lansoprazole",
+      "brand": "Sanofi",
+      "type": "Capsule",
+      "cost": 19,
+      "price": 29,
+      "quantity": 139,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED090",
+      "name": "Fexofenadine",
+      "brand": "Pfizer",
+      "type": "Syrup",
+      "cost": 20,
+      "price": 30,
+      "quantity": 140,
+      "supplier_id": 1
+    },
+    {
+      "medicine_id": "MED091",
+      "name": "Calcium Gluconate",
+      "brand": "GSK",
+      "type": "Injectable",
+      "cost": 21,
+      "price": 31,
+      "quantity": 141,
+      "supplier_id": 2
+    },
+    {
+      "medicine_id": "MED092",
+      "name": "Clonazepam",
+      "brand": "Bayer",
+      "type": "Tablet",
+      "cost": 22,
+      "price": 32,
+      "quantity": 142,
+      "supplier_id": 3
+    },
+    {
+      "medicine_id": "MED093",
+      "name": "Loperamide",
+      "brand": "Novartis",
+      "type": "Capsule",
+      "cost": 23,
+      "price": 33,
+      "quantity": 143,
+      "supplier_id": 4
+    },
+    {
+      "medicine_id": "MED094",
+      "name": "Herbal Cough",
+      "brand": "Sanofi",
+      "type": "Syrup",
+      "cost": 24,
+      "price": 34,
+      "quantity": 144,
+      "supplier_id": 5
+    },
+    {
+      "medicine_id": "MED095",
+      "name": "Atropine",
+      "brand": "Pfizer",
+      "type": "Injectable",
+      "cost": 25,
+      "price": 35,
+      "quantity": 145,
+      "supplier_id": 6
+    },
+    {
+      "medicine_id": "MED096",
+      "name": "Alprazolam",
+      "brand": "GSK",
+      "type": "Tablet",
+      "cost": 26,
+      "price": 36,
+      "quantity": 146,
+      "supplier_id": 7
+    },
+    {
+      "medicine_id": "MED097",
+      "name": "Azithromycin",
+      "brand": "Bayer",
+      "type": "Capsule",
+      "cost": 27,
+      "price": 37,
+      "quantity": 147,
+      "supplier_id": 8
+    },
+    {
+      "medicine_id": "MED098",
+      "name": "Antihistamine",
+      "brand": "Novartis",
+      "type": "Syrup",
+      "cost": 28,
+      "price": 38,
+      "quantity": 148,
+      "supplier_id": 9
+    },
+    {
+      "medicine_id": "MED099",
+      "name": "Midazolam",
+      "brand": "Sanofi",
+      "type": "Injectable",
+      "cost": 29,
+      "price": 39,
+      "quantity": 149,
+      "supplier_id": 10
+    },
+    {
+      "medicine_id": "MED100",
+      "name": "Fluoxetine",
+      "brand": "Pfizer",
+      "type": "Tablet",
+      "cost": 10,
+      "price": 15,
+      "quantity": 10,
+      "supplier_id": 1
+    }
+  ]
+  

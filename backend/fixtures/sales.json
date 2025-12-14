@@ -1,0 +1,32 @@
+[
+  {
+    "sale_id": 1,
+    "customer_id": 1,
+    "sale_datetime": "2025-12-14T12:02:40.427Z",
+    "total_price": 790
+  },
+  {
+    "sale_id": 2,
+    "customer_id": 3,
+    "sale_datetime": "2025-12-14T12:03:07.293Z",
+    "total_price": 646
+  },
+  {
+    "sale_id": 3,
+    "customer_id": 5,
+    "sale_datetime": "2025-12-14T12:03:17.166Z",
+    "total_price": 509
+  },
+  {
+    "sale_id": 4,
+    "customer_id": 7,
+    "sale_datetime": "2025-12-14T12:03:25.382Z",
+    "total_price": 566
+  },
+  {
+    "sale_id": 5,
+    "customer_id": 9,
+    "sale_datetime": "2025-12-14T12:03:33.528Z",
+    "total_price": 454
+  }
+]

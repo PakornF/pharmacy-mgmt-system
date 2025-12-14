@@ -1,0 +1,92 @@
+[
+  {
+    "customer_id": 1,
+    "customer_first_name": "James",
+    "customer_last_name": "Miller",
+    "email": "james.miller@example.com",
+    "contact": "0812345678",
+    "gender": "Male",
+    "day_of_birth": "1998-03-15"
+  },
+  {
+    "customer_id": 2,
+    "customer_first_name": "Emily",
+    "customer_last_name": "Johnson",
+    "email": "emily.johnson@example.com",
+    "contact": "0823456789",
+    "gender": "Female",
+    "day_of_birth": "2000-07-22"
+  },
+  {
+    "customer_id": 3,
+    "customer_first_name": "Daniel",
+    "customer_last_name": "Smith",
+    "email": "daniel.smith@example.com",
+    "contact": "0834567890",
+    "gender": "Male",
+    "day_of_birth": "1997-11-02"
+  },
+  {
+    "customer_id": 4,
+    "customer_first_name": "Sophia",
+    "customer_last_name": "Brown",
+    "email": "sophia.brown@example.com",
+    "contact": "0845678901",
+    "gender": "Female",
+    "day_of_birth": "2001-01-10"
+  },
+  {
+    "customer_id": 5,
+    "customer_first_name": "Michael",
+    "customer_last_name": "Davis",
+    "email": "michael.davis@example.com",
+    "contact": "0856789012",
+    "gender": "Male",
+    "day_of_birth": "1995-09-30"
+  },
+  {
+    "customer_id": 6,
+    "customer_first_name": "Olivia",
+    "customer_last_name": "Wilson",
+    "email": "olivia.wilson@example.com",
+    "contact": "0867890123",
+    "gender": "Female",
+    "day_of_birth": "1999-05-18"
+  },
+  {
+    "customer_id": 7,
+    "customer_first_name": "William",
+    "customer_last_name": "Taylor",
+    "email": "william.taylor@example.com",
+    "contact": "0878901234",
+    "gender": "Male",
+    "day_of_birth": "1996-12-05"
+  },
+  {
+    "customer_id": 8,
+    "customer_first_name": "Isabella",
+    "customer_last_name": "Anderson",
+    "email": "isabella.anderson@example.com",
+    "contact": "0889012345",
+    "gender": "Female",
+    "day_of_birth": "2002-04-27"
+  },
+  {
+    "customer_id": 9,
+    "customer_first_name": "Ethan",
+    "customer_last_name": "Thomas",
+    "email": "ethan.thomas@example.com",
+    "contact": "0890123456",
+    "gender": "Male",
+    "day_of_birth": "1994-08-14"
+  },
+  {
+    "customer_id": 10,
+    "customer_first_name": "Charlotte",
+    "customer_last_name": "Moore",
+    "email": "charlotte.moore@example.com",
+    "contact": "0801234567",
+    "gender": "Female",
+    "day_of_birth": "2000-10-03"
+  }
+]
