@@ -7,6 +7,7 @@ const SUPPLIER_API_BASE = `${API_BASE}/suppliers`;
 let allMedicines = [];
 let filteredMedicines = [];
 let allSuppliers = [];
+const LOW_STOCK_THRESHOLD = 50; // keep in sync with dashboard low-stock threshold
 
 let currentFilter = "all";
 let currentDeleteId = null;
@@ -167,9 +168,12 @@ function applyFilters() {
 
   // Stock filter
   if (currentFilter === "low-stock") {
-    filtered = filtered.filter((med) => med.quantity > 0 && med.quantity <= 10);
+    filtered = filtered.filter(
+      (med) =>
+        Number(med.quantity) > 0 && Number(med.quantity) <= LOW_STOCK_THRESHOLD
+    );
   } else if (currentFilter === "out-of-stock") {
-    filtered = filtered.filter((med) => med.quantity === 0);
+    filtered = filtered.filter((med) => Number(med.quantity) === 0);
   }
 
   // Type filter
@@ -199,8 +203,9 @@ function renderMedicines() {
 }
 
 function createMedicineCard(med) {
-  const isLowStock = med.quantity > 0 && med.quantity <= 10;
-  const isOutOfStock = med.quantity === 0;
+  const qty = Number(med.quantity) || 0;
+  const isLowStock = qty > 0 && qty <= LOW_STOCK_THRESHOLD;
+  const isOutOfStock = qty === 0;
   const stockClass = isOutOfStock
     ? "low-stock"
     : isLowStock
