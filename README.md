@@ -12,7 +12,6 @@ Built with the tools and technologies:
 - Markdown
 - npm
 - MongoDB
-- .ENV
 - JavaScript
 - Nodemon
 
@@ -81,7 +80,14 @@ Using npm:
   cp .env.demo .env
   ```
 2. Configure environment values
-Open .env and update the required values:
+Open .env and update the required values
+
+### Seed data with:
+
+```bash
+cd backend
+npm run seed
+```
 
 ### Run project frontend with:
 
@@ -95,13 +101,6 @@ node dev-server.js
 ```bash
 cd backend
 node src/app.js
-```
-
-### Seed data with:
-
-```bash
-cd backend
-npm run seed
 ```
 
 ### Doctor login 
