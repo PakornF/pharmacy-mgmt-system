@@ -211,7 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (items.length === 0) {
       expiredBody.innerHTML =
-        `<tr><td colspan="4" class="py-2 text-gray-400">No expired medicines 🎉</td></tr>`;
+        `<tr><td colspan="5" class="py-2 text-gray-400">No expired medicines 🎉</td></tr>`;
       return;
     }
 
@@ -227,10 +227,51 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="py-2 pr-4">${med.medicine_id || "-"}</td>
         <td class="py-2 pr-4">${med.name || "-"}</td>
         <td class="py-2 pr-4">${med.brand || "-"}</td>
-        <td class="py-2">${exp}</td>
+        <td class="py-2 pr-4">${exp}</td>
+        <td class="py-2">
+          <button 
+            class="done-expired-btn px-3 py-1 rounded text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            style="background-color: #ad1457;"
+            data-medicine-id="${med.medicine_id}"
+            data-expiry-date="${med.expiry_date ? new Date(med.expiry_date).toISOString() : ''}"
+          >
+            Done
+          </button>
+        </td>
       `;
       expiredBody.appendChild(tr);
     }
+
+    // Attach event listeners to Done buttons
+    document.querySelectorAll(".done-expired-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const medicineId = btn.dataset.medicineId;
+        const expiryDate = btn.dataset.expiryDate;
+        
+        if (!confirm(`Are you sure you want to remove expired medicine ${medicineId}?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/dashboard/expired/${encodeURIComponent(medicineId)}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ expiry_date: expiryDate }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || "Failed to remove expired medicine");
+          }
+
+          // Reload dashboard to refresh the list
+          await loadDashboard();
+        } catch (error) {
+          console.error("Error removing expired medicine:", error);
+          alert("Error: " + error.message);
+        }
+      });
+    });
   }
 
   // 3) start at current path (or Overview)
