@@ -73,6 +73,16 @@ Using npm:
 
 ### Usage
 
+## Environment Variables Setup (Backend)
+1. Create .env from .env.demo
+  Navigate to the backend directory:
+  ```bash
+  cd frontend
+  cp .env.demo .env
+  ```
+2. Configure environment values
+Open .env and update the required values:
+
 ### Run project frontend with:
 
 ```bash
