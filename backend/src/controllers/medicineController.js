@@ -80,26 +80,50 @@ export const getMedicineByCode = async (req, res) => {
 // POST /medicines – create new medicine
 export const createMedicine = async (req, res) => {
   try {
-    const lastMed = await Medicine.findOne().sort({ createdAt: -1 });
-
-    let newIdNumber = 1;
-
-    if (lastMed && lastMed.medicine_id) {
-      const lastId = lastMed.medicine_id.replace("MED", "");
-      newIdNumber = Number(lastId) + 1;
+    const { name, brand, type, price, cost, quantity, supplier_id } = req.body;
+    if (!name || !brand || !type || price === undefined || quantity === undefined || !supplier_id) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const newMedId = "MED" + String(newIdNumber).padStart(3, "0");
+    const numericPrice = Number(price);
+    const numericCost = cost !== undefined ? Number(cost) : numericPrice;
+    const numericQty = Number(quantity);
+    const numericSupplierId = Number(supplier_id);
+
+    if ([numericPrice, numericCost, numericQty, numericSupplierId].some((v) => Number.isNaN(v))) {
+      return res.status(400).json({ message: "Invalid numeric fields" });
+    }
+
+    // Generate next unique MED id based on highest existing medicine_id
+    const lastMed = await Medicine.findOne({ medicine_id: /^MED\d+$/ })
+      .sort({ medicine_id: -1 })
+      .lean();
+
+    let newIdNumber = 1;
+    if (lastMed && lastMed.medicine_id) {
+      const numeric = Number(lastMed.medicine_id.replace("MED", ""));
+      if (!Number.isNaN(numeric)) {
+        newIdNumber = numeric + 1;
+      }
+    }
+
+    let newMedId = "MED" + String(newIdNumber).padStart(3, "0");
+    // collision guard: increment until unique
+    // (should be rare, but protects against duplicate key errors)
+    while (await Medicine.exists({ medicine_id: newMedId })) {
+      newIdNumber += 1;
+      newMedId = "MED" + String(newIdNumber).padStart(3, "0");
+    }
 
     const newMedicine = await Medicine.create({
       medicine_id: newMedId,
-      name: req.body.name,
-      brand: req.body.brand,
-      type: req.body.type,
-      price: req.body.price,
-      cost: req.body.cost,
-      quantity: req.body.quantity,
-      supplier_id: req.body.supplier_id,
+      name,
+      brand,
+      type,
+      price: numericPrice,
+      cost: numericCost,
+      quantity: numericQty,
+      supplier_id: numericSupplierId,
     });
 
     res.status(201).json(newMedicine);
