@@ -123,6 +123,7 @@ router.put("/:order_id", async (req, res) => {
         medicine_id: i.medicine_id,
         ordered_quantity: i.ordered_quantity,
         cost_per_unit: i.cost_per_unit,
+        units_per_pack: i.units_per_pack ?? 1,
         expiry_date: i.expiry_date,
       }));
       await SupplyOrderItem.insertMany(itemsToInsert);
@@ -140,7 +141,8 @@ router.put("/:order_id", async (req, res) => {
 router.patch("/:order_id/status", async (req, res) => {
   try {
     const { order_id } = req.params;
-    const { status } = req.body;
+    const { status, items: frontendItems } = req.body;
+    
     if (!status || !["PENDING", "DELIVERED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
@@ -153,12 +155,65 @@ router.patch("/:order_id/status", async (req, res) => {
     await order.save();
 
     if (status === "DELIVERED" && !wasDelivered) {
-      const items = await SupplyOrderItem.find({ order_id: Number(order_id) });
-      for (const item of items) {
-        await Medicine.updateOne(
-          { medicine_id: item.medicine_id },
-          { $inc: { quantity: item.ordered_quantity } }
-        );
+      const dbItems = await SupplyOrderItem.find({ order_id: Number(order_id) });
+      
+      if (frontendItems && Array.isArray(frontendItems)) {
+        for (const frontendItem of frontendItems) {
+          const dbItem = dbItems.find(
+            (item) => item.order_item_id === frontendItem.order_item_id
+          );
+          
+          if (!dbItem) continue;
+
+          const updateFields = {};
+          
+          if (frontendItem.expiry_date) {
+            updateFields.expiry_date = new Date(frontendItem.expiry_date);
+          }
+          
+          if (frontendItem.units_per_pack) {
+            updateFields.units_per_pack = Number(frontendItem.units_per_pack);
+          }
+
+          if (Object.keys(updateFields).length > 0) {
+            await SupplyOrderItem.updateOne(
+              { order_item_id: frontendItem.order_item_id },
+              { $set: updateFields }
+            );
+          }
+
+          const unitsPerPack = Number(frontendItem.units_per_pack) || dbItem.units_per_pack || 1;
+          const orderedQuantity = Number(frontendItem.ordered_quantity) || dbItem.ordered_quantity || 0;
+          const totalUnits = orderedQuantity * unitsPerPack;
+
+          const medicine = await Medicine.findOne({ medicine_id: dbItem.medicine_id });
+          if (medicine) {
+            const updateMedicine = {
+              $inc: { quantity: totalUnits }
+            };
+
+            if (frontendItem.expiry_date) {
+              if (!medicine.expiry_date || new Date(frontendItem.expiry_date) < medicine.expiry_date) {
+                updateMedicine.$set = { expiry_date: new Date(frontendItem.expiry_date) };
+              }
+            }
+
+            await Medicine.updateOne(
+              { medicine_id: dbItem.medicine_id },
+              updateMedicine
+            );
+          }
+        }
+      } else {
+        for (const item of dbItems) {
+          const unitsPerPack = item.units_per_pack || 1;
+          const totalUnits = item.ordered_quantity * unitsPerPack;
+          
+          await Medicine.updateOne(
+            { medicine_id: item.medicine_id },
+            { $inc: { quantity: totalUnits } }
+          );
+        }
       }
     }
 
@@ -166,7 +221,27 @@ router.patch("/:order_id/status", async (req, res) => {
     res.json(response);
   } catch (err) {
     console.error("Error updating order status:", err);
-    res.status(400).json({ message: "Invalid data" });
+    res.status(500).json({ message: err.message || "Invalid data" });
+  }
+});
+
+// Delete supply order (only if not delivered)
+router.delete("/:order_id", async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const existing = await SupplyOrder.findOne({ order_id: Number(order_id) });
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    if (existing.status === "DELIVERED") {
+      return res.status(400).json({ message: "Cannot delete delivered order" });
+    }
+
+    await SupplyOrderItem.deleteMany({ order_id: Number(order_id) });
+    await SupplyOrder.deleteOne({ order_id: Number(order_id) });
+    
+    res.json({ message: "Order deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting supply order:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
