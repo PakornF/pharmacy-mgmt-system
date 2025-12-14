@@ -6,7 +6,7 @@
     "ordered_quantity": 100,
     "cost_per_unit": 20,
     "units_per_pack": 10,
-    "expiry_date": "2025-12-31T00:00:00.000Z"
+    "expiry_date": "2026-12-10T00:00:00.000Z"
   },
   {
     "order_item_id": 2,
