@@ -1,9 +1,23 @@
 import Sale from "../models/sale.js";
 import SaleItem from "../models/saleItem.js";
+import SalePrescription from "../models/salePrescription.js";
 import Medicine from "../models/medicine.js";
 import Prescription from "../models/prescription.js";
+import PrescriptionItem from "../models/prescriptionItem.js";
 
-// Helper: get next integer id for a field (e.g. sale_id, sale_item_id)
+let saleItemIndexChecked = false;
+const ensureSaleItemIndex = async () => {
+  if (saleItemIndexChecked) return;
+  try {
+    await SaleItem.collection.dropIndex("sale_item_id_1");
+  } catch (error) {
+    // Ignore if index does not exist
+  } finally {
+    saleItemIndexChecked = true;
+  }
+};
+
+// Helper: get next integer id for a field (e.g. sale_id)
 const getNextIntId = async (Model, fieldName) => {
   const last = await Model.findOne().sort({ [fieldName]: -1 }).lean();
   return last ? last[fieldName] + 1 : 1;
@@ -36,7 +50,13 @@ export const searchMedicinesForBilling = async (req, res) => {
 
 export const createSale = async (req, res) => {
   try {
-    const { customer_id, prescription_id = null, prescription_ids = [], items } = req.body;
+    const {
+      customer_id,
+      prescription_id = null,
+      prescription_ids = [],
+      prescription_map = [],
+      items,
+    } = req.body;
 
     if (!customer_id || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -81,7 +101,6 @@ export const createSale = async (req, res) => {
       detailedItems.push({
         medicine_id,
         name: med.name,
-        unit_price: med.price,
         quantity,
         dosage,
         line_total: lineTotal,
@@ -90,8 +109,7 @@ export const createSale = async (req, res) => {
 
     // Generate IDs
     const nextSaleId = await getNextIntId(Sale, "sale_id");
-    let nextSaleItemId = await getNextIntId(SaleItem, "sale_item_id");
-
+    await ensureSaleItemIndex();
     // Create Sale document
     const primaryPrescriptionId = prescription_id || (Array.isArray(prescription_ids) && prescription_ids.length > 0 ? prescription_ids[0] : null);
 
@@ -100,21 +118,48 @@ export const createSale = async (req, res) => {
       customer_id,
       sale_datetime: new Date(),
       total_price,
-      // ผูกกับ prescription หลัก ถ้ามี (ไม่บังคับ)
-      prescription_id: primaryPrescriptionId,
     });
     await sale.save();
+
+    // Link all prescriptions to this sale (via SalePrescription collection)
+    const prescIds = new Set();
+    if (primaryPrescriptionId) prescIds.add(Number(primaryPrescriptionId));
+    if (Array.isArray(prescription_ids)) {
+      prescription_ids.forEach((pid) => {
+        if (pid !== null && pid !== undefined) prescIds.add(Number(pid));
+      });
+    }
+
+    if (prescIds.size > 0) {
+      const prescDocs = Array.from(prescIds).map((pid) => {
+        const mapping = Array.isArray(prescription_map)
+          ? prescription_map.find((m) => Number(m.prescription_id) === Number(pid))
+          : null;
+        const dosages = Array.isArray(mapping?.dosages)
+          ? mapping.dosages
+              .filter((d) => d && d.medicine_id)
+              .map((d) => ({
+                medicine_id: d.medicine_id,
+                dosage: d.dosage || "",
+              }))
+          : [];
+        return {
+          sale_id: nextSaleId,
+          prescription_id: pid,
+          note: mapping?.note || "",
+          dosages,
+        };
+      });
+      await SalePrescription.insertMany(prescDocs, { ordered: false }).catch(() => {});
+    }
 
     // Create SaleItems + update Medicine stock
     const saleItemsDocs = [];
     for (const item of detailedItems) {
       const saleItem = new SaleItem({
-        sale_item_id: nextSaleItemId++,
         sale_id: nextSaleId,
         medicine_id: item.medicine_id,
-        unit_price: item.unit_price,
         quantity: item.quantity,
-        dosage: item.dosage || "",
       });
       saleItemsDocs.push(saleItem.save());
 
@@ -127,13 +172,6 @@ export const createSale = async (req, res) => {
     await Promise.all(saleItemsDocs);
 
     // Mark linked prescription(s) as sold
-    const prescIds = new Set();
-    if (primaryPrescriptionId) prescIds.add(Number(primaryPrescriptionId));
-    if (Array.isArray(prescription_ids)) {
-      prescription_ids.forEach((pid) => {
-        if (pid !== null && pid !== undefined) prescIds.add(Number(pid));
-      });
-    }
     if (prescIds.size > 0) {
       await Prescription.updateMany(
         { prescription_id: { $in: Array.from(prescIds) } },
@@ -146,6 +184,7 @@ export const createSale = async (req, res) => {
       sale,
       items: detailedItems,
       total_price,
+      prescription_ids: Array.from(prescIds),
     });
   } catch (error) {
     console.error("Error creating sale:", error);
@@ -163,6 +202,39 @@ export const getAllSales = async (req, res) => {
     }
 
     const saleIds = sales.map((s) => s.sale_id);
+    const salePrescriptions = await SalePrescription.find({
+      sale_id: { $in: saleIds },
+    }).lean();
+
+    let dosageBySale = {};
+    const allPrescIds = [
+      ...new Set(salePrescriptions.map((sp) => sp.prescription_id)),
+    ];
+    if (allPrescIds.length > 0) {
+      const prescItems = await PrescriptionItem.find({
+        prescription_id: { $in: allPrescIds },
+      }).lean();
+      const itemsByPresc = prescItems.reduce((acc, it) => {
+        acc[it.prescription_id] = acc[it.prescription_id] || [];
+        acc[it.prescription_id].push(it);
+        return acc;
+      }, {});
+      dosageBySale = salePrescriptions.reduce((acc, sp) => {
+        const items = itemsByPresc[sp.prescription_id] || [];
+        if (items.length === 0) return acc;
+        acc[sp.sale_id] = acc[sp.sale_id] || {};
+        items.forEach((it) => {
+          acc[sp.sale_id][String(it.medicine_id)] = it.dosage || "";
+        });
+        return acc;
+      }, {});
+    }
+
+    const prescBySale = salePrescriptions.reduce((acc, sp) => {
+      acc[sp.sale_id] = acc[sp.sale_id] || [];
+      acc[sp.sale_id].push(sp.prescription_id);
+      return acc;
+    }, {});
     const saleItems = await SaleItem.find({
       sale_id: { $in: saleIds },
     }).lean();
@@ -180,13 +252,13 @@ export const getAllSales = async (req, res) => {
     const itemsBySale = saleItems.reduce((acc, it) => {
       acc[it.sale_id] = acc[it.sale_id] || [];
       const med = medMap.get(it.medicine_id);
+       const dosageMap = dosageBySale[it.sale_id] || {};
       acc[it.sale_id].push({
-        sale_item_id: it.sale_item_id,
         medicine_id: it.medicine_id,
         medicine_name: med ? med.name : "Unknown medicine",
-        unit_price: it.unit_price,
+        unit_price: med ? med.price : 0,
         quantity: it.quantity,
-        dosage: it.dosage || "",
+        dosage: dosageMap[String(it.medicine_id)] || "",
       });
       return acc;
     }, {});
@@ -194,6 +266,8 @@ export const getAllSales = async (req, res) => {
     const result = sales.map((s) => ({
       ...s.toObject(),
       items: itemsBySale[s.sale_id] || [],
+      items_count: (itemsBySale[s.sale_id] || []).length,
+      prescription_ids: prescBySale[s.sale_id] || [],
     }));
 
     res.status(200).json(result);
@@ -216,10 +290,28 @@ export const getSaleWithItems = async (req, res) => {
       return res.status(404).json({ message: "Sale not found" });
     }
 
-    const items = await SaleItem.find({ sale_id: saleId }).lean();
+    const [items, salePrescriptions] = await Promise.all([
+      SaleItem.find({ sale_id: saleId }).lean(),
+      SalePrescription.find({ sale_id: saleId }).lean(),
+    ]);
+
+    let dosageMap = new Map();
+    const prescIds = salePrescriptions.map((sp) => sp.prescription_id);
+    if (prescIds.length > 0) {
+      const prescItems = await PrescriptionItem.find({
+        prescription_id: { $in: prescIds },
+      }).lean();
+      const map = new Map();
+      prescItems.forEach((it) => {
+        if (it.medicine_id) {
+          map.set(String(it.medicine_id), it.dosage || "");
+        }
+      });
+      dosageMap = map;
+    }
 
     if (items.length === 0) {
-      return res.status(200).json({ sale, items: [] });
+      return res.status(200).json({ sale, items: [], prescription_ids: salePrescriptions.map((sp) => sp.prescription_id) });
     }
 
     const medicineIds = [
@@ -237,11 +329,16 @@ export const getSaleWithItems = async (req, res) => {
       return {
         ...it,
         medicine_name: med ? med.name : "Unknown medicine",
-        dosage: it.dosage || "",
+        unit_price: med ? med.price : 0,
+        dosage: dosageMap.get(String(it.medicine_id)) || "",
       };
     });
 
-    return res.status(200).json({ sale, items: enrichedItems });
+    return res.status(200).json({
+      sale,
+      items: enrichedItems,
+      prescription_ids: salePrescriptions.map((sp) => sp.prescription_id),
+    });
   } catch (error) {
     console.error("Error fetching sale detail:", error);
     res.status(400).json({ message: "Error fetching sale", error: error.message });
@@ -272,6 +369,7 @@ export const deleteSale = async (req, res) => {
     }
 
     await SaleItem.deleteMany({ sale_id: saleId });
+    await SalePrescription.deleteMany({ sale_id: saleId });
     await Sale.deleteOne({ sale_id: saleId });
 
     res.status(200).json({

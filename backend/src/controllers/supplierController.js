@@ -1,34 +1,67 @@
 import Supplier from "../models/supplier.js";
 import Medicine from "../models/medicine.js";
 
-const REQUIRED_FIELDS = [
-  "supplier_name",
-  "contact_person",
-  "phone",
-  "email",
-  "address",
-];
+const REQUIRED_FIELDS = ["supplier_name", "contact_person", "phone", "email"];
+const REQUIRED_ADDRESS_FIELDS = ["building", "street", "zipcode"];
 
 // --- Validation Logic ---
-const validateSupplierBody = (body) => {
-  const missing = REQUIRED_FIELDS.filter((field) => !body[field] || body[field].trim() === "");
-  if (missing.length > 0) {
-    return { valid: false, message: `Missing required fields: ${missing.join(", ")}` };
+const validateSupplierBody = (body, { requireAllFields = false } = {}) => {
+  if (!body || typeof body !== "object") {
+    return { valid: false, message: "Invalid request body." };
+  }
+
+  if (requireAllFields) {
+    const missing = REQUIRED_FIELDS.filter(
+      (field) => !body[field] || String(body[field]).trim() === ""
+    );
+    if (missing.length > 0) {
+      return { valid: false, message: `Missing required fields: ${missing.join(", ")}` };
+    }
   }
 
   // validate phone (ต้องเป็นตัวเลข 10 หลัก)
   const phoneRegex = /^\d{10}$/;
-  if (body.phone && !phoneRegex.test(body.phone.trim())) {
-    return { valid: false, message: "Phone number must be exactly 10 digits (numbers only)." };
+  if (body.phone !== undefined) {
+    const trimmedPhone = String(body.phone).trim();
+    if (!phoneRegex.test(trimmedPhone)) {
+      return { valid: false, message: "Phone number must be exactly 10 digits (numbers only)." };
+    }
   }
 
   // validate email แบบง่าย ๆ
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (body.email && !emailRegex.test(body.email.trim())) {
-    return { valid: false, message: "Please enter a valid email address." };
+  if (body.email !== undefined) {
+    const trimmedEmail = String(body.email).trim();
+    if (!emailRegex.test(trimmedEmail)) {
+      return { valid: false, message: "Please enter a valid email address." };
+    }
   }
-  
+
+  if (requireAllFields || body.address !== undefined) {
+    if (!body.address || typeof body.address !== "object") {
+      return { valid: false, message: "Address must include building, street, and zipcode." };
+    }
+    const missingAddressFields = REQUIRED_ADDRESS_FIELDS.filter(
+      (field) => !body.address[field] || String(body.address[field]).trim() === ""
+    );
+    if (missingAddressFields.length > 0) {
+      return {
+        valid: false,
+        message: `Address must include: ${missingAddressFields.join(", ")}`,
+      };
+    }
+  }
+
   return { valid: true };
+};
+
+const normalizeAddress = (address) => {
+  if (!address || typeof address !== "object") return undefined;
+  return {
+    building: String(address.building ?? "").trim(),
+    street: String(address.street ?? "").trim(),
+    zipcode: String(address.zipcode ?? "").trim(),
+  };
 };
 
 
@@ -63,7 +96,7 @@ export const createSupplier = async (req, res) => {
     const { supplier_id, supplier_name, contact_person, phone, email, address, notes } = req.body;
     
     // 1. Validate data structure and format
-    const validation = validateSupplierBody(req.body);
+    const validation = validateSupplierBody(req.body, { requireAllFields: true });
     if (!validation.valid) {
         return res.status(400).json({ message: validation.message });
     }
@@ -97,12 +130,12 @@ export const createSupplier = async (req, res) => {
     // 4. Create a new supplier instance
     const newSupplier = new Supplier({
       supplier_id: nextSupplierId,
-      supplier_name,
-      contact_person,
-      phone,
-      email,
-      address,
-      notes,
+      supplier_name: supplier_name.trim(),
+      contact_person: contact_person.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      address: normalizeAddress(address),
+      notes: notes?.trim(),
     });
 
     // 5. Save the supplier to the database
@@ -119,21 +152,28 @@ export const createSupplier = async (req, res) => {
 export const updateSupplier = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
     
     // 1. Validate incoming data (only fields present are validated)
-    const validation = validateSupplierBody(updateData);
-    // NOTE: This simple validation might fail if the frontend only sends a partial update. 
-    // You may need to fetch the existing supplier first before running validation.
-
-    if (updateData.phone && !validation.valid) { // Simple check for phone/email validation errors
-        return res.status(400).json({ message: validation.message });
+    const validation = validateSupplierBody(updateData, { requireAllFields: false });
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.message });
     }
     
     // Prevent changing the business PK (supplier_id) through this route
     if (updateData.supplier_id) {
         delete updateData.supplier_id;
     }
+
+    if (updateData.address) {
+      updateData.address = normalizeAddress(updateData.address);
+    }
+
+    ["supplier_name", "contact_person", "phone", "email", "notes"].forEach((field) => {
+      if (updateData[field] !== undefined && updateData[field] !== null) {
+        updateData[field] = String(updateData[field]).trim();
+      }
+    });
 
     // 2. Find the supplier and update
     const updatedSupplier = await Supplier.findByIdAndUpdate(id, updateData, {

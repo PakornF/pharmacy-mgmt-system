@@ -1,0 +1,17 @@
+[
+  { "prescription_id": 1, "customer_id": 1, "doctor_id": 1, "issue_date": "2025-12-01", "notes": "Flu symptoms", "is_sale": false },
+  { "prescription_id": 2, "customer_id": 2, "doctor_id": 1, "issue_date": "2025-12-01", "notes": "Headache", "is_sale": false },
+  { "prescription_id": 3, "customer_id": 3, "doctor_id": 2, "issue_date": "2025-12-02", "notes": "Sore throat", "is_sale": false },
+  { "prescription_id": 4, "customer_id": 4, "doctor_id": 2, "issue_date": "2025-12-02", "notes": "Fever", "is_sale": false },
+  { "prescription_id": 5, "customer_id": 5, "doctor_id": 2, "issue_date": "2025-12-03", "notes": "Cough", "is_sale": false },
+  { "prescription_id": 6, "customer_id": 6, "doctor_id": 1, "issue_date": "2025-12-03", "notes": "Back pain", "is_sale": false },
+  { "prescription_id": 7, "customer_id": 7, "doctor_id": 1, "issue_date": "2025-12-04", "notes": "Allergy", "is_sale": false },
+  { "prescription_id": 8, "customer_id": 8, "doctor_id": 3, "issue_date": "2025-12-04", "notes": "Muscle pain", "is_sale": false },
+  { "prescription_id": 9, "customer_id": 9, "doctor_id": 1, "issue_date": "2025-12-05", "notes": "Migraine", "is_sale": false },
+  { "prescription_id": 10, "customer_id": 10, "doctor_id": 1, "issue_date": "2025-12-05", "notes": "Sinusitis", "is_sale": false },
+  { "prescription_id": 11, "customer_id": 1, "doctor_id": 1, "issue_date": "2025-12-06", "notes": "Cold", "is_sale": false },
+  { "prescription_id": 12, "customer_id": 2, "doctor_id": 3, "issue_date": "2025-12-06", "notes": "Stomach ache", "is_sale": false },
+  { "prescription_id": 13, "customer_id": 3, "doctor_id": 1, "issue_date": "2025-12-07", "notes": "Infection", "is_sale": false },
+  { "prescription_id": 14, "customer_id": 4, "doctor_id": 3, "issue_date": "2025-12-07", "notes": "Dizziness", "is_sale": false },
+  { "prescription_id": 15, "customer_id": 5, "doctor_id": 1, "issue_date": "2025-12-08", "notes": "Joint pain", "is_sale": false }
+]

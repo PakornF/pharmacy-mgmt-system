@@ -1,0 +1,38 @@
+[
+  {
+    "order_item_id": 1,
+    "order_id": 1,
+    "medicine_id": "MED010",
+    "ordered_quantity": 100,
+    "cost_per_unit": 20,
+    "units_per_pack": 10,
+    "expiry_date": "2025-12-31T00:00:00.000Z"
+  },
+  {
+    "order_item_id": 2,
+    "order_id": 1,
+    "medicine_id": "MED006",
+    "ordered_quantity": 50,
+    "cost_per_unit": 15.99,
+    "units_per_pack": 5,
+    "expiry_date": "2025-06-30T00:00:00.000Z"
+  },
+  {
+    "order_item_id": 3,
+    "order_id": 2,
+    "medicine_id": "MED001",
+    "ordered_quantity": 120,
+    "cost_per_unit": 11,
+    "units_per_pack": 12,
+    "expiry_date": "2026-01-15T00:00:00.000Z"
+  },
+  {
+    "order_item_id": 4,
+    "order_id": 2,
+    "medicine_id": "MED011",
+    "ordered_quantity": 60,
+    "cost_per_unit": 21,
+    "units_per_pack": 6,
+    "expiry_date": "2025-09-01T00:00:00.000Z"
+  }
+]

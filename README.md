@@ -62,11 +62,11 @@ Build pharmacy-mgmt-system from the source and install dependencies:
    ```bash
    git clone https://github.com/Pakorn/pharmacy-mgmt-system
 
-2.	**Navigate to the project directory:**
+2. **Navigate to the project directory:**
     ```bash
     cd pharmacy-mgmt-system
 
-3.	**Install the dependencies:**
+3. **Install the dependencies:**
 Using npm:
     ```bash
     npm install
@@ -86,3 +86,18 @@ node dev-server.js
 cd backend
 node src/app.js
 ```
+
+### Seed data with:
+
+```bash
+cd backend
+npm run seed
+```
+
+### Doctor login 
+
+| Username | Password    | 
+| -------- | ----------- | 
+| dra      | `doctor123` |
+| drb      | `doctor123` |
+| drc      | `doctor123` |

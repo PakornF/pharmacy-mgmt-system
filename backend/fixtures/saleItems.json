@@ -1,0 +1,98 @@
+[
+  {
+    "sale_id": 1,
+    "medicine_id": "MED001",
+    "quantity": 10,
+    "unit_price": 16
+  },
+  {
+    "sale_id": 1,
+    "medicine_id": "MED002",
+    "quantity": 5,
+    "unit_price": 17
+  },
+  {
+    "sale_id": 1,
+    "medicine_id": "MED021",
+    "quantity": 10,
+    "unit_price": 36
+  },
+  {
+    "sale_id": 1,
+    "medicine_id": "MED022",
+    "quantity": 5,
+    "unit_price": 37
+  },
+  {
+    "sale_id": 2,
+    "medicine_id": "MED025",
+    "quantity": 12,
+    "unit_price": 15
+  },
+  {
+    "sale_id": 2,
+    "medicine_id": "MED026",
+    "quantity": 1,
+    "unit_price": 16
+  },
+  {
+    "sale_id": 2,
+    "medicine_id": "MED005",
+    "quantity": 12,
+    "unit_price": 20
+  },
+  {
+    "sale_id": 2,
+    "medicine_id": "MED006",
+    "quantity": 10,
+    "unit_price": 21
+  },
+  {
+    "sale_id": 3,
+    "medicine_id": "MED029",
+    "quantity": 10,
+    "unit_price": 19
+  },
+  {
+    "sale_id": 3,
+    "medicine_id": "MED030",
+    "quantity": 6,
+    "unit_price": 20
+  },
+  {
+    "sale_id": 3,
+    "medicine_id": "MED009",
+    "quantity": 1,
+    "unit_price": 24
+  },
+  {
+    "sale_id": 3,
+    "medicine_id": "MED010",
+    "quantity": 7,
+    "unit_price": 25
+  },
+  {
+    "sale_id": 4,
+    "medicine_id": "MED013",
+    "quantity": 14,
+    "unit_price": 28
+  },
+  {
+    "sale_id": 4,
+    "medicine_id": "MED014",
+    "quantity": 6,
+    "unit_price": 29
+  },
+  {
+    "sale_id": 5,
+    "medicine_id": "MED017",
+    "quantity": 8,
+    "unit_price": 32
+  },
+  {
+    "sale_id": 5,
+    "medicine_id": "MED018",
+    "quantity": 6,
+    "unit_price": 33
+  }
+]

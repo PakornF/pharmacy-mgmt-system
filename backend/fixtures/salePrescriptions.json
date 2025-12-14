@@ -1,0 +1,34 @@
+[
+  {
+    "sale_id": 1,
+    "prescription_id": 11
+  },
+  {
+    "sale_id": 1,
+    "prescription_id": 1
+  },
+  {
+    "sale_id": 2,
+    "prescription_id": 13
+  },
+  {
+    "sale_id": 2,
+    "prescription_id": 3
+  },
+  {
+    "sale_id": 3,
+    "prescription_id": 15
+  },
+  {
+    "sale_id": 3,
+    "prescription_id": 5
+  },
+  {
+    "sale_id": 4,
+    "prescription_id": 7
+  },
+  {
+    "sale_id": 5,
+    "prescription_id": 9
+  }
+]

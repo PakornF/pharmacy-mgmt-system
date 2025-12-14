@@ -1158,10 +1158,29 @@ async function submitSale() {
     )
   );
 
+  // Map prescription -> per-medicine dosage (so backend can render dosage in history)
+  const prescriptionMap = prescriptionIds.map((pid) => {
+    const dosages = billItems
+      .filter(
+        (it) =>
+          Array.isArray(it.prescriptionIds) &&
+          it.prescriptionIds.some((p) => String(p) === String(pid))
+      )
+      .map((it) => ({
+        medicine_id: it.medicineId,
+        dosage: it.dosage || "",
+      }));
+    return {
+      prescription_id: pid,
+      dosages,
+    };
+  });
+
   const payload = {
     customer_id: selectedCustomer.customer_id,
     prescription_id: selectedPrescriptionId || prescriptionIds[0] || null,
     prescription_ids: prescriptionIds,
+    prescription_map: prescriptionMap,
     items: billItems.map((item) => ({
       medicine_id: item.medicineId,
       quantity: item.quantity,

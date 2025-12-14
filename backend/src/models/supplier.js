@@ -7,8 +7,12 @@ const SupplierSchema = new mongoose.Schema(
     contact_person: { type: String, required: true }, // Contact person
     phone: { type: String, required: true }, // Phone number
     email: { type: String, required: true }, // Email address
-    address: { type: String, required: true }, // Address
-    notes: { type: String }, // Notes (optional)
+    address: {
+      building: { type: String, required: true },
+      street: { type: String, required: true },
+      zipcode: { type: Number, required: true }
+    }, // Address
+    notes: { type: String }, // Notes 
   },
   { timestamps: true }
 );

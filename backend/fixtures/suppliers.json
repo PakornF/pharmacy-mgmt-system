@@ -1,0 +1,132 @@
+[
+  {
+    "supplier_id": 1,
+    "supplier_name": "Health Pharma Co., Ltd.",
+    "contact_person": "Somchai Wong",
+    "phone": "081-111-2222",
+    "email": "contact@healthpharma.com",
+    "address": {
+      "building": "Health Pharma Building",
+      "street": "Sukhumvit Road",
+      "zipcode": 10110
+    },
+    "notes": "Main generic drug supplier"
+  },
+  {
+    "supplier_id": 2,
+    "supplier_name": "Premium Med Supply",
+    "contact_person": "May Srisuk",
+    "phone": "089-333-4444",
+    "email": "may@premiummed.com",
+    "address": {
+      "building": "Premium Med Office",
+      "street": "Nimmanhaemin Road",
+      "zipcode": 50200
+    },
+    "notes": "Skin care and supplements"
+  },
+  {
+    "supplier_id": 3,
+    "supplier_name": "Thai Medical Distribution",
+    "contact_person": "Anan Chaiyawat",
+    "phone": "082-555-6666",
+    "email": "sales@thaimedical.co.th",
+    "address": {
+      "building": "Thai Medical Center",
+      "street": "Ngamwongwan Road",
+      "zipcode": 11000
+    },
+    "notes": "Hospital-grade medicines"
+  },
+  {
+    "supplier_id": 4,
+    "supplier_name": "Asia Health Solutions",
+    "contact_person": "Pimchanok Lee",
+    "phone": "086-777-8888",
+    "email": "info@asiahealth.com",
+    "address": {
+      "building": "Asia Health Tower",
+      "street": "Rangsit-Nakhon Nayok Road",
+      "zipcode": 12120
+    },
+    "notes": "Imported medicines"
+  },
+  {
+    "supplier_id": 5,
+    "supplier_name": "GreenLife Pharma",
+    "contact_person": "Nattapong K.",
+    "phone": "094-111-9999",
+    "email": "support@greenlifepharma.com",
+    "address": {
+      "building": "GreenLife Factory",
+      "street": "Thepharak Road",
+      "zipcode": 10270
+    },
+    "notes": "Herbal and OTC products"
+  },
+  {
+    "supplier_id": 6,
+    "supplier_name": "Metro Drug Supply",
+    "contact_person": "Sirinapa J.",
+    "phone": "095-222-3333",
+    "email": "contact@metrodrug.com",
+    "address": {
+      "building": "Metro Drug Office",
+      "street": "Rama IX Road",
+      "zipcode": 10310
+    },
+    "notes": "Fast delivery in metro area"
+  },
+  {
+    "supplier_id": 7,
+    "supplier_name": "MedCare Wholesale",
+    "contact_person": "Worawut Tan",
+    "phone": "083-444-5555",
+    "email": "wholesale@medcare.com",
+    "address": {
+      "building": "MedCare Warehouse",
+      "street": "Asia Road",
+      "zipcode": 13000
+    },
+    "notes": "Bulk order specialist"
+  },
+  {
+    "supplier_id": 8,
+    "supplier_name": "BioPharm Asia",
+    "contact_person": "Kanya R.",
+    "phone": "087-666-7777",
+    "email": "admin@biopharmasia.com",
+    "address": {
+      "building": "BioPharm Lab",
+      "street": "Sukhumvit Road",
+      "zipcode": 20150
+    },
+    "notes": "Biotech and vaccines"
+  },
+  {
+    "supplier_id": 9,
+    "supplier_name": "Unity Medical Trading",
+    "contact_person": "Thanawat P.",
+    "phone": "092-888-9999",
+    "email": "sales@unitymed.com",
+    "address": {
+      "building": "Unity Medical Office",
+      "street": "Mittraphap Road",
+      "zipcode": 40000
+    },
+    "notes": "Regional distributor"
+  },
+  {
+    "supplier_id": 10,
+    "supplier_name": "Central Pharma Network",
+    "contact_person": "Arisa M.",
+    "phone": "090-123-4567",
+    "email": "info@centralpharma.com",
+    "address": {
+      "building": "Central Pharma HQ",
+      "street": "Phahonyothin Road",
+      "zipcode": 10900
+    },
+    "notes": "Nationwide supplier"
+  }
+]

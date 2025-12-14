@@ -16,7 +16,9 @@ const supplierNameInput = document.getElementById("supplierNameInput");
 const contactNameInput = document.getElementById("contactNameInput");
 const phoneInput = document.getElementById("phoneInput");
 const emailInput = document.getElementById("emailInput");
-const addressInput = document.getElementById("addressInput");
+const buildingInput = document.getElementById("buildingInput");
+const streetInput = document.getElementById("streetInput");
+const zipcodeInput = document.getElementById("zipcodeInput");
 const notesInput = document.getElementById("notesInput");
 
 const cancelEditBtn = document.getElementById("cancelEditBtn");
@@ -26,6 +28,12 @@ const supplierIdHidden = document.getElementById("supplierId");
 let allSuppliers = [];
 
 const supplierTableBody = document.getElementById("supplierTableBody");
+const formatAddress = (address) => {
+  if (!address) return "-";
+  if (typeof address === "string") return address || "-";
+  const parts = [address.building, address.street, address.zipcode].filter(Boolean);
+  return parts.length ? parts.join(", ") : "-";
+};
 
 // -----------------------------
 // Fetch suppliers from backend
@@ -50,7 +58,9 @@ function clearSupplierForm() {
   contactNameInput.value = "";
   phoneInput.value = "";
   emailInput.value = "";
-  addressInput.value = "";
+  buildingInput.value = "";
+  streetInput.value = "";
+  zipcodeInput.value = "";
   notesInput.value = "";
   formTitle.textContent = "Add Supplier";
 }
@@ -61,7 +71,20 @@ function fillFormForEdit(supplier) {
   contactNameInput.value = supplier.contact_person || "";
   phoneInput.value = supplier.phone || "";
   emailInput.value = supplier.email || "";
-  addressInput.value = supplier.address || "";
+  const address = supplier.address;
+  if (address && typeof address === "object") {
+    buildingInput.value = address.building || "";
+    streetInput.value = address.street || "";
+    zipcodeInput.value = address.zipcode || "";
+  } else if (typeof address === "string") {
+    buildingInput.value = address || "";
+    streetInput.value = "";
+    zipcodeInput.value = "";
+  } else {
+    buildingInput.value = "";
+    streetInput.value = "";
+    zipcodeInput.value = "";
+  }
   notesInput.value = supplier.notes || "";
   formTitle.textContent = "Edit Supplier";
 }
@@ -152,9 +175,9 @@ function showSupplierInformation(supplier, medicines = []) {
       <p><span class="font-semibold">Email:</span> ${
         supplier.email || "-"
       }</p>
-      <p><span class="font-semibold">Address:</span> ${
-        supplier.address || "-"
-      }</p>
+      <p><span class="font-semibold">Address:</span> ${formatAddress(
+        supplier.address
+      )}</p>
       <p><span class="font-semibold">Notes:</span> ${
         supplier.notes || "-"
       }</p>
@@ -231,14 +254,26 @@ async function submitSupplierForm(event) {
   const contact_person = contactNameInput.value.trim();
   const phone = phoneInput.value.trim();
   const email = emailInput.value.trim();
-  const address = addressInput.value.trim();
+  const building = buildingInput.value.trim();
+  const street = streetInput.value.trim();
+  const zipcode = zipcodeInput.value.trim();
   const notes = notesInput.value.trim();
 
   // -------------------------
   // Frontend validation
   // -------------------------
-  if (!supplier_name || !contact_person || !phone || !email || !address) {
-    alert("กรุณากรอกข้อมูลให้ครบ: ชื่อบริษัท, ชื่อผู้ติดต่อ, เบอร์โทร, อีเมล และที่อยู่");
+  if (
+    !supplier_name ||
+    !contact_person ||
+    !phone ||
+    !email ||
+    !building ||
+    !street ||
+    !zipcode
+  ) {
+    alert(
+      "กรุณากรอกข้อมูลให้ครบ: ชื่อบริษัท, ชื่อผู้ติดต่อ, เบอร์โทร, อีเมล และที่อยู่ (อาคาร, ถนน, รหัสไปรษณีย์)"
+    );
     return;
   }
 
@@ -261,7 +296,11 @@ async function submitSupplierForm(event) {
     contact_person,
     phone,
     email,
-    address,
+    address: {
+      building,
+      street,
+      zipcode,
+    },
     notes,
   };
 
